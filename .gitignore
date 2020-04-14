@@ -1,5 +1,8 @@
 ﻿venv/
 __pycache__/
 tmp/
-*.db
+#*.db
 #*.txt
+config.json
+*test_config.json
+*flyway.conf
