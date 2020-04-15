@@ -6,20 +6,21 @@ from datetime import datetime
 
 import os, sys
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from schemas.tags import tag_add_update_schema
+from schemas.tags import tag_add_schema, tag_update_schema
 from .util import row_proxy_to_dict, error_json
 
 
 async def add(request):
     data = await request.json()
     try:
-        validate(instance = data, schema = tag_add_update_schema)
+        validate(instance = data, schema = tag_add_schema)
     except ValidationError as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
     async with request.app["engine"].acquire() as conn:
         data.pop("tag_id", None) # use db autogeneration for the primary key
         data["created_at"] = datetime.utcnow()
+        data["tag_description"] = data.get("tag_description")
         tags = request.app["tables"]["tags"]
 
         try:        
@@ -31,7 +32,7 @@ async def add(request):
             record = await result.fetchone()
             return web.json_response(row_proxy_to_dict(record))
         except UniqueViolation as e:
-            raise web.HTTPBadRequest(text = error_json("Submitted tag already exists."), content_type = "application/json")
+            raise web.HTTPBadRequest(text = error_json("Submitted tag name already exists."), content_type = "application/json")
 
 
 async def update(request):
