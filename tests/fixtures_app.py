@@ -20,12 +20,18 @@ async def cli(loop, aiohttp_client, app):
 
 
 @pytest.fixture
-async def app(loop, db_and_user, config):
+async def app(loop, db_and_user, db_cursor, config):
     """
     aiohttp web.Application object with its own configured test database.
     """
     db_and_user(apply_migrations = True)
-    return await create_app(config = config)
+    yield await create_app(config = config)
+
+    cursor = db_cursor()
+    schema = config["db"]["db_schema"]
+    
+    for table in ("tags",):
+        cursor.execute(f"DELETE FROM {schema}.{table}")
 
 
 @pytest.fixture(scope = "module")
