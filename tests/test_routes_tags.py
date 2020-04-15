@@ -3,12 +3,14 @@ routes/tags.py tests
 """
 from copy import deepcopy
 import os
+from psycopg2.extensions import AsIs
+from datetime import datetime
 
 from fixtures_app import *
 from fixtures_tags import *
 
 
-async def test_add_tag(cli, db_cursor, config):
+async def test_add(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
 
     # Check required elements
@@ -55,6 +57,59 @@ async def test_add_tag(cli, db_cursor, config):
     # Add an existing tag_name
     resp = await cli.post("/tags/add", json = test_tag)
     assert resp.status == 400
+
+
+async def test_update(cli, db_cursor, config):
+    cursor = db_cursor(apply_migrations = True)
+    table = config["db"]["db_schema"] + ".tags"
+    created_at = datetime.utcnow()
+
+    # Insert mock value
+    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s), (2, %s, %s, %s)",
+                (AsIs(table), 
+                created_at, test_tag["tag_name"], test_tag["tag_description"],
+                created_at, test_tag2["tag_name"], test_tag2["tag_description"])
+                )
+    
+    # Check required elements
+    tag = {}
+    resp = await cli.put("/tags/update/1", json = tag)
+    assert resp.status == 400
+
+    # Unallowed elements (tag_id is sent as a part of URL)
+    tag = deepcopy(test_tag)
+    resp = await cli.put("/tags/update/1", json = tag)
+    assert resp.status == 400
+
+    # Incorrect values
+    for k, v in incorrect_tag_values:
+        if k != "tag_id":
+            tag = deepcopy(test_tag)
+            tag[k] = v
+            tag.pop("tag_id", None)
+            resp = await cli.put("/tags/update/1", json = tag)
+            assert resp.status == 400
+    
+    # Non-existing tag_id
+    resp = await cli.put("/tags/update/asd", json = tag)
+    assert resp.status == 404
+
+    resp = await cli.put("/tags/update/999999", json = tag)
+    assert resp.status == 404
+
+    # Already existing tag_name
+    tag = deepcopy(test_tag2)
+    tag.pop("tag_id")
+    resp = await cli.put("/tags/update/1", json = tag)
+    assert resp.status == 400
+
+    # Correct update
+    tag = deepcopy(test_tag3)
+    tag.pop("tag_id")
+    resp = await cli.put("/tags/update/1", json = tag)
+    assert resp.status == 200
+    cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
+    assert cursor.fetchone() == (tag["tag_name"],)
 
 
 if __name__ == "__main__":

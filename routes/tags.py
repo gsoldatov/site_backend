@@ -36,7 +36,42 @@ async def add(request):
 
 
 async def update(request):
-    pass
+    async with request.app["engine"].acquire() as conn:
+        tags = request.app["tables"]["tags"]
+
+        # Check if tag_id exists
+        tag_id = request.match_info["id"]
+        try:
+            tag_id = int(tag_id)
+            if tag_id < 1:
+                raise ValueError
+
+            result = await conn.execute(tags.select().where(tags.c.tag_id == tag_id))
+            if not await result.fetchone():
+                raise ValueError
+        except ValueError:
+            raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+
+        # Validate request data
+        data = await request.json()
+        try:
+            validate(instance = data, schema = tag_update_schema)
+        except ValidationError as e:
+            raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+
+        # Update the tag
+        try:
+            result = await conn.execute(tags.update().\
+                where(tags.c.tag_id == tag_id).\
+                values(data).\
+                returning(tags.c.tag_id, tags.c.created_at,
+                        tags.c.tag_name, tags.c.tag_description)
+                
+                )
+            record = await result.fetchone()
+            return web.json_response(row_proxy_to_dict(record))
+        except UniqueViolation as e:
+            raise web.HTTPBadRequest(text = error_json(f"tag_name \'{data['tag_name']}\' already exists."), content_type = "application/json")
 
 
 async def delete(request):
