@@ -1,4 +1,4 @@
-__all__ = ["test_tag", "test_tag2", "incorrect_tag_values"]
+__all__ = ["test_tag", "test_tag2", "test_tag3", "incorrect_tag_values"]
 
 test_tag = {
     "tag_id": 1,
@@ -10,6 +10,12 @@ test_tag2 = {
     "tag_id": 2,
     "tag_name": "movies",
     "tag_description": "Everything related to movies"
+}
+
+test_tag3 = {
+    "tag_id": 3,
+    "tag_name": "books",
+    "tag_description": "Everything related to books"
 }
 
 incorrect_tag_values = [
