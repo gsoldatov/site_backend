@@ -20,3 +20,23 @@ def error_json(e):
     if isinstance(e, Exception):
         msg = e.message
     return json.dumps({"_error": msg})
+
+
+async def check_if_tag_id_exists(request, tag_id):
+    """
+    Returns True if tag_id exists in the database of False otherwise.
+    """
+    async with request.app["engine"].acquire() as conn:
+        try:
+            tag_id = int(tag_id)
+            if tag_id < 1:
+                raise ValueError
+            
+            tags = request.app["tables"]["tags"]
+            result = await conn.execute(tags.select().where(tags.c.tag_id == tag_id))
+            if not await result.fetchone():
+                raise ValueError
+
+            return True
+        except ValueError:
+            return False

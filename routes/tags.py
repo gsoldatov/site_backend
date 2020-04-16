@@ -7,7 +7,7 @@ from datetime import datetime
 import os, sys
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from schemas.tags import tag_add_schema, tag_update_schema
-from .util import row_proxy_to_dict, error_json
+from .util import row_proxy_to_dict, error_json, check_if_tag_id_exists
 
 
 async def add(request):
@@ -41,15 +41,7 @@ async def update(request):
 
         # Check if tag_id exists
         tag_id = request.match_info["id"]
-        try:
-            tag_id = int(tag_id)
-            if tag_id < 1:
-                raise ValueError
-
-            result = await conn.execute(tags.select().where(tags.c.tag_id == tag_id))
-            if not await result.fetchone():
-                raise ValueError
-        except ValueError:
+        if not await check_if_tag_id_exists(request, tag_id):
             raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
         # Validate request data
