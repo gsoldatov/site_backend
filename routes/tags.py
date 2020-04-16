@@ -52,6 +52,8 @@ async def update(request):
             raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
         # Update the tag
+        data["tag_name"] = data.get("tag_name")
+        data["tag_description"] = data.get("tag_description")
         try:
             result = await conn.execute(tags.update().\
                 where(tags.c.tag_id == tag_id).\
