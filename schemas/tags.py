@@ -1,7 +1,7 @@
 tag_add_schema = {
     "type": "object",
     "anyOf": [
-        {"required": ["tag_id"]},
+        {"required": ["tag_id", "tag_name"]},
         {"required": ["tag_name"]}
     ],
     "additionalProperties": False,
