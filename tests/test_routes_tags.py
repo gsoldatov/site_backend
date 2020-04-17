@@ -91,10 +91,14 @@ async def test_update(cli, db_cursor, config):
             assert resp.status == 400
     
     # Non-existing tag_id
+    tag = deepcopy(test_tag3)
+    tag.pop("tag_id")
     resp = await cli.put("/tags/update/asd", json = tag)
     assert resp.status == 404
 
     resp = await cli.put("/tags/update/999999", json = tag)
+    print(tag) #####
+    print(await resp.json()) #######
     assert resp.status == 404
 
     # Already existing tag_name
