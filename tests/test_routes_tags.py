@@ -112,5 +112,33 @@ async def test_update(cli, db_cursor, config):
     assert cursor.fetchone() == (tag["tag_name"],)
 
 
+async def test_delete(cli, db_cursor, config):
+    cursor = db_cursor(apply_migrations = True)
+    table = config["db"]["db_schema"] + ".tags"
+    created_at = datetime.utcnow()
+
+    # Insert mock value
+    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s), (2, %s, %s, %s)",
+                (AsIs(table), 
+                created_at, test_tag["tag_name"], test_tag["tag_description"],
+                created_at, test_tag2["tag_name"], test_tag2["tag_description"])
+                )
+    
+    # Non-existing tag_id
+    resp = await cli.delete("/tags/delete/asd")
+    assert resp.status == 404
+
+    resp = await cli.delete("/tags/delete/999999")
+    assert resp.status == 404
+
+    # Correct delete
+    resp = await cli.delete("/tags/delete/1")
+    assert resp.status == 200
+    cursor.execute(f"SELECT tag_id FROM {table}")
+    assert cursor.fetchone() == (2,)
+    assert not cursor.fetchone()
+    
+
+
 if __name__ == "__main__":
     os.system(f'pytest "{os.path.abspath(__file__)}" -v')

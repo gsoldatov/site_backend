@@ -69,7 +69,22 @@ async def update(request):
 
 
 async def delete(request):
-    pass
+    # Check if tag_id exists
+    tag_id = request.match_info["id"]
+    if not await check_if_tag_id_exists(request, tag_id):
+        raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+
+    async with request.app["engine"].acquire() as conn:
+        tags = request.app["tables"]["tags"]
+
+        # Delete the tag
+        result = await conn.execute(tags.delete().\
+            where(tags.c.tag_id == tag_id).\
+            returning(tags.c.tag_id)
+            
+            )
+        record = await result.fetchone()
+        return web.json_response(row_proxy_to_dict(record))
 
 
 async def view(request):
