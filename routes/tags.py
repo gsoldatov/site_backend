@@ -36,13 +36,13 @@ async def add(request):
 
 
 async def update(request):
+    # Check if tag_id exists
+    tag_id = request.match_info["id"]
+    if not await check_if_tag_id_exists(request, tag_id):
+        raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+    
     async with request.app["engine"].acquire() as conn:
         tags = request.app["tables"]["tags"]
-
-        # Check if tag_id exists
-        tag_id = request.match_info["id"]
-        if not await check_if_tag_id_exists(request, tag_id):
-            raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
         # Validate request data
         data = await request.json()
