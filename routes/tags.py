@@ -3,6 +3,7 @@ from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from datetime import datetime
+from sqlalchemy import select, func
 
 import os, sys
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
@@ -94,7 +95,58 @@ async def delete(request):
 
 
 async def view(request):
-    pass
+    tags = request.app["tables"]["tags"]
+
+    # Get query parameters
+    try:
+        first = int(request.query.get("first"))
+    except (TypeError, ValueError):
+        first = 0
+    
+    try:
+        count = int(request.query.get("count"))
+        count = min(max(count, 1), 500)
+    except (TypeError, ValueError):
+        count = 10
+    
+    order_by = tags.c.created_at if request.query.get("order_by") == "created_at" else tags.c.tag_name
+    asc = False if request.query.get("asc", "true").lower() == "false" else True
+    
+    # Get tags
+    async with request.app["engine"].acquire() as conn:
+        result = await conn.execute(select([tags]).\
+                    order_by(order_by if asc else order_by.desc()).\
+                    limit(count).\
+                    offset(first)
+                    )
+        records = []
+        for row in await result.fetchall():
+            records.append(row_proxy_to_dict(row))
+        
+        # Get tag count
+        result = await conn.execute(select([func.count()]).select_from(tags))
+        total = (await result.fetchone())[0]
+
+        response = {
+            "first": first,
+            "last": first + count - 1,
+            "total": total,
+            "tags": records
+        }   
+        return web.json_response(response)
+    
+
+    # - пагинация:
+    # - параметры:
+    #     - с какого элемента
+    #     - сколько (установить макс. размер)
+    #     - сортировка по (имя или дата создания)
+    #     - порядок сортировки (возр. или убыв.)
+
+    # получить параметры пагинации
+    # сходить в базу за данными
+    # вернуть результат
+    # тесты
 
 
 async def view_all(request):
