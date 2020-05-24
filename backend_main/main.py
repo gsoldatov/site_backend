@@ -1,10 +1,14 @@
+if __name__ == "__main__":
+    import sys, os
+    os.path.insert(0, os.path.dirname(sys.path[0]))
+
 from aiohttp import web
 from aiopg.sa import create_engine
 
-from config import get_config
-from db.cleanup import close_engine
-from db.tables import get_tables
-from routes import setup_routes
+from backend_main.config import get_config
+from backend_main.db.cleanup import close_engine
+from backend_main.db.tables import get_tables
+from backend_main.routes import setup_routes
 
 
 async def create_app(config_file = None, config = None):
@@ -25,7 +29,10 @@ async def create_app(config_file = None, config = None):
 
     return app
 
-
-if __name__ == "__main__":
+def main():
     app = create_app()
     web.run_app(app)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,12 +1,12 @@
 """
 Database fixtures.
 """
-
-import pytest
-import psycopg2
 import os
 import shutil
 import subprocess
+
+import pytest
+import psycopg2
 
 
 __all__ = ["config", "init_db_cursor", "db_cursor", "migration_folder", "db_and_user", "migrate"]
@@ -136,7 +136,8 @@ def migrate(config):
             return
         
         cwd = cwd or os.path.dirname(os.path.abspath(__file__)) + "/migrations"
-        copy_migrations_from = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/db/migrations"
+        # copy_migrations_from = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/db/migrations"
+        copy_migrations_from = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/backend_main/db/migrations"
         
         _cwd = cwd
 

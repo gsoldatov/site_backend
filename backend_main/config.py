@@ -1,8 +1,9 @@
 import os
 import json
+
 from jsonschema import validate
 
-from schemas.config import config_schema
+from backend_main.schemas.config import config_schema
 
 
 def get_config(config_file = None):

@@ -1,14 +1,13 @@
+from datetime import datetime
+
 from aiohttp import web
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
-from datetime import datetime
 from sqlalchemy import select, func
 
-import os, sys
-sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from schemas.tags import tag_add_schema, tag_update_schema
-from .util import row_proxy_to_dict, error_json
+from backend_main.routes.util import row_proxy_to_dict, error_json
+from backend_main.schemas.tags import tag_add_schema, tag_update_schema
 
 
 async def add(request):

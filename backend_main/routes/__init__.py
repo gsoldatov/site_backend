@@ -1,4 +1,4 @@
-from .tags import get_subapp as get_tags_subapp
+from backend_main.routes.tags import get_subapp as get_tags_subapp
 
 
 def setup_routes(app):

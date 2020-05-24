@@ -1,13 +1,15 @@
 """
 config.py tests
 """
-import pytest
-from jsonschema import ValidationError
+import os, sys
 from copy import deepcopy
 
-import os, sys
+import pytest
+from jsonschema import ValidationError
+
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from config import _validate_and_set_values
+
+from backend_main.config import _validate_and_set_values
 from fixtures_app import base_config
 
 

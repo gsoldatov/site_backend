@@ -1,14 +1,15 @@
 """
 App and config fixtures
 """
+import os, sys
+import json
 
 import pytest
 from aiohttp.pytest_plugin import loop, aiohttp_client
-import json
 
-import os, sys
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from app import create_app
+
+from backend_main.main import create_app
 
 
 __all__ = ["base_config", "config", "app", "cli", "init_db_cursor", "db_cursor", "migrate", "db_and_user"]

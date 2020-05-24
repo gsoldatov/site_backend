@@ -1,11 +1,14 @@
 """
 db/cleanup.py tests
 """
-import pytest
-from fixtures_app import *
 import os, sys
+
+import pytest
+
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from db.cleanup import close_engine
+
+from backend_main.db.cleanup import close_engine
+from fixtures_app import *
 
 
 async def test_cleanup(app):

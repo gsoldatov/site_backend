@@ -1,13 +1,15 @@
 """
 db/init_db.py tests
 """
+import os, sys
+import shutil
+
 import pytest
 from sqlalchemy import Table
 
-import os, sys, shutil
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from db.tables import get_tables
 
+from backend_main.db.tables import get_tables
 from fixtures_db import config, init_db_cursor, db_cursor, db_and_user, migrate
 
 

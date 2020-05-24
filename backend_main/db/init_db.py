@@ -1,12 +1,15 @@
 """
 Database initialization + migration module.
 """
-import psycopg2
-import os,sys
-sys.path.insert(0, os.path.join(sys.path[0], '..'))
-
-from config import get_config
+import os, sys
 import subprocess
+
+import psycopg2
+
+if __name__ == "__main__":
+    os.path.insert(0, os.path.dirname(os.path.dirname(sys.path[0])))
+
+from backend_main.config import get_config
     
 
 def connect(host, port, database, user, password):

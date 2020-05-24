@@ -4,6 +4,7 @@ Utility functions.
 from datetime import datetime
 import json
 
+
 def row_proxy_to_dict(row_proxy):
     """
     Converts SQLAlchemy RowProxy object into dict.

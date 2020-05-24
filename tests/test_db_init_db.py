@@ -1,12 +1,15 @@
 """
 db/init_db.py tests
 """
+import os, sys
+import shutil
+
 import pytest
 import psycopg2
 
-import os, sys, shutil
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-from db.init_db import (connect, disconnect, create_user, create_db,
+
+from backend_main.db.init_db import (connect, disconnect, create_user, create_db,
                         create_schema, create_flyway_conf, migrate_db)
 from fixtures_db import *
 

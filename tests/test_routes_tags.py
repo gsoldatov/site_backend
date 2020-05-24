@@ -1,10 +1,11 @@
 """
 routes/tags.py tests
 """
-from copy import deepcopy
 import os
-from psycopg2.extensions import AsIs
 from datetime import datetime
+from copy import deepcopy
+
+from psycopg2.extensions import AsIs
 
 from fixtures_app import *
 from fixtures_tags import *
