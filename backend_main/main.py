@@ -1,6 +1,6 @@
 if __name__ == "__main__":
     import sys, os
-    os.path.insert(0, os.path.dirname(sys.path[0]))
+    sys.path.insert(0, os.path.dirname(sys.path[0]))
 
 from aiohttp import web
 from aiopg.sa import create_engine
