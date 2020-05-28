@@ -13,7 +13,8 @@ from backend_main.config import _validate_and_set_values
 from fixtures_app import base_config
 
 
-setting_groups = ["db"]
+setting_groups = ["app", "db"]
+required_app_settings = ["host", "port"]
 required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
                         "db_init_password", "db_database", "db_schema"]
 
@@ -31,7 +32,21 @@ def test_setting_groups(base_config):
             config.pop(group)
             with pytest.raises(ValidationError):
                 _validate_and_set_values(config)
+
+def test_app_config(base_config):
+    # Check lack of required app setting
+    for setting in required_app_settings:
+        config = deepcopy(base_config)
+        config["app"].pop(setting)
+        with pytest.raises(ValidationError):
+            _validate_and_set_values(config)
     
+    # Check incorrect setting values
+    for setting in required_app_settings:
+        config = deepcopy(base_config)
+        config["app"][setting] = "" if setting == "host" else 0
+        with pytest.raises(ValidationError):
+            _validate_and_set_values(config)
 
 
 def test_db_config(base_config):

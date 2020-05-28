@@ -47,6 +47,10 @@ def config():
 @pytest.fixture
 def base_config():
     return {
+    "app": {
+        "host": "localhost",
+        "port": 55555
+    },
     "db": {
         "db_host": "localhost",
         "db_port": 5432,

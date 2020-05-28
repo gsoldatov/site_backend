@@ -1,7 +1,23 @@
 config_schema = {
     "type": "object",
-    "required": ["db"],
+    "required": ["app", "db"],
     "properties": {
+        "app": {
+            "type": "object",
+            "required": ["host", "port"],
+            "properties":{
+                "host": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 1025,
+                    "maximum": 65535
+                }
+            }
+        },
+
         "db": {
             "type": "object",
             "required": [
@@ -23,7 +39,7 @@ config_schema = {
                 },
                 "db_port": {
                     "type": "integer",
-                    "minimum": 1024,
+                    "minimum": 1025,
                     "maximum": 65535
                 },
                 "db_init_database": {
@@ -53,7 +69,7 @@ config_schema = {
                 "db_password": {
                     "type": "string",
                     "minLength": 1
-                },
+                }
             }
         }
     }

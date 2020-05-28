@@ -29,9 +29,11 @@ async def create_app(config_file = None, config = None):
 
     return app
 
+
 def main():
     app = create_app()
-    web.run_app(app)
+    config = get_config()
+    web.run_app(app, host = config["app"]["host"], port = config["app"]["port"])
 
 
 if __name__ == "__main__":
