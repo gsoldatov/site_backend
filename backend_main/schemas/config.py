@@ -1,6 +1,6 @@
 config_schema = {
     "type": "object",
-    "required": ["app", "db"],
+    "required": ["app", "cors_urls", "db"],
     "properties": {
         "app": {
             "type": "object",
@@ -15,6 +15,14 @@ config_schema = {
                     "minimum": 1025,
                     "maximum": 65535
                 }
+            }
+        },
+
+        "cors_urls": {
+            "type": "array",
+            "minItems": 1,
+            "items" : {
+                "type": "string"
             }
         },
 

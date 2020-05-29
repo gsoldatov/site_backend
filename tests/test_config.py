@@ -13,7 +13,7 @@ from backend_main.config import _validate_and_set_values
 from fixtures_app import base_config
 
 
-setting_groups = ["app", "db"]
+setting_groups = ["app", "cors_urls", "db"]
 required_app_settings = ["host", "port"]
 required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
                         "db_init_password", "db_database", "db_schema"]
@@ -45,6 +45,15 @@ def test_app_config(base_config):
     for setting in required_app_settings:
         config = deepcopy(base_config)
         config["app"][setting] = "" if setting == "host" else 0
+        with pytest.raises(ValidationError):
+            _validate_and_set_values(config)
+
+
+def test_cors_urls(base_config):
+    # Check empty list and incorrect types
+    for incorrect_cors_urls in [123, [], [123]]:
+        config = deepcopy(base_config)
+        config["cors_urls"] = incorrect_cors_urls
         with pytest.raises(ValidationError):
             _validate_and_set_values(config)
 

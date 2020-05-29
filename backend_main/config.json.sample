@@ -1,4 +1,11 @@
 {
+    "app": {
+        "host": "localhost",
+        "port": 42002
+    },
+
+    "cors_urls": ["http://localhost:8080"],
+    
     "db": {
         "db_host": "localhost",
         "db_port": 5432,

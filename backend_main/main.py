@@ -6,6 +6,7 @@ from aiohttp import web
 from aiopg.sa import create_engine
 
 from backend_main.config import get_config
+from backend_main.cors import setup_cors
 from backend_main.db.cleanup import close_engine
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
@@ -26,6 +27,7 @@ async def create_app(config_file = None, config = None):
 
     app["tables"] = get_tables(app["config"])
     setup_routes(app)
+    setup_cors(app)
 
     return app
 

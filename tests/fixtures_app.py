@@ -51,6 +51,7 @@ def base_config():
         "host": "localhost",
         "port": 55555
     },
+    "cors_urls": ["http://localhost:8080"],
     "db": {
         "db_host": "localhost",
         "db_port": 5432,
