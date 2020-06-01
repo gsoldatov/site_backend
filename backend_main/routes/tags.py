@@ -17,7 +17,9 @@ async def add(request):
     try:
         validate(instance = data, schema = tag_add_schema)
         data.pop("tag_id", None) # use db autogeneration for the primary key
-        data["created_at"] = datetime.utcnow()
+        current_time = datetime.utcnow()
+        data["created_at"] = current_time
+        data["modified_at"] = current_time
         data["tag_description"] = data.get("tag_description")
     except ValidationError as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
@@ -49,6 +51,7 @@ async def update(request):
             validate(instance = data, schema = tag_update_schema)
             data["tag_name"] = data.get("tag_name")
             data["tag_description"] = data.get("tag_description")
+            data["modified_at"] = datetime.utcnow()
         except ValidationError as e:
             raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
         

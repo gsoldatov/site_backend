@@ -64,12 +64,13 @@ async def test_update(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
     created_at = datetime.utcnow()
+    modified_at = created_at
 
     # Insert mock value
-    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s), (2, %s, %s, %s)",
+    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
                 (AsIs(table), 
-                created_at, test_tag["tag_name"], test_tag["tag_description"],
-                created_at, test_tag2["tag_name"], test_tag2["tag_description"])
+                created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
+                created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"])
                 )
     
     # Check required elements
@@ -98,8 +99,6 @@ async def test_update(cli, db_cursor, config):
     assert resp.status == 404
 
     resp = await cli.put("/tags/update/999999", json = tag)
-    print(tag) #####
-    print(await resp.json()) #######
     assert resp.status == 404
 
     # Already existing tag_name
@@ -121,12 +120,13 @@ async def test_delete(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
     created_at = datetime.utcnow()
+    modified_at = created_at
 
     # Insert mock value
-    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s), (2, %s, %s, %s)",
+    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
                 (AsIs(table), 
-                created_at, test_tag["tag_name"], test_tag["tag_description"],
-                created_at, test_tag2["tag_name"], test_tag2["tag_description"])
+                created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
+                created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"])
                 )
     
     # Non-existing tag_id
@@ -154,7 +154,7 @@ async def test_view(cli, db_cursor, config):
     
     # Insert data
     cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s)" for _ in range(len(tag_list))))
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tag_list))))
     table = config["db"]["db_schema"] + ".tags"
     params = [AsIs(table)]
     for t in tag_list:
@@ -171,7 +171,7 @@ async def test_view(cli, db_cursor, config):
     assert data["last"] == 9
     assert data["total"] == 10
 
-    for element in ("tag_id", "created_at", "tag_name", "tag_description"):     # response contains expected tag data
+    for element in ("tag_id", "created_at", "modified_at", "tag_name", "tag_description"):     # response contains expected tag data
         assert element in data["tags"][0]
     tag_ids = [tag_list[x]["tag_id"] for x in range(len(tag_list))]
     resp_tag_ids = get_response_tag_properties_as_list(data)

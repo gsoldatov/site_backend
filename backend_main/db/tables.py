@@ -13,6 +13,7 @@ def get_tables(config):
             meta,
             Column("tag_id", Integer, primary_key = True, server_default = FetchedValue()),
             Column("created_at", DateTime, nullable = False),
+            Column("modified_at", DateTime, nullable = False),
             Column("tag_name", String(255), nullable = False, unique = True),
             Column("tag_description", Text)
         ),
