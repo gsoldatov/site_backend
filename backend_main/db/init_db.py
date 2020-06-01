@@ -7,7 +7,7 @@ import subprocess
 import psycopg2
 
 if __name__ == "__main__":
-    os.path.insert(0, os.path.dirname(os.path.dirname(sys.path[0])))
+    sys.path.insert(0, os.path.dirname(os.path.dirname(sys.path[0])))
 
 from backend_main.config import get_config
     
@@ -23,8 +23,8 @@ def connect(host, port, database, user, password):
 def disconnect(cursor):
     if cursor:
         if cursor.connection:
-            cursor.close();
-            cursor.connection.close();
+            cursor.close()
+            cursor.connection.close()
 
 
 def create_user(cursor, user, password):
