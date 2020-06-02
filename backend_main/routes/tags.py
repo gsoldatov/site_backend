@@ -30,7 +30,7 @@ async def add(request):
 
         try:        
             result = await conn.execute(tags.insert().\
-                returning(tags.c.tag_id, tags.c.created_at,
+                returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                         tags.c.tag_name, tags.c.tag_description).\
                 values(data)
                 )
@@ -60,7 +60,7 @@ async def update(request):
             result = await conn.execute(tags.update().\
                 where(tags.c.tag_id == tag_id).\
                 values(data).\
-                returning(tags.c.tag_id, tags.c.created_at,
+                returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                         tags.c.tag_name, tags.c.tag_description)
                 
                 )
