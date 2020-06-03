@@ -39,3 +39,20 @@ tag_update_schema = {
         }
     }
 }
+
+tag_view_schema = {
+    "type": "object",
+    "required": ["tag_ids"],
+    "additionalProperties": False,
+    "properties": {
+        "tag_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10000,
+            "items" : {
+                "type": "integer",
+                "minimum": 1
+            }
+        }
+    }
+}

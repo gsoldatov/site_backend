@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from copy import deepcopy
 
+import pytest
 from psycopg2.extensions import AsIs
 
 from fixtures_app import *
@@ -143,7 +144,48 @@ async def test_delete(cli, db_cursor, config):
     assert cursor.fetchone() == (2,)
     assert not cursor.fetchone()
  
- 
+
+async def test_view(cli, db_cursor, config):
+    # Insert data
+    cursor = db_cursor(apply_migrations = True)
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tag_list))))
+    table = config["db"]["db_schema"] + ".tags"
+    params = [AsIs(table)]
+    for t in tag_list:
+        params.extend(t.values())
+    cursor.execute(query, params)
+
+    # Incorrect request body
+    for payload in [{}, {"tag_ids": []}, {"tag_ids": [1, -1]}, {"tag_ids": [1, "abc"]}]:
+        resp = await cli.post("/tags/view", json = payload)
+        assert resp.status == 400
+    
+    # Non-existing ids
+    resp = await cli.post("/tags/view", json = {"tag_ids": [999, 1000]})
+    assert resp.status == 404
+
+    # Correct request
+    resp = await cli.post("/tags/view", json = {"tag_ids": [_ for _ in range(1, 11)]})
+    assert resp.status == 200
+    data = await resp.json()
+    assert "tags" in data
+
+    expected_tag_ids = [_ for _ in range(1, 11)]
+    for x in range(len(data["tags"])):
+        try:
+            expected_tag_ids.remove(data["tags"][x]["tag_id"])
+        except KeyError:
+            pytest.fail(f"tag_id = {x} not found in response body")
+    assert len(expected_tag_ids) == 0
+        
+    for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at"):
+        assert field in data["tags"][0]
+
+
+"""
+# Old version with date/name sort and pagination support; replaced a route 
+# which returns a list of tags by their ids
+# Tests may fail because of tag_id generation change in tag_list fixture (0..9 -> 1..10)
 async def test_view(cli, db_cursor, config):
     def get_response_tag_properties_as_list(response_json, prop = "tag_id"):
         return [response_json["tags"][x][prop] for x in range(len(response_json["tags"]))]
@@ -215,6 +257,7 @@ async def test_view(cli, db_cursor, config):
     assert resp.status == 200
     data = await resp.json()
     assert get_response_tag_properties_as_list(data, "tag_name") == tag_list_names_sorted_by_created_at_desc
+"""
 
 
 if __name__ == "__main__":

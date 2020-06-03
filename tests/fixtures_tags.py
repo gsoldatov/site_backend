@@ -27,7 +27,7 @@ incorrect_tag_values = [
 ]
 
 tag_list = [{
-        "tag_id": x,
+        "tag_id": x + 1,
         "created_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
         "modified_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
         "tag_name": chr(ord("a") + x),

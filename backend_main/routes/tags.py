@@ -7,7 +7,7 @@ from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.routes.util import row_proxy_to_dict, error_json
-from backend_main.schemas.tags import tag_add_schema, tag_update_schema
+from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_schema
 
 
 async def add(request):
@@ -98,6 +98,34 @@ async def delete(request):
 
 async def view(request):
     tags = request.app["tables"]["tags"]
+    data = await request.json()
+
+    # Validate request data
+    try:
+        validate(instance = data, schema = tag_view_schema)
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+
+    # Query tags
+    async with request.app["engine"].acquire() as conn:
+        result = await conn.execute(select([tags]).\
+                    where(tags.c.tag_id.in_(data["tag_ids"]))
+                    )
+        records = []
+        for row in await result.fetchall():
+            records.append(row_proxy_to_dict(row))
+        
+        if len(records) == 0:
+            raise web.HTTPNotFound(text = error_json("Requested tags not found."), content_type = "application/json")
+        
+        response = {"tags": records}
+        return web.json_response(response)
+
+"""
+# Old version with date/name sort and pagination support; replaced a route 
+# which returns a list of tags by their ids
+async def view(request):
+    tags = request.app["tables"]["tags"]
 
     # Get query parameters
     try:
@@ -136,20 +164,7 @@ async def view(request):
             "tags": records
         }   
         return web.json_response(response)
-    
-
-    # - пагинация:
-    # - параметры:
-    #     - с какого элемента
-    #     - сколько (установить макс. размер)
-    #     - сортировка по (имя или дата создания)
-    #     - порядок сортировки (возр. или убыв.)
-
-    # получить параметры пагинации
-    # сходить в базу за данными
-    # вернуть результат
-    # тесты
-
+"""
 
 async def view_all(request):
     pass
@@ -177,7 +192,7 @@ def get_subapp():
                     web.post("/add", add, name = "add"),
                     web.put("/update/{id}", update, name = "update"),
                     web.delete("/delete/{id}", delete, name = "delete"),
-                    web.get("/view", view, name = "view"),
+                    web.post("/view", view, name = "view"),
                     web.get("/view/all", view_all, name = "view_all"),
                     web.put("/merge", merge, name = "merge"),
                     web.post("/link/{type}", link, name = "link"),
