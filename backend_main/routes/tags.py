@@ -16,11 +16,9 @@ async def add(request):
         # Validate request data and add missing values
         data = await request.json()
         validate(instance = data, schema = tag_add_schema)
-        data.pop("tag_id", None) # use db autogeneration for the primary key
         current_time = datetime.utcnow()
-        data["created_at"] = current_time
-        data["modified_at"] = current_time
-        data["tag_description"] = data.get("tag_description")
+        data["tag"]["created_at"] = current_time
+        data["tag"]["modified_at"] = current_time
 
         # Add the tag
         async with request.app["engine"].acquire() as conn:
@@ -28,10 +26,10 @@ async def add(request):
             result = await conn.execute(tags.insert().\
                 returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                         tags.c.tag_name, tags.c.tag_description).\
-                values(data)
+                values(data["tag"])
                 )
             record = await result.fetchone()
-            return web.json_response(row_proxy_to_dict(record))
+            return web.json_response({"tag": row_proxy_to_dict(record)})
     
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
