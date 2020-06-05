@@ -67,51 +67,49 @@ async def test_update(cli, db_cursor, config):
     created_at = datetime.utcnow()
     modified_at = created_at
 
-    # Insert mock value
+    # Insert mock values
     cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
                 (AsIs(table), 
                 created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
                 created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"])
                 )
     
-    # Check required elements
-    tag = {}
-    resp = await cli.put("/tags/update/1", json = tag)
-    assert resp.status == 400
-
-    # Unallowed elements (tag_id is sent as a part of URL)
-    tag = deepcopy(test_tag)
-    resp = await cli.put("/tags/update/1", json = tag)
-    assert resp.status == 400
-
-    # Incorrect values
+    # Incorrect request body
+    for payload in ({}, {"test": "wrong attribute"}, {"tag": "wrong value type"}):
+        resp = await cli.put("/tags/update", json = payload)
+        assert resp.status == 400
+    
+    # Missing attributes
+    for attr in ("tag_id", "tag_name", "tag_description"):
+        tag = deepcopy(test_tag)
+        tag.pop(attr)
+        resp = await cli.put("/tags/update", json = {"tag": tag})
+        assert resp.status == 400
+    
+    # Incorrect attribute types and lengths:
     for k, v in incorrect_tag_values:
-        if k != "tag_id":
-            tag = deepcopy(test_tag)
-            tag[k] = v
-            tag.pop("tag_id", None)
-            resp = await cli.put("/tags/update/1", json = tag)
-            assert resp.status == 400
+        tag = deepcopy(test_tag)
+        tag[k] = v
+        resp = await cli.put("/tags/update", json = tag)
+        assert resp.status == 400
     
     # Non-existing tag_id
-    tag = deepcopy(test_tag3)
-    tag.pop("tag_id")
-    resp = await cli.put("/tags/update/asd", json = tag)
+    tag = deepcopy(test_tag)
+    tag["tag_id"] = 100
+    resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 404
 
-    resp = await cli.put("/tags/update/999999", json = tag)
-    assert resp.status == 404
-
-    # Already existing tag_name
+    # Duplicate tag_name
     tag = deepcopy(test_tag2)
-    tag.pop("tag_id")
-    resp = await cli.put("/tags/update/1", json = tag)
+    tag["tag_id"] = 1
+    resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
-
+    # TODO lowercase duplicate
+    
     # Correct update
     tag = deepcopy(test_tag3)
-    tag.pop("tag_id")
-    resp = await cli.put("/tags/update/1", json = tag)
+    tag["tag_id"] = 1
+    resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200
     cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
     assert cursor.fetchone() == (tag["tag_name"],)

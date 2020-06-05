@@ -1,4 +1,5 @@
 from datetime import datetime
+from json.decoder import JSONDecodeError
 
 from aiohttp import web
 from jsonschema import validate
@@ -41,38 +42,70 @@ async def add(request):
 
 
 async def update(request):
-    async with request.app["engine"].acquire() as conn:
-        tag_id = request.match_info["id"]
-        tags = request.app["tables"]["tags"]
-        data = await request.json()
-
+    try:
         # Validate request data and add missing values
-        try:
-            validate(instance = data, schema = tag_update_schema)
-            data["tag_name"] = data.get("tag_name")
-            data["tag_description"] = data.get("tag_description")
-            data["modified_at"] = datetime.utcnow()
-        except ValidationError as e:
-            raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
-        
+        data = await request.json()
+        validate(instance = data, schema = tag_update_schema)
+        data["tag"]["modified_at"] = datetime.utcnow()
+
         # Update the tag
-        try:
+        async with request.app["engine"].acquire() as conn:
+            tags = request.app["tables"]["tags"]
+            tag_id = data["tag"]["tag_id"]
+
             result = await conn.execute(tags.update().\
                 where(tags.c.tag_id == tag_id).\
-                values(data).\
+                values(data["tag"]).\
                 returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                         tags.c.tag_name, tags.c.tag_description)
-                
                 )
+            
             record = await result.fetchone()
             if not record:
-                raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+                raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' not found."), content_type = "application/json")
 
-            return web.json_response(row_proxy_to_dict(record))
-        except UniqueViolation as e:
-            raise web.HTTPBadRequest(text = error_json(f"tag_name \'{data['tag_name']}\' already exists."), content_type = "application/json")
-        except InvalidTextRepresentation:
-            raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+            return web.json_response({"tag": row_proxy_to_dict(record)})
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = "Request must be a valid JSON document.", content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+    except UniqueViolation as e:
+        raise web.HTTPBadRequest(text = error_json(f"Submitted tag name already exists."), content_type = "application/json")
+    # except InvalidTextRepresentation:
+    #     raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+
+    # async with request.app["engine"].acquire() as conn:
+    #     tag_id = request.match_info["id"]
+    #     tags = request.app["tables"]["tags"]
+    #     data = await request.json()
+
+    #     # Validate request data and add missing values
+    #     try:
+    #         validate(instance = data, schema = tag_update_schema)
+    #         data["tag_name"] = data.get("tag_name")
+    #         data["tag_description"] = data.get("tag_description")
+    #         data["modified_at"] = datetime.utcnow()
+    #     except ValidationError as e:
+    #         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+        
+    #     # Update the tag
+    #     try:
+    #         result = await conn.execute(tags.update().\
+    #             where(tags.c.tag_id == tag_id).\
+    #             values(data).\
+    #             returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
+    #                     tags.c.tag_name, tags.c.tag_description)
+                
+    #             )
+    #         record = await result.fetchone()
+    #         if not record:
+    #             raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+
+    #         return web.json_response(row_proxy_to_dict(record))
+    #     except UniqueViolation as e:
+    #         raise web.HTTPBadRequest(text = error_json(f"tag_name \'{data['tag_name']}\' already exists."), content_type = "application/json")
+    #     except InvalidTextRepresentation:
+    #         raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
 
 async def delete(request):
@@ -190,7 +223,7 @@ def get_subapp():
     app = web.Application()
     app.add_routes([
                     web.post("/add", add, name = "add"),
-                    web.put("/update/{id}", update, name = "update"),
+                    web.put("/update", update, name = "update"),
                     web.delete("/delete/{id}", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
                     web.get("/view/all", view_all, name = "view_all"),
