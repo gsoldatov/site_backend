@@ -12,24 +12,19 @@ from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_vie
 
 
 async def add(request):
-    data = await request.json()
-
-    # Validate request data and add missing values
     try:
+        # Validate request data and add missing values
+        data = await request.json()
         validate(instance = data, schema = tag_add_schema)
         data.pop("tag_id", None) # use db autogeneration for the primary key
         current_time = datetime.utcnow()
         data["created_at"] = current_time
         data["modified_at"] = current_time
         data["tag_description"] = data.get("tag_description")
-    except ValidationError as e:
-        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
-    # Add the tag
-    async with request.app["engine"].acquire() as conn:
-        tags = request.app["tables"]["tags"]
-
-        try:        
+        # Add the tag
+        async with request.app["engine"].acquire() as conn:
+            tags = request.app["tables"]["tags"]      
             result = await conn.execute(tags.insert().\
                 returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                         tags.c.tag_name, tags.c.tag_description).\
@@ -37,7 +32,12 @@ async def add(request):
                 )
             record = await result.fetchone()
             return web.json_response(row_proxy_to_dict(record))
-        except UniqueViolation as e:
+    
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+    except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json("Submitted tag name already exists."), content_type = "application/json")
 
 
@@ -65,47 +65,13 @@ async def update(request):
                 raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' not found."), content_type = "application/json")
 
             return web.json_response({"tag": row_proxy_to_dict(record)})
+    
     except JSONDecodeError:
-        raise web.HTTPBadRequest(text = "Request must be a valid JSON document.", content_type = "application/json")
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
     except ValidationError as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
         raise web.HTTPBadRequest(text = error_json(f"Submitted tag name already exists."), content_type = "application/json")
-    # except InvalidTextRepresentation:
-    #     raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
-
-    # async with request.app["engine"].acquire() as conn:
-    #     tag_id = request.match_info["id"]
-    #     tags = request.app["tables"]["tags"]
-    #     data = await request.json()
-
-    #     # Validate request data and add missing values
-    #     try:
-    #         validate(instance = data, schema = tag_update_schema)
-    #         data["tag_name"] = data.get("tag_name")
-    #         data["tag_description"] = data.get("tag_description")
-    #         data["modified_at"] = datetime.utcnow()
-    #     except ValidationError as e:
-    #         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
-        
-    #     # Update the tag
-    #     try:
-    #         result = await conn.execute(tags.update().\
-    #             where(tags.c.tag_id == tag_id).\
-    #             values(data).\
-    #             returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-    #                     tags.c.tag_name, tags.c.tag_description)
-                
-    #             )
-    #         record = await result.fetchone()
-    #         if not record:
-    #             raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
-
-    #         return web.json_response(row_proxy_to_dict(record))
-    #     except UniqueViolation as e:
-    #         raise web.HTTPBadRequest(text = error_json(f"tag_name \'{data['tag_name']}\' already exists."), content_type = "application/json")
-    #     except InvalidTextRepresentation:
-    #         raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
 
 async def delete(request):
@@ -125,34 +91,39 @@ async def delete(request):
                 raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
             return web.json_response(row_proxy_to_dict(record))
+        
         except InvalidTextRepresentation:
             raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
 
 
 async def view(request):
-    tags = request.app["tables"]["tags"]
-    data = await request.json()
-
-    # Validate request data
     try:
+        # Validate request data
+        data = await request.json()
         validate(instance = data, schema = tag_view_schema)
+
+        # Query tags
+        async with request.app["engine"].acquire() as conn:
+            tags = request.app["tables"]["tags"]
+
+            result = await conn.execute(select([tags]).\
+                        where(tags.c.tag_id.in_(data["tag_ids"]))
+                        )
+            records = []
+            for row in await result.fetchall():
+                records.append(row_proxy_to_dict(row))
+            
+            if len(records) == 0:
+                raise web.HTTPNotFound(text = error_json("Requested tags not found."), content_type = "application/json")
+            
+            response = {"tags": records}
+            return web.json_response(response)
+    
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
     except ValidationError as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
-    # Query tags
-    async with request.app["engine"].acquire() as conn:
-        result = await conn.execute(select([tags]).\
-                    where(tags.c.tag_id.in_(data["tag_ids"]))
-                    )
-        records = []
-        for row in await result.fetchall():
-            records.append(row_proxy_to_dict(row))
-        
-        if len(records) == 0:
-            raise web.HTTPNotFound(text = error_json("Requested tags not found."), content_type = "application/json")
-        
-        response = {"tags": records}
-        return web.json_response(response)
 
 """
 # Old version with date/name sort and pagination support; replaced a route 

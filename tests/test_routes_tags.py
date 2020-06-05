@@ -15,6 +15,10 @@ from fixtures_tags import *
 async def test_add(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
 
+    # Incorrect request body
+    resp = await cli.post("/tags/add", data = "not a JSON document.")
+    assert resp.status == 400
+
     # Check required elements
     tag = deepcopy(test_tag)
     tag.pop("tag_id")
@@ -75,6 +79,9 @@ async def test_update(cli, db_cursor, config):
                 )
     
     # Incorrect request body
+    resp = await cli.put("/tags/update", data = "not a JSON document.")
+    assert resp.status == 400
+
     for payload in ({}, {"test": "wrong attribute"}, {"tag": "wrong value type"}):
         resp = await cli.put("/tags/update", json = payload)
         assert resp.status == 400
@@ -104,7 +111,13 @@ async def test_update(cli, db_cursor, config):
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
-    # TODO lowercase duplicate
+    
+    # Lowercase duplicate tag_name
+    tag = deepcopy(test_tag2)
+    tag["tag_id"] = 1
+    tag["tag_name"] = tag["tag_name"].upper()
+    resp = await cli.put("/tags/update", json = {"tag": tag})
+    assert resp.status == 400
     
     # Correct update
     tag = deepcopy(test_tag3)
@@ -154,6 +167,9 @@ async def test_view(cli, db_cursor, config):
     cursor.execute(query, params)
 
     # Incorrect request body
+    resp = await cli.post("/tags/view", data = "not a JSON document.")
+    assert resp.status == 400
+    
     for payload in [{}, {"tag_ids": []}, {"tag_ids": [1, -1]}, {"tag_ids": [1, "abc"]}]:
         resp = await cli.post("/tags/view", json = payload)
         assert resp.status == 400
