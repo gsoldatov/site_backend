@@ -2,6 +2,7 @@
 routes/tags.py tests
 """
 import os
+import json
 from datetime import datetime
 from copy import deepcopy
 
@@ -65,58 +66,6 @@ async def test_add(cli, db_cursor, config):
     # Add an existing tag_name
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 400
-
-
-    # cursor = db_cursor(apply_migrations = True)
-
-    # # Incorrect request body
-    # resp = await cli.post("/tags/add", data = "not a JSON document.")
-    # assert resp.status == 400
-
-    # # Check required elements
-    # tag = deepcopy(test_tag)
-    # tag.pop("tag_id")
-    # tag.pop("tag_name")
-    # resp = await cli.post("/tags/add", json = tag)
-    # assert resp.status == 400
-
-    # # Unallowed elements
-    # tag = deepcopy(test_tag)
-    # tag["unallowed"] = "unallowed"
-    # resp = await cli.post("/tags/add", json = tag)
-    # assert resp.status == 400
-
-    # # Incorrect values
-    # for k, v in incorrect_tag_values:
-    #     tag = deepcopy(test_tag)
-    #     tag[k] = v
-    #     resp = await cli.post("/tags/add", json = tag)
-    #     assert resp.status == 400
-
-    # # Write a correct value with a tag_id
-    # resp = await cli.post("/tags/add", json = test_tag)
-    # assert resp.status == 200
-    # resp_json = await resp.json()
-    # assert test_tag["tag_id"] == resp_json["tag_id"]
-    # assert test_tag["tag_name"] == resp_json["tag_name"]
-    # assert test_tag["tag_description"] == resp_json["tag_description"]
-    # assert "created_at" in resp_json
-
-    # schema = config["db"]["db_schema"]
-    # cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_id = 1")
-    # assert cursor.fetchone() == (test_tag["tag_name"],)
-
-    # # Write a correct value without a tag_id
-    # tag = deepcopy(test_tag2)
-    # tag.pop("tag_id")
-    # resp = await cli.post("/tags/add", json = tag)
-    # assert resp.status == 200
-    # cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_id = 2")
-    # assert cursor.fetchone() == (tag["tag_name"],)
-
-    # # Add an existing tag_name
-    # resp = await cli.post("/tags/add", json = test_tag)
-    # assert resp.status == 400
 
 
 async def test_update(cli, db_cursor, config):
@@ -188,7 +137,45 @@ async def test_delete(cli, db_cursor, config):
     created_at = datetime.utcnow()
     modified_at = created_at
 
-    # Insert mock value
+    # Insert mock values
+    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s), (3, %s, %s, %s, %s)", 
+        (AsIs(table), 
+        created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
+        created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"],
+        created_at, modified_at, test_tag3["tag_name"], test_tag3["tag_description"])
+    )
+    
+    # Incorrect values
+    for value in ["123", {"incorrect_key": "incorrect_value"}, {"tag_ids": "incorrect_value"}, {"tag_ids": []}]:
+        body = value if type(value) == str else json.dumps(value)
+        resp = await cli.delete("/tags/delete", data = body)
+        assert resp.status == 400
+    
+    # Non-existing tag_id
+    resp = await cli.delete("/tags/delete", json = {"tag_ids": [1000, 2000]})
+    assert resp.status == 404
+
+    # Correct deletes
+    resp = await cli.delete("/tags/delete", json = {"tag_ids": [1]})
+    assert resp.status == 200
+    cursor.execute(f"SELECT tag_id FROM {table}")
+    assert cursor.fetchone() == (2,)
+    assert cursor.fetchone() == (3,)
+    assert not cursor.fetchone()
+
+    resp = await cli.delete("/tags/delete", json = {"tag_ids": [2, 3]})
+    assert resp.status == 200
+    cursor.execute(f"SELECT tag_id FROM {table}")
+    assert not cursor.fetchone() 
+
+
+    """
+    cursor = db_cursor(apply_migrations = True)
+    table = config["db"]["db_schema"] + ".tags"
+    created_at = datetime.utcnow()
+    modified_at = created_at
+
+    # Insert mock values
     cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
                 (AsIs(table), 
                 created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
@@ -208,6 +195,7 @@ async def test_delete(cli, db_cursor, config):
     cursor.execute(f"SELECT tag_id FROM {table}")
     assert cursor.fetchone() == (2,)
     assert not cursor.fetchone()
+    """
  
 
 async def test_view(cli, db_cursor, config):

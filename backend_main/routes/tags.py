@@ -8,7 +8,7 @@ from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.routes.util import row_proxy_to_dict, error_json
-from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_schema
+from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_delete_schema
 
 
 async def add(request):
@@ -73,32 +73,39 @@ async def update(request):
 
 
 async def delete(request):
-    tag_id = request.match_info["id"]
-    tags = request.app["tables"]["tags"]
+    try:
+        # Validate request data and add missing values
+        data = await request.json()
+        validate(instance = data, schema = tag_view_delete_schema)
 
-    async with request.app["engine"].acquire() as conn:
-        # Delete the tag
-        try:
+        # Delete tags
+        async with request.app["engine"].acquire() as conn:
+            tags = request.app["tables"]["tags"]
+
             result = await conn.execute(tags.delete().\
-                where(tags.c.tag_id == tag_id).\
-                returning(tags.c.tag_id)
-                
-                )
-            record = await result.fetchone()
-            if not record:
-                raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
-
-            return web.json_response(row_proxy_to_dict(record))
-        
-        except InvalidTextRepresentation:
-            raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' does not exist."), content_type = "application/json")
+                        where(tags.c.tag_id.in_(data["tag_ids"])).\
+                        returning(tags.c.tag_id)
+                        )
+            tag_ids = []
+            for row in await result.fetchall():
+                tag_ids.append(row["tag_id"])
+            
+            if len(tag_ids) == 0:
+                raise web.HTTPNotFound(text = error_json("Tag(s) not found."), content_type = "application/json")
+            
+            response = {"tag_ids": tag_ids}
+            return web.json_response(response)
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
 async def view(request):
     try:
         # Validate request data
         data = await request.json()
-        validate(instance = data, schema = tag_view_schema)
+        validate(instance = data, schema = tag_view_delete_schema)
 
         # Query tags
         async with request.app["engine"].acquire() as conn:
@@ -193,7 +200,7 @@ def get_subapp():
     app.add_routes([
                     web.post("/add", add, name = "add"),
                     web.put("/update", update, name = "update"),
-                    web.delete("/delete/{id}", delete, name = "delete"),
+                    web.delete("/delete", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
                     web.get("/view/all", view_all, name = "view_all"),
                     web.put("/merge", merge, name = "merge"),

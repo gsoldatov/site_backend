@@ -48,7 +48,7 @@ tag_update_schema = {
     }
 }
 
-tag_view_schema = {
+tag_view_delete_schema = {
     "type": "object",
     "required": ["tag_ids"],
     "additionalProperties": False,
