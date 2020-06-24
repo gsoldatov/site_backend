@@ -238,19 +238,10 @@ async def test_view(cli, db_cursor, config):
         assert field in data["tags"][0]
 
 
-"""
-# Old version with date/name sort and pagination support; replaced a route 
-# which returns a list of tags by their ids
-# Tests may fail because of tag_id generation change in tag_list fixture (0..9 -> 1..10)
-async def test_view(cli, db_cursor, config):
-    def get_response_tag_properties_as_list(response_json, prop = "tag_id"):
-        return [response_json["tags"][x][prop] for x in range(len(response_json["tags"]))]
-    
-    tag_list_names_sorted_by_created_at = ["a", "e", "i", "b", "c", "d", "f", "g", "h", "j"]
-    tag_list_names_sorted_by_created_at_desc = deepcopy(tag_list_names_sorted_by_created_at)
-    tag_list_names_sorted_by_created_at_desc.reverse()
-    
+async def test_get_page_tag_ids(cli, db_cursor, config):
     # Insert data
+    pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}
+
     cursor = db_cursor(apply_migrations = True)
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tag_list))))
     table = config["db"]["db_schema"] + ".tags"
@@ -259,61 +250,72 @@ async def test_view(cli, db_cursor, config):
         params.extend(t.values())
     cursor.execute(query, params)
 
-    # Check response structure and default param values
-    resp = await cli.get("/tags/view")
+    # Incorrect request body
+    resp = await cli.post("/tags/get_page_tag_ids", data = "not a JSON document.")
+    assert resp.status == 400
+
+    for attr in pagination_info["pagination_info"]:
+        pi = deepcopy(pagination_info)
+        pi["pagination_info"].pop(attr)
+        resp = await cli.post("/tags/get_page_tag_ids", json = pi)
+        assert resp.status == 400
+    
+    # Incorrect param values
+    for k, v in [("page", "text"), ("page", -1), ("items_per_page", "text"), ("items_per_page", -1), ("order_by", 1), ("order_by", "wrong text"),
+                 ("sort_order", 1), ("sort_order", "wrong text"), ("filter_text", 1)]:
+        pi = deepcopy(pagination_info)
+        pi["pagination_info"][k] = v
+        resp = await cli.post("/tags/get_page_tag_ids", json = pi)
+        assert resp.status == 400
+    
+    # Correct request - sort by tag_name asc + response body
+    pi = deepcopy(pagination_info)
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    for x in ("first", "last", "total", "tags"):    # response structure
-        assert x in data
-    assert data["first"] == 0
-    assert data["last"] == 9
-    assert data["total"] == 10
+    for attr in ["page", "items_per_page","total_items", "order_by", "sort_order", "filter_text", "tag_ids"]:
+        assert attr in data
+        assert data[attr] == pi["pagination_info"].get(attr, None) or attr in ["total_items", "tag_ids"]
+    assert data["total_items"] == len(tag_list)
+    assert data["tag_ids"] == [1, 2] # a0, b1
 
-    for element in ("tag_id", "created_at", "modified_at", "tag_name", "tag_description"):     # response contains expected tag data
-        assert element in data["tags"][0]
-    tag_ids = [tag_list[x]["tag_id"] for x in range(len(tag_list))]
-    resp_tag_ids = get_response_tag_properties_as_list(data)
-    assert len(resp_tag_ids) == len(set(resp_tag_ids))
-    assert sorted(tag_ids) == sorted(resp_tag_ids)
-
-    # first & count params
-    params = {"first": 3, "count": 3}
-    resp = await cli.get("/tags/view", params = params)
+    # Correct request - sort by tag_name desc
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["sort_order"] = "desc"
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    assert data["first"] == 3
-    assert data["last"] == 5
-    assert data["total"] == 10
-    assert get_response_tag_properties_as_list(data, "tag_name") == ["d", "e", "f"]
+    assert data["total_items"] == len(tag_list)
+    assert data["tag_ids"] == [10, 9] # j1, h0
 
-    # sort by tag_name asc
-    params = {"order_by": "tag_name", "asc": "True"}
-    resp = await cli.get("/tags/view", params = params)
+    # Correct request - sort by modified_at asc
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["order_by"] = "modified_at"
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    assert get_response_tag_properties_as_list(data, "tag_name") == [chr(ord("a") + x) for x in range(10)]
+    assert data["total_items"] == len(tag_list)
+    assert data["tag_ids"] == [1, 5] # a0, e0
 
-    # sort by tag_name desc
-    params = {"order_by": "tag_name", "asc": "False"}
-    resp = await cli.get("/tags/view", params = params)
+    # Correct request - sort by modified_at desc + second page
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["page"] = 2
+    pi["pagination_info"]["order_by"] = "modified_at"
+    pi["pagination_info"]["sort_order"] = "desc"
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    assert get_response_tag_properties_as_list(data, "tag_name") == [chr(ord("a") + 9 - x) for x in range(10)]
+    assert data["total_items"] == len(tag_list)
+    assert data["tag_ids"] == [7, 6] # g0, f1
 
-    # sort by created_at asc
-    params = {"order_by": "created_at", "asc": "True"}
-    resp = await cli.get("/tags/view", params = params)
+    # Correct request - sort by tag_name asc with filter text
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["filter_text"] = "0"
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    assert get_response_tag_properties_as_list(data, "tag_name") == tag_list_names_sorted_by_created_at
-
-    # sort by created_at desc
-    params = {"order_by": "created_at", "asc": "False"}
-    resp = await cli.get("/tags/view", params = params)
-    assert resp.status == 200
-    data = await resp.json()
-    assert get_response_tag_properties_as_list(data, "tag_name") == tag_list_names_sorted_by_created_at_desc
-"""
+    assert data["total_items"] == len(tag_list) // 2
+    assert data["tag_ids"] == [1, 3] # a0, c0
 
 
 if __name__ == "__main__":

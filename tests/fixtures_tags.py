@@ -30,7 +30,16 @@ tag_list = [{
         "tag_id": x + 1,
         "created_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
         "modified_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
-        "tag_name": chr(ord("a") + x),
-        "tag_description": chr(ord("a") + x) + " description"
+        "tag_name": chr(ord("a") + x) + str(x % 2),
+        "tag_description": chr(ord("a") + x) + str(x % 2) + " description"
     } for x in range(10)
 ]
+
+# tag_list = [{
+#         "tag_id": x + 1,
+#         "created_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
+#         "modified_at": datetime.utcnow() + timedelta(minutes = x - 10 if x in (0, 4, 8) else x), # vowels first, consonants second
+#         "tag_name": chr(ord("a") + x),
+#         "tag_description": chr(ord("a") + x) + " description"
+#     } for x in range(10)
+# ]

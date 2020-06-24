@@ -8,7 +8,7 @@ from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.routes.util import row_proxy_to_dict, error_json
-from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_delete_schema
+from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_delete_schema, tag_get_page_tag_ids_schema
 
 
 async def add(request):
@@ -130,50 +130,56 @@ async def view(request):
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
-"""
-# Old version with date/name sort and pagination support; replaced a route 
-# which returns a list of tags by their ids
-async def view(request):
-    tags = request.app["tables"]["tags"]
+async def get_page_tag_ids(request):
+    try:
+        # Validate request data
+        data = await request.json()
+        validate(instance = data, schema = tag_get_page_tag_ids_schema)        
+        
+        async with request.app["engine"].acquire() as conn:
+            # Set query params
+            tags = request.app["tables"]["tags"]
+            p = data["pagination_info"]
+            order_by = tags.c.modified_at if p["order_by"] == "modified_at" else tags.c.tag_name
+            order_asc = p["sort_order"] == "asc"
+            items_per_page = p["items_per_page"]
+            first = (p["page"] - 1) * items_per_page
+            filter_text = f"%{p['filter_text']}%"
 
-    # Get query parameters
-    try:
-        first = int(request.query.get("first"))
-    except (TypeError, ValueError):
-        first = 0
-    
-    try:
-        count = int(request.query.get("count"))
-        count = min(max(count, 1), 500)
-    except (TypeError, ValueError):
-        count = 10
-    
-    order_by = tags.c.created_at if request.query.get("order_by") == "created_at" else tags.c.tag_name
-    asc = False if request.query.get("asc", "true").lower() == "false" else True
-    
-    # Get tags
-    async with request.app["engine"].acquire() as conn:
-        result = await conn.execute(select([tags]).\
-                    order_by(order_by if asc else order_by.desc()).\
-                    limit(count).\
+            # Get tag ids
+            result = await conn.execute(select([tags.c.tag_id]).\
+                    where(tags.c.tag_name.like(filter_text)).\
+                    order_by(order_by if order_asc else order_by.desc()).\
+                    limit(items_per_page).\
                     offset(first)
                     )
-        records = []
-        for row in await result.fetchall():
-            records.append(row_proxy_to_dict(row))
-        
-        # Get tag count
-        result = await conn.execute(select([func.count()]).select_from(tags))
-        total = (await result.fetchone())[0]
+            tag_ids = []
+            for row in await result.fetchall():
+                tag_ids.append(row["tag_id"])
+            
+            if len(tag_ids) == 0:
+                raise web.HTTPNotFound(text = error_json("No tags found."), content_type = "application/json")
 
-        response = {
-            "first": first,
-            "last": first + count - 1,
-            "total": total,
-            "tags": records
-        }   
-        return web.json_response(response)
-"""
+            # Get tag count
+            result = await conn.execute(select([func.count()]).select_from(tags).where(tags.c.tag_name.like(filter_text)))
+            total_items = (await result.fetchone())[0]
+
+            response = {
+                "page": p["page"],
+                "items_per_page": items_per_page,
+                "total_items": total_items,
+                "order_by": p["order_by"],
+                "sort_order": p["sort_order"],
+                "filter_text": p["filter_text"],
+                "tag_ids": tag_ids
+            }
+            return web.json_response(response)
+        
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+
 
 async def view_all(request):
     pass
@@ -202,6 +208,7 @@ def get_subapp():
                     web.put("/update", update, name = "update"),
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
+                    web.post("/get_page_tag_ids", get_page_tag_ids, name = "get_page_tag_ids"),
                     web.get("/view/all", view_all, name = "view_all"),
                     web.put("/merge", merge, name = "merge"),
                     web.post("/link/{type}", link, name = "link"),
