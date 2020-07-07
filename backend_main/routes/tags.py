@@ -144,11 +144,13 @@ async def get_page_tag_ids(request):
             order_asc = p["sort_order"] == "asc"
             items_per_page = p["items_per_page"]
             first = (p["page"] - 1) * items_per_page
-            filter_text = f"%{p['filter_text']}%"
+            # filter_text = f"%{p['filter_text']}%"
+            filter_text = f"%{p['filter_text'].lower()}%"
 
             # Get tag ids
             result = await conn.execute(select([tags.c.tag_id]).\
-                    where(tags.c.tag_name.like(filter_text)).\
+                    # where(tags.c.tag_name.like(filter_text)).\
+                    where(func.lower(tags.c.tag_name).like(filter_text)).\
                     order_by(order_by if order_asc else order_by.desc()).\
                     limit(items_per_page).\
                     offset(first)
