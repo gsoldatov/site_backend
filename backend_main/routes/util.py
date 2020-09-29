@@ -2,6 +2,7 @@
 Utility functions.
 """
 from datetime import datetime
+from urllib.parse import urlparse
 import json
 
 
@@ -21,6 +22,20 @@ def error_json(e):
     if isinstance(e, Exception):
         msg = e.message
     return json.dumps({"_error": msg})
+
+
+def validate_url(url):
+    """
+    Checks if provided string is a valid URL and raises 
+    """
+    result = urlparse(url)
+    if not result.scheme or not result.netloc:
+        raise URLValidationException("Provided string is not a valid URL")
+
+
+class URLValidationException(Exception):
+    def __init__(self, message):
+        self.message = message
 
 
 async def check_if_tag_id_exists(request, tag_id):
