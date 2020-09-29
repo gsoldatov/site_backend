@@ -1,5 +1,7 @@
 ﻿venv/
 __pycache__/
+.vscode/
+vscode.ps1
 tmp/
 #*.db
 #*.txt
