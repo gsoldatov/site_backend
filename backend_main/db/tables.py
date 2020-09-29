@@ -23,11 +23,13 @@ def get_tables(config):
             "objects", 
             meta,
             Column("object_id", Integer, primary_key = True, server_default = FetchedValue()),
+            Column("object_type", Text, nullable = False),
             Column("created_at", DateTime, nullable = False),
             Column("modified_at", DateTime, nullable = False),
             Column("object_name", String(255), nullable = False, unique = True),
             Column("object_description", Text),
-            Index("lowered_object_name", text("lower(object_name)"), unique = True)
+            Index("lowered_object_name", text("lower(object_name)"), unique = True),
+            Index("object_type_index", "object_type")
         ),
 
         "objects_tags_link": Table(
