@@ -1,4 +1,4 @@
-tag_add_schema = {
+tags_add_schema = {
     "type": "object",
     "required": ["tag"],
     "additionalProperties": False,
@@ -21,7 +21,7 @@ tag_add_schema = {
     }
 }
 
-tag_update_schema = {
+tags_update_schema = {
     "type": "object",
     "required": ["tag"],
     "additionalProperties": False,
@@ -48,7 +48,7 @@ tag_update_schema = {
     }
 }
 
-tag_view_delete_schema = {
+tags_view_delete_schema = {
     "type": "object",
     "required": ["tag_ids"],
     "additionalProperties": False,
@@ -65,7 +65,7 @@ tag_view_delete_schema = {
     }
 }
 
-tag_get_page_tag_ids_schema = {
+tags_get_page_tag_ids_schema = {
     "type": "object",
     "required": ["pagination_info"],
     "additionalProperties": False,

@@ -8,14 +8,14 @@ from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.routes.util import row_proxy_to_dict, error_json
-from backend_main.schemas.tags import tag_add_schema, tag_update_schema, tag_view_delete_schema, tag_get_page_tag_ids_schema
+from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, tags_get_page_tag_ids_schema
 
 
 async def add(request):
     try:
         # Validate request data and add missing values
         data = await request.json()
-        validate(instance = data, schema = tag_add_schema)
+        validate(instance = data, schema = tags_add_schema)
         current_time = datetime.utcnow()
         data["tag"]["created_at"] = current_time
         data["tag"]["modified_at"] = current_time
@@ -43,7 +43,7 @@ async def update(request):
     try:
         # Validate request data and add missing values
         data = await request.json()
-        validate(instance = data, schema = tag_update_schema)
+        validate(instance = data, schema = tags_update_schema)
         data["tag"]["modified_at"] = datetime.utcnow()
 
         # Update the tag
@@ -76,7 +76,7 @@ async def delete(request):
     try:
         # Validate request data and add missing values
         data = await request.json()
-        validate(instance = data, schema = tag_view_delete_schema)
+        validate(instance = data, schema = tags_view_delete_schema)
 
         # Delete tags
         async with request.app["engine"].acquire() as conn:
@@ -105,7 +105,7 @@ async def view(request):
     try:
         # Validate request data
         data = await request.json()
-        validate(instance = data, schema = tag_view_delete_schema)
+        validate(instance = data, schema = tags_view_delete_schema)
 
         # Query tags
         async with request.app["engine"].acquire() as conn:
@@ -134,7 +134,7 @@ async def get_page_tag_ids(request):
     try:
         # Validate request data
         data = await request.json()
-        validate(instance = data, schema = tag_get_page_tag_ids_schema)        
+        validate(instance = data, schema = tags_get_page_tag_ids_schema)        
         
         async with request.app["engine"].acquire() as conn:
             # Set query params
