@@ -25,7 +25,7 @@ CREATE TABLE objects_tags_link (
     object_id INT NOT NULL REFERENCES objects(object_id)
 );
 
-CREATE TABLE url_links (
+CREATE TABLE urls (
     object_id INT NOT NULL REFERENCES objects(object_id),
     link TEXT NOT NULL
 );
