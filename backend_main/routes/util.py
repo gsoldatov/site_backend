@@ -8,10 +8,26 @@ import json
 
 def row_proxy_to_dict(row_proxy):
     """
-    Converts SQLAlchemy RowProxy object into dict.
+    Converts SQLAlchemy RowProxy object into a dict.
     datetime fields are converted into strings.
     """
     return {k: row_proxy[k] if type(row_proxy[k]) != datetime else str(row_proxy[k]) for k in row_proxy}
+
+
+def objects_row_proxy_to_dict(row_proxy):
+    """
+    Converts row proxy object with object data into into a dict.
+    """
+    row = row_proxy_to_dict(row_proxy)
+    obj_type = row["object_type"]
+    if obj_type == "link":
+        row["object_data"] = {"link": row["link"]}
+    
+    for attr in ["link"]:
+        row.pop(attr, None)
+    
+    return row
+
 
 
 def error_json(e):

@@ -7,7 +7,7 @@ import os
 from copy import deepcopy
 
 import pytest
-# from psycopg2.extensions import AsIs
+from psycopg2.extensions import AsIs
 
 from fixtures_app import *
 from fixtures_objects import *
@@ -54,7 +54,7 @@ async def test_add(cli, db_cursor, config):
     schema = config["db"]["db_schema"]  # Check that a new object was not created
     cursor.execute(f"SELECT object_name FROM {schema}.objects")
     assert not cursor.fetchone()
-    cursor.execute(f"SELECT link FROM {schema}.url_links")
+    cursor.execute(f"SELECT link FROM {schema}.urls")
     assert not cursor.fetchone()
 
     # Add a correct link
@@ -73,7 +73,7 @@ async def test_add(cli, db_cursor, config):
 
     cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
     assert cursor.fetchone() == (link["object_name"],)
-    cursor.execute(f"SELECT link FROM {schema}.url_links WHERE object_id = {resp_object['object_id']}")
+    cursor.execute(f"SELECT link FROM {schema}.urls WHERE object_id = {resp_object['object_id']}")
     assert cursor.fetchone() == (link["object_data"]["link"],)
 
     # Check if an object existing name is not added
@@ -82,6 +82,55 @@ async def test_add(cli, db_cursor, config):
     link["object_name"] = link["object_name"].upper()
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
+
+
+async def test_view(cli, db_cursor, config):
+    # Insert data
+    cursor = db_cursor(apply_migrations = True)
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(len(objects_list))))
+    table = config["db"]["db_schema"] + ".objects"
+    params = [AsIs(table)]
+    for t in objects_list:
+        params.extend(t.values())
+    cursor.execute(query, params)
+
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(urls_list))))
+    table = config["db"]["db_schema"] + ".urls"
+    params = [AsIs(table)]
+    for t in urls_list:
+        params.extend(t.values())
+    cursor.execute(query, params)
+
+    # Incorrect request body
+    resp = await cli.post("/objects/view", data = "not a JSON document.")
+    assert resp.status == 400
+
+    for payload in [{}, {"object_ids": []}, {"object_ids": [1, -1]}, {"object_ids": [1, "abc"]}]:
+        resp = await cli.post("/objects/view", json = payload)
+        assert resp.status == 400
+
+    # Non-existing ids
+    resp = await cli.post("/objects/view", json = {"object_ids": [999, 1000]})
+    assert resp.status == 404
+
+    # Correct request
+    resp = await cli.post("/objects/view", json = {"object_ids": [_ for _ in range(1, 11)]})
+    assert resp.status == 200
+    data = await resp.json()
+    assert "objects" in data
+
+    expected_object_ids = [_ for _ in range(1, 11)]
+    for x in range(len(data["objects"])):
+        try:
+            expected_object_ids.remove(data["objects"][x]["object_id"])
+        except KeyError:
+            pytest.fail(f"object_id = {x} not found in response body")
+    assert len(expected_object_ids) == 0
+        
+    for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "object_data"):
+        assert field in data["objects"][0]
+    
+    assert "link" in data["objects"][0]["object_data"]
 
 
 if __name__ == "__main__":

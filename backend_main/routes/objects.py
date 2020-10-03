@@ -7,13 +7,14 @@ from json.decoder import JSONDecodeError
 from aiohttp import web
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
+from psycopg2.errors import UniqueViolation
+from sqlalchemy import select
 
-from backend_main.schemas.objects import objects_add_schema
+from backend_main.schemas.objects import objects_add_schema, objects_view_delete_schema
 
 from backend_main.routes.objects_links import add as add_link
 
-from backend_main.routes.util import row_proxy_to_dict, error_json, URLValidationException
+from backend_main.routes.util import row_proxy_to_dict, objects_row_proxy_to_dict, error_json, URLValidationException
 
 
 async def add(request):
@@ -61,7 +62,41 @@ async def add(request):
     except (ValidationError, URLValidationException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
-            raise web.HTTPBadRequest(text = error_json("Submitted tag name already exists."), content_type = "application/json")
+            raise web.HTTPBadRequest(text = error_json("Submitted object name already exists."), content_type = "application/json")
+
+
+async def view(request):
+    try:
+        # Validate genaral structure of the request
+        data = await request.json()
+        validate(instance = data, schema = objects_view_delete_schema)
+
+        # Query objects
+        async with request.app["engine"].acquire() as conn:
+            objects = request.app["tables"]["objects"] 
+            urls = request.app["tables"]["urls"]
+
+            joined_tables = objects.join(urls, objects.c.object_id == urls.c.object_id, True)
+
+            result = await conn.execute(select([objects, urls.c.link]).\
+                        select_from(joined_tables).\
+                        where(objects.c.object_id.in_(data["object_ids"]))
+                    )
+            
+            records = []
+            for row in await result.fetchall():
+                records.append(objects_row_proxy_to_dict(row))
+            
+            if len(records) == 0:
+                raise web.HTTPNotFound(text = error_json("Objects not found."), content_type = "application/json")
+
+            response = {"objects": records}
+            return web.json_response(response)
+
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except (ValidationError, URLValidationException) as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
 async def update(request):
@@ -69,10 +104,6 @@ async def update(request):
 
 
 async def delete(request):
-    pass
-
-
-async def view(request):
     pass
 
 

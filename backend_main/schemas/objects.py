@@ -27,3 +27,20 @@ objects_add_schema = {
         }
     }
 }
+
+objects_view_delete_schema = {
+    "type": "object",
+    "required": ["object_ids"],
+    "additionalProperties": False,
+    "properties": {
+        "object_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10000,
+            "items" : {
+                "type": "integer",
+                "minimum": 1
+            }
+        }
+    }
+}
