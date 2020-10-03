@@ -26,13 +26,14 @@ async def app(loop, db_and_user, db_cursor, config):
     aiohttp web.Application object with its own configured test database.
     """
     db_and_user(apply_migrations = True)
-    yield await create_app(config = config)
+    app = await create_app(config = config)
+    yield app
 
     cursor = db_cursor()
     schema = config["db"]["db_schema"]
     
-    for table in ("tags",):
-        cursor.execute(f"DELETE FROM {schema}.{table}")
+    for table in app["tables"]:
+        cursor.execute(f"TRUNCATE {schema}.{table} CASCADE")
 
 
 @pytest.fixture(scope = "module")
