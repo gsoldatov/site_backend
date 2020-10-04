@@ -1,6 +1,6 @@
 from datetime import datetime #, timedelta
 
-__all__ = ["test_link", "incorrect_object_values", "objects_list", "urls_list"]
+__all__ = ["test_link", "test_link2", "test_link3", "incorrect_object_values", "objects_list", "urls_list"]
 
 test_link = {
     "object_id": 1,
@@ -12,15 +12,25 @@ test_link = {
     }
 }
 
-# test_link2 = {
-#     "object_id": 2,
-#     "object_type": "link",
-#     "object_name": "Wikipedia",
-#     "object_description": "",
-#     "object_data": {
-#         "link": "https://wikipedia.org"
-#     }
-# }
+test_link2 = {
+    "object_id": 2,
+    "object_type": "link",
+    "object_name": "Wikipedia",
+    "object_description": "",
+    "object_data": {
+        "link": "https://wikipedia.org"
+    }
+}
+
+test_link3 = {
+    "object_id": 3,
+    "object_type": "link",
+    "object_name": "BBC",
+    "object_description": "BBC website",
+    "object_data": {
+        "link": "https://bbc.co.uk"
+    }
+}
 
 incorrect_object_values = [
     ("object_id", -1), ("object_id", "abc"),

@@ -3,7 +3,7 @@ routes/objects.py tests
 """
 import os
 # import json
-# from datetime import datetime
+from datetime import datetime
 from copy import deepcopy
 
 import pytest
@@ -138,6 +138,86 @@ async def test_view(cli, db_cursor, config):
         assert field in data["objects"][0]
     
     assert "link" in data["objects"][0]["object_data"]
+
+
+async def test_update(cli, db_cursor, config):
+    cursor = db_cursor(apply_migrations = True)
+    objects = config["db"]["db_schema"] + ".objects"
+    urls = config["db"]["db_schema"] + ".urls"
+    created_at = datetime.utcnow()
+    modified_at = created_at
+
+    # Insert mock values
+    cursor.execute("INSERT INTO %s VALUES (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s)",
+                (AsIs(objects), 
+                test_link["object_id"], test_link["object_type"], created_at, modified_at, test_link["object_name"], test_link["object_description"],
+                test_link2["object_id"], test_link2["object_type"], created_at, modified_at, test_link2["object_name"], test_link2["object_description"])
+                )
+    
+    cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s)",
+                (AsIs(urls), 
+                test_link["object_id"], test_link["object_data"]["link"],
+                test_link2["object_id"], test_link2["object_data"]["link"])
+                )
+    
+    # Incorrect request body
+    resp = await cli.put("/objects/update", data = "not a JSON document.")
+    assert resp.status == 400
+
+    for payload in ({}, {"test": "wrong attribute"}, {"object": "wrong value type"}):
+        resp = await cli.put("/objects/update", json = payload)
+        assert resp.status == 400
+    
+    # Missing attributes
+    for attr in ("object_id", "object_name", "object_description"):
+        obj = deepcopy(test_link)
+        obj.pop("object_type")
+        obj.pop(attr)
+        resp = await cli.put("/objects/update", json = {"object": obj})
+        assert resp.status == 400
+    
+    # Incorrect attribute types and lengths:
+    for k, v in incorrect_object_values:
+        if k != "object_type":
+            obj = deepcopy(test_link)
+            obj.pop("object_type")
+            obj[k] = v
+            resp = await cli.put("/objects/update", json = {"object": obj})
+            assert resp.status == 400
+    
+    # Non-existing object_id
+    obj = deepcopy(test_link)
+    obj.pop("object_type")
+    obj["object_id"] = 100
+    resp = await cli.put("/objects/update", json = {"object": obj})
+    assert resp.status == 404
+
+    # Duplicate object_name
+    obj = deepcopy(test_link2)
+    obj.pop("object_type")
+    obj["object_id"] = 1
+    resp = await cli.put("/objects/update", json = {"object": obj})
+    assert resp.status == 400
+
+    # Lowercase duplicate object_name
+    obj = deepcopy(test_link2)
+    obj.pop("object_type")
+    obj["object_id"] = 1
+    obj["object_name"] = obj["object_name"].upper()
+    resp = await cli.put("/objects/update", json = {"object": obj})
+    assert resp.status == 400
+
+    # Correct update (general attributes + link)
+    obj = deepcopy(test_link3)
+    obj.pop("object_type")
+    obj["object_id"] = 1
+    print("obj:", obj)
+    resp = await cli.put("/objects/update", json = {"object": obj})
+    assert resp.status == 200
+    cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
+    assert cursor.fetchone() == (obj["object_name"],)
+    cursor.execute(f"SELECT link FROM {urls} WHERE object_id = 1")
+    assert cursor.fetchone() == (obj["object_data"]["link"],)
 
 
 if __name__ == "__main__":
