@@ -100,7 +100,7 @@ async def test_update(cli, db_cursor, config):
     for k, v in incorrect_tag_values:
         tag = deepcopy(test_tag)
         tag[k] = v
-        resp = await cli.put("/tags/update", json = tag)
+        resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Non-existing tag_id
