@@ -9,8 +9,7 @@ objects_add_schema = {
             "additionalProperties": False,
             "properties": {
                 "object_type": {
-                    "type": "string",
-                    "enum": ["link", "markdown", "todo", "composite", "files"]
+                    "type": "string"
                 },
                 "object_name": {
                     "type": "string",
@@ -23,7 +22,27 @@ objects_add_schema = {
                 "object_data": {
                     "type": "object"
                 }
-            }
+            },
+            "oneOf": [
+                # link-specific data
+                {
+                    "properties": {
+                        "object_type": {
+                            "const": "link"
+                        },
+                        "object_data": {
+                            "required": ["link"],
+                        "additionalProperties": False,
+                            "properties": {
+                                "link": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            ]
         }
     }
 }

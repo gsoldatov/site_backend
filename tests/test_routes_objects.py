@@ -44,6 +44,13 @@ async def test_add(cli, db_cursor, config):
             resp = await cli.post("/objects/add", json = {"object": link})
             assert resp.status == 400
     
+    # Incorrect link attributes
+    for attrs in [{"incorrect link attr": "123"}, {"incorrect link attr": "123", "link": "https://google.com"}]:
+        link = deepcopy(test_link)
+        link["object_data"] = attr
+        resp = await cli.post("/objects/add", json = {"object": link})
+        assert resp.status == 400
+    
     # Incorrect link value
     link = deepcopy(test_link)
     link.pop("object_id")
