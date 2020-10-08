@@ -2,7 +2,7 @@
 routes/objects.py tests
 """
 import os
-# import json
+import json
 from datetime import datetime
 from copy import deepcopy
 
@@ -218,6 +218,54 @@ async def test_update(cli, db_cursor, config):
     assert cursor.fetchone() == (obj["object_name"],)
     cursor.execute(f"SELECT link FROM {urls} WHERE object_id = 1")
     assert cursor.fetchone() == (obj["object_data"]["link"],)
+
+
+async def test_delete(cli, db_cursor, config):
+    cursor = db_cursor(apply_migrations = True)
+    objects = config["db"]["db_schema"] + ".objects"
+    urls = config["db"]["db_schema"] + ".urls"
+    created_at = datetime.utcnow()
+    modified_at = created_at
+
+    # Insert mock values
+    cursor.execute("INSERT INTO %s VALUES (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s)",
+                (AsIs(objects), 
+                test_link["object_id"], test_link["object_type"], created_at, modified_at, test_link["object_name"], test_link["object_description"],
+                test_link2["object_id"], test_link2["object_type"], created_at, modified_at, test_link2["object_name"], test_link2["object_description"],
+                test_link3["object_id"], test_link3["object_type"], created_at, modified_at, test_link3["object_name"], test_link3["object_description"])
+                )
+    
+    cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s), (%s, %s)",
+                (AsIs(urls), 
+                test_link["object_id"], test_link["object_data"]["link"],
+                test_link2["object_id"], test_link2["object_data"]["link"],
+                test_link3["object_id"], test_link3["object_data"]["link"])
+                )
+    
+    # Incorrect attributes and values
+    for value in ["123", {"incorrect_key": "incorrect_value"}, {"object_ids": "incorrect_value"}, {"object_ids": []}]:
+        body = value if type(value) == str else json.dumps(value)
+        resp = await cli.delete("/objects/delete", data = body)
+        assert resp.status == 400
+    
+    # Non-existing object ids
+    resp = await cli.delete("/objects/delete", json = {"object_ids": [1000, 2000]})
+    assert resp.status == 404
+
+    # Correct deletes (general data + link)
+    resp = await cli.delete("/objects/delete", json = {"object_ids": [1]})
+    assert resp.status == 200
+    for table in [objects, urls]:
+        cursor.execute(f"SELECT object_id FROM {table}")
+        assert cursor.fetchone() == (2,)
+        assert cursor.fetchone() == (3,)
+        assert not cursor.fetchone()
+
+    resp = await cli.delete("/objects/delete", json = {"object_ids": [2, 3]})
+    assert resp.status == 200
+    for table in [objects, urls]:
+        cursor.execute(f"SELECT object_id FROM {table}")
+        assert not cursor.fetchone() 
 
 
 if __name__ == "__main__":

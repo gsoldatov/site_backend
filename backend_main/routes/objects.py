@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_delete_schema
 
-from backend_main.routes.objects_links import add_link, update_link
+from backend_main.routes.objects_links import add_link, update_link, delete_link
 
 from backend_main.routes.util import row_proxy_to_dict, objects_row_proxy_to_dict, error_json, URLValidationException
 
@@ -130,7 +130,7 @@ async def update(request):
                     await trans.rollback()
                     raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
             
-                # Call handler to add object-specific data
+                # Call handler to update object-specific data
                 specific_data = {"object_id": record["object_id"], "object_data": object_data}
                 handler = get_func_name("update", record["object_type"])
                 await handler(request, conn, specific_data)
@@ -153,7 +153,56 @@ async def update(request):
 
 
 async def delete(request):
-    pass
+    try:
+        # Validate request body
+        data = await request.json()
+        validate(instance = data, schema = objects_view_delete_schema)
+
+        # Delete objects in a transaction
+        async with request.app["engine"].acquire() as conn:
+            trans = await conn.begin()
+            try:
+                # Get object types and call handlers for each type to delete object-specific data
+                objects = request.app["tables"]["objects"]
+                result = await conn.execute(select([objects.c.object_type]).
+                            distinct().
+                            where(objects.c.object_id.in_(data["object_ids"]))
+                            )
+                object_types = []
+                for row in await result.fetchall():
+                    object_types.append(row["object_type"])
+
+                if len(object_types) == 0:
+                    raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
+
+                for object_type in object_types:
+                    handler = get_func_name("delete", object_type)
+                    await handler(request, conn, data["object_ids"])
+
+                # Delete general data
+                result = await conn.execute(objects.delete().\
+                            where(objects.c.object_id.in_(data["object_ids"])).\
+                            returning(objects.c.object_id)
+                            )
+                object_ids = []
+                for row in await result.fetchall():
+                    object_ids.append(row["object_id"])
+
+                # Commit transaction
+                await trans.commit()
+
+                # Send response
+                response = {"object_ids": object_ids}
+                return web.json_response(response)
+            except Exception as e:
+                # Rollback if an error occurs
+                await trans.rollback()
+                raise e
+        
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except (ValidationError, URLValidationException) as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
 async def get_page_object_ids(request):
