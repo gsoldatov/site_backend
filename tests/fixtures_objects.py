@@ -1,6 +1,6 @@
 from datetime import datetime #, timedelta
 
-__all__ = ["test_link", "test_link2", "test_link3", "incorrect_object_values", "objects_list", "urls_list"]
+__all__ = ["test_link", "test_link2", "test_link3", "incorrect_object_values", "objects_list", "links_list"]
 
 test_link = {
     "object_id": 1,
@@ -53,7 +53,7 @@ objects_list = [{
     } for x in range(1, 11)
 ]
 
-urls_list = [{
+links_list = [{
         "object_id": x,
         "link": f"https://website{x}.com"
     } for x in range(1, 11)

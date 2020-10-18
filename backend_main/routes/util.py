@@ -40,16 +40,16 @@ def error_json(e):
     return json.dumps({"_error": msg})
 
 
-def validate_url(url):
+def validate_link(link):
     """
-    Checks if provided string is a valid URL and raises 
+    Checks if provided string is a valid URL and raises a LinkValidationException if it isn't.
     """
-    result = urlparse(url)
+    result = urlparse(link)
     if not result.scheme or not result.netloc:
-        raise URLValidationException("Provided string is not a valid URL")
+        raise LinkValidationException("Provided string is not a valid URL")
 
 
-class URLValidationException(Exception):
+class LinkValidationException(Exception):
     def __init__(self, message):
         self.message = message
 

@@ -14,7 +14,7 @@ from backend_main.schemas.objects import objects_add_schema, objects_update_sche
 
 from backend_main.routes.objects_links import add_link, update_link, delete_link
 
-from backend_main.routes.util import row_proxy_to_dict, objects_row_proxy_to_dict, error_json, URLValidationException
+from backend_main.routes.util import row_proxy_to_dict, objects_row_proxy_to_dict, error_json, LinkValidationException
 
 
 async def add(request):
@@ -59,7 +59,7 @@ async def add(request):
 
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, URLValidationException) as e:
+    except (ValidationError, LinkValidationException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json("Submitted object name already exists."), content_type = "application/json")
@@ -74,13 +74,13 @@ async def view(request):
         # Query objects
         async with request.app["engine"].acquire() as conn:
             objects = request.app["tables"]["objects"] 
-            urls = request.app["tables"]["urls"]
+            links = request.app["tables"]["links"]
 
-            joined_tables = objects.join(urls, objects.c.object_id == urls.c.object_id, True)
+            joined_tables = objects.join(links, objects.c.object_id == links.c.object_id, True)
 
             result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
                         objects.c.modified_at, objects.c.object_name, objects.c.object_description, 
-                        urls.c.link]).\
+                        links.c.link]).\
                         select_from(joined_tables).\
                         where(objects.c.object_id.in_(data["object_ids"]))
                     )
@@ -97,7 +97,7 @@ async def view(request):
 
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, URLValidationException) as e:
+    except (ValidationError, LinkValidationException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
@@ -146,7 +146,7 @@ async def update(request):
                 raise e
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, URLValidationException) as e:
+    except (ValidationError, LinkValidationException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json("Submitted object name already exists."), content_type = "application/json")
@@ -201,7 +201,7 @@ async def delete(request):
         
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, URLValidationException) as e:
+    except (ValidationError, LinkValidationException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 

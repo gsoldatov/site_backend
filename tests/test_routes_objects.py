@@ -54,14 +54,14 @@ async def test_add(cli, db_cursor, config):
     # Incorrect link value
     link = deepcopy(test_link)
     link.pop("object_id")
-    link["object_data"] = {"link": "not a valid URL"}
+    link["object_data"] = {"link": "not a valid link"}
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
 
     schema = config["db"]["db_schema"]  # Check that a new object was not created
     cursor.execute(f"SELECT object_name FROM {schema}.objects")
     assert not cursor.fetchone()
-    cursor.execute(f"SELECT link FROM {schema}.urls")
+    cursor.execute(f"SELECT link FROM {schema}.links")
     assert not cursor.fetchone()
 
     # Add a correct link
@@ -80,7 +80,7 @@ async def test_add(cli, db_cursor, config):
 
     cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
     assert cursor.fetchone() == (link["object_name"],)
-    cursor.execute(f"SELECT link FROM {schema}.urls WHERE object_id = {resp_object['object_id']}")
+    cursor.execute(f"SELECT link FROM {schema}.links WHERE object_id = {resp_object['object_id']}")
     assert cursor.fetchone() == (link["object_data"]["link"],)
 
     # Check if an object existing name is not added
@@ -101,10 +101,10 @@ async def test_view(cli, db_cursor, config):
         params.extend(t.values())
     cursor.execute(query, params)
 
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(urls_list))))
-    table = config["db"]["db_schema"] + ".urls"
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(links_list))))
+    table = config["db"]["db_schema"] + ".links"
     params = [AsIs(table)]
-    for t in urls_list:
+    for t in links_list:
         params.extend(t.values())
     cursor.execute(query, params)
 
@@ -143,7 +143,7 @@ async def test_view(cli, db_cursor, config):
 async def test_update(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
-    urls = config["db"]["db_schema"] + ".urls"
+    links = config["db"]["db_schema"] + ".links"
     created_at = datetime.utcnow()
     modified_at = created_at
 
@@ -155,7 +155,7 @@ async def test_update(cli, db_cursor, config):
                 )
     
     cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s)",
-                (AsIs(urls), 
+                (AsIs(links), 
                 test_link["object_id"], test_link["object_data"]["link"],
                 test_link2["object_id"], test_link2["object_data"]["link"])
                 )
@@ -216,14 +216,14 @@ async def test_update(cli, db_cursor, config):
     assert resp.status == 200
     cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
     assert cursor.fetchone() == (obj["object_name"],)
-    cursor.execute(f"SELECT link FROM {urls} WHERE object_id = 1")
+    cursor.execute(f"SELECT link FROM {links} WHERE object_id = 1")
     assert cursor.fetchone() == (obj["object_data"]["link"],)
 
 
 async def test_delete(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
-    urls = config["db"]["db_schema"] + ".urls"
+    links = config["db"]["db_schema"] + ".links"
     created_at = datetime.utcnow()
     modified_at = created_at
 
@@ -236,7 +236,7 @@ async def test_delete(cli, db_cursor, config):
                 )
     
     cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s), (%s, %s)",
-                (AsIs(urls), 
+                (AsIs(links), 
                 test_link["object_id"], test_link["object_data"]["link"],
                 test_link2["object_id"], test_link2["object_data"]["link"],
                 test_link3["object_id"], test_link3["object_data"]["link"])
@@ -255,7 +255,7 @@ async def test_delete(cli, db_cursor, config):
     # Correct deletes (general data + link)
     resp = await cli.delete("/objects/delete", json = {"object_ids": [1]})
     assert resp.status == 200
-    for table in [objects, urls]:
+    for table in [objects, links]:
         cursor.execute(f"SELECT object_id FROM {table}")
         assert cursor.fetchone() == (2,)
         assert cursor.fetchone() == (3,)
@@ -263,7 +263,7 @@ async def test_delete(cli, db_cursor, config):
 
     resp = await cli.delete("/objects/delete", json = {"object_ids": [2, 3]})
     assert resp.status == 200
-    for table in [objects, urls]:
+    for table in [objects, links]:
         cursor.execute(f"SELECT object_id FROM {table}")
         assert not cursor.fetchone() 
 

@@ -39,8 +39,8 @@ def get_tables(config):
             Column("object_id", Integer, ForeignKey("objects.object_id"))
         ),
 
-        "urls": Table(
-            "urls", 
+        "links": Table(
+            "links", 
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id")),
             Column("link", Text, nullable = False)
