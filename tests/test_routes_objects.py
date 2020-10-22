@@ -9,6 +9,7 @@ from copy import deepcopy
 import pytest
 from psycopg2.extensions import AsIs
 
+from util import check_ids
 from fixtures_app import *
 from fixtures_objects import *
 
@@ -112,32 +113,57 @@ async def test_view(cli, db_cursor, config):
     resp = await cli.post("/objects/view", data = "not a JSON document.")
     assert resp.status == 400
 
-    for payload in [{}, {"object_ids": []}, {"object_ids": [1, -1]}, {"object_ids": [1, "abc"]}]:
+    for payload in [{}, {"object_ids": []}, {"object_ids": [1, -1]}, {"object_ids": [1, "abc"]},
+                        {"object_data_ids": []}, {"object_data_ids": [1, -1]}, {"object_data_ids": [1, "abc"]},
+                        {"object_ids": [1], "object_data_ids": [-1]}, {"object_ids": [-1], "object_data_ids": [1]}]:
         resp = await cli.post("/objects/view", json = payload)
         assert resp.status == 400
 
     # Non-existing ids
-    resp = await cli.post("/objects/view", json = {"object_ids": [999, 1000]})
-    assert resp.status == 404
+    for key in {"object_ids", "object_data_ids"}:
+        resp = await cli.post("/objects/view", json = {key: [999, 1000]})
+        assert resp.status == 404
 
-    # Correct request
-    resp = await cli.post("/objects/view", json = {"object_ids": [_ for _ in range(1, 11)]})
+    # Correct request (object_ids only)
+    object_ids = [_ for _ in range(1, 11)]
+    resp = await cli.post("/objects/view", json = {"object_ids": object_ids})
     assert resp.status == 200
     data = await resp.json()
     assert "objects" in data
 
-    expected_object_ids = [_ for _ in range(1, 11)]
-    for x in range(len(data["objects"])):
-        try:
-            expected_object_ids.remove(data["objects"][x]["object_id"])
-        except KeyError:
-            pytest.fail(f"object_id = {x} not found in response body")
-    assert len(expected_object_ids) == 0
-        
-    for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "object_data"):
+    for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at"):
         assert field in data["objects"][0]
+
+    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request, object_ids only")
     
-    assert "link" in data["objects"][0]["object_data"]
+    # Correct request (object_ids only, links)
+    object_data_ids = [_ for _ in range(1, 11)]
+    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    assert resp.status == 200
+    data = await resp.json()
+    assert "object_data" in data
+
+    for field in ("object_id", "object_type", "object_data"):
+        assert field in data["object_data"][0]
+    assert "link" in data["object_data"][0]["object_data"]
+
+    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request, object_data_ids only")
+
+    # Correct request (both types of data request)
+    object_ids = [_ for _ in range(1, 6)]
+    object_data_ids = [_ for _ in range(6, 11)]
+    resp = await cli.post("/objects/view", json = {"object_ids": object_ids, "object_data_ids": object_data_ids})
+    assert resp.status == 200
+    data = await resp.json()
+    for attr in ("objects", "object_data"):
+        assert attr in data
+    
+    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request for both object attributes and data, object_ids")
+    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request for both object attributes and data, object_data_ids")
 
 
 async def test_update(cli, db_cursor, config):
@@ -211,7 +237,6 @@ async def test_update(cli, db_cursor, config):
     obj = deepcopy(test_link3)
     obj.pop("object_type")
     obj["object_id"] = 1
-    print("obj:", obj)
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 200
     cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")

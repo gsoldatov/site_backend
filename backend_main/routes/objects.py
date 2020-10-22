@@ -10,11 +10,11 @@ from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation
 from sqlalchemy import select
 
-from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_delete_schema
+from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema
 
-from backend_main.routes.objects_links import add_link, update_link, delete_link
+from backend_main.routes.objects_links import add_link, view_link, update_link, delete_link
 
-from backend_main.routes.util import row_proxy_to_dict, objects_row_proxy_to_dict, error_json, LinkValidationException
+from backend_main.routes.util import row_proxy_to_dict, error_json, LinkValidationException
 
 
 async def add(request):
@@ -69,32 +69,49 @@ async def view(request):
     try:
         # Validate request body
         data = await request.json()
-        validate(instance = data, schema = objects_view_delete_schema)
+        validate(instance = data, schema = objects_view_schema)
 
-        # Query objects
         async with request.app["engine"].acquire() as conn:
-            objects = request.app["tables"]["objects"] 
-            links = request.app["tables"]["links"]
+            objects = request.app["tables"]["objects"]
+            object_ids = data.get("object_ids", [])
+            object_data_ids = data.get("object_data_ids", [])
+            object_attrs, object_data = [], []
 
-            joined_tables = objects.join(links, objects.c.object_id == links.c.object_id, True)
+            # Query general attributes for provided object_ids
+            if len(object_ids) > 0:
+                result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
+                                                    objects.c.modified_at, objects.c.object_name, objects.c.object_description]).
+                                            where(objects.c.object_id.in_(object_ids))
+                )
+                for row in await result.fetchall():
+                    object_attrs.append(row_proxy_to_dict(row))
+            
+            # Query object data for provided object_data_ids
+            if len(object_data_ids) > 0:
+                # Query object types for the requested objects
+                result = await conn.execute(select([objects.c.object_type]).
+                                            distinct().
+                                            where(objects.c.object_id.in_(object_data_ids))
+                )
+                object_types = []
+                for row in await result.fetchall():
+                    object_types.append(row["object_type"])
+                
+                
+                # Run handlers for each of the object types
+                for object_type in object_types:
+                    handler = get_func_name("view", object_type)
 
-            result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
-                        objects.c.modified_at, objects.c.object_name, objects.c.object_description, 
-                        links.c.link]).\
-                        select_from(joined_tables).\
-                        where(objects.c.object_id.in_(data["object_ids"]))
-                    )
+                    # handler function must return a list of dict objects with specific object_data attributes
+                    object_type_data = await handler(request, conn, object_data_ids)
+                    for d in object_type_data:
+                        d["object_type"] = object_type
+                    object_data.extend(object_type_data)
             
-            records = []
-            for row in await result.fetchall():
-                records.append(objects_row_proxy_to_dict(row))
-            
-            if len(records) == 0:
+            if len(object_attrs) == 0 and len(object_data) == 0:
                 raise web.HTTPNotFound(text = error_json("Objects not found."), content_type = "application/json")
 
-            response = {"objects": records}
-            return web.json_response(response)
-
+            return web.json_response({ "objects": object_attrs, "object_data": object_data })
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
     except (ValidationError, LinkValidationException) as e:
@@ -156,7 +173,7 @@ async def delete(request):
     try:
         # Validate request body
         data = await request.json()
-        validate(instance = data, schema = objects_view_delete_schema)
+        validate(instance = data, schema = objects_delete_schema)
 
         # Delete objects in a transaction
         async with request.app["engine"].acquire() as conn:

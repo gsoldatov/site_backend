@@ -9,6 +9,7 @@ from copy import deepcopy
 import pytest
 from psycopg2.extensions import AsIs
 
+from util import check_ids
 from fixtures_app import *
 from fixtures_tags import *
 
@@ -166,36 +167,7 @@ async def test_delete(cli, db_cursor, config):
     resp = await cli.delete("/tags/delete", json = {"tag_ids": [2, 3]})
     assert resp.status == 200
     cursor.execute(f"SELECT tag_id FROM {table}")
-    assert not cursor.fetchone() 
-
-
-    """
-    cursor = db_cursor(apply_migrations = True)
-    table = config["db"]["db_schema"] + ".tags"
-    created_at = datetime.utcnow()
-    modified_at = created_at
-
-    # Insert mock values
-    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
-                (AsIs(table), 
-                created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
-                created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"])
-                )
-    
-    # Non-existing tag_id
-    resp = await cli.delete("/tags/delete/asd")
-    assert resp.status == 404
-
-    resp = await cli.delete("/tags/delete/999999")
-    assert resp.status == 404
-
-    # Correct delete
-    resp = await cli.delete("/tags/delete/1")
-    assert resp.status == 200
-    cursor.execute(f"SELECT tag_id FROM {table}")
-    assert cursor.fetchone() == (2,)
     assert not cursor.fetchone()
-    """
  
 
 async def test_view(cli, db_cursor, config):
@@ -221,18 +193,14 @@ async def test_view(cli, db_cursor, config):
     assert resp.status == 404
 
     # Correct request
-    resp = await cli.post("/tags/view", json = {"tag_ids": [_ for _ in range(1, 11)]})
+    tag_ids = [_ for _ in range(1, 11)]
+    resp = await cli.post("/tags/view", json = {"tag_ids": tag_ids})
     assert resp.status == 200
     data = await resp.json()
     assert "tags" in data
 
-    expected_tag_ids = [_ for _ in range(1, 11)]
-    for x in range(len(data["tags"])):
-        try:
-            expected_tag_ids.remove(data["tags"][x]["tag_id"])
-        except KeyError:
-            pytest.fail(f"tag_id = {x} not found in response body")
-    assert len(expected_tag_ids) == 0
+    check_ids(tag_ids, [data["tags"][x]["tag_id"] for x in range(len(data["tags"]))], 
+        "Tags view, correct request")
         
     for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at"):
         assert field in data["tags"][0]

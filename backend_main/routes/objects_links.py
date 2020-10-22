@@ -1,7 +1,10 @@
 """
     Link-specific database operations.
 """
-from backend_main.routes.util import validate_link
+from sqlalchemy import select
+
+from backend_main.routes.util import link_data_row_proxy_to_dict, validate_link
+
 
 async def add_link(request, conn, obj_data):
     new_link = {"object_id": obj_data["object_id"], "link": obj_data["object_data"]["link"]}
@@ -11,6 +14,17 @@ async def add_link(request, conn, obj_data):
     await conn.execute(links.insert().\
             values(new_link)
     )
+
+
+async def view_link(request, conn, object_ids):
+    links = request.app["tables"]["links"]
+    records = await conn.execute(select([links.c.object_id, links.c.link]).
+                                 where(links.c.object_id.in_(object_ids))
+    )
+    result = []
+    for row in await records.fetchall():
+        result.append(link_data_row_proxy_to_dict(row))
+    return result
 
 
 async def update_link(request, conn, obj_data):
