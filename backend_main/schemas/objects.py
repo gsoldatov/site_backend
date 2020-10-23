@@ -72,27 +72,17 @@ objects_update_schema = {
                 "object_data": {
                     "type": "object"
                 }
-            },
-            "oneOf": [
-                # link-specific data
-                {
-                    "properties": {
-                        "object_type": {
-                            "const": "link"
-                        },
-                        "object_data": {
-                            "required": ["link"],
-                        "additionalProperties": False,
-                            "properties": {
-                                "link": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-                
-            ]
+            }
+        }
+    }
+}
+
+objects_update_schema_link_object_data = {
+    "required": ["link"],
+    "additionalProperties": False,
+    "properties": {
+        "link": {
+            "type": "string"
         }
     }
 }

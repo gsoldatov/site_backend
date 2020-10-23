@@ -10,7 +10,8 @@ from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation
 from sqlalchemy import select
 
-from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema
+from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
+    objects_update_schema_link_object_data
 
 from backend_main.routes.objects_links import add_link, view_link, update_link, delete_link
 
@@ -147,7 +148,8 @@ async def update(request):
                     await trans.rollback()
                     raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
             
-                # Call handler to update object-specific data
+                # Validate object_data property and call handler to update object-specific data
+                validate(instance = object_data, schema = get_object_data_update_schema(record["object_type"]))
                 specific_data = {"object_id": record["object_id"], "object_data": object_data}
                 handler = get_func_name("update", record["object_type"])
                 await handler(request, conn, specific_data)
@@ -232,6 +234,10 @@ async def get_object_ids(request):
 
 def get_func_name(route, object_type):
     return globals()[f"{route}_{object_type}"]
+
+
+def get_object_data_update_schema(object_type):
+    return globals()[f"objects_update_schema_{object_type}_object_data"]
 
 
 def get_subapp():

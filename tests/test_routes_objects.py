@@ -233,6 +233,16 @@ async def test_update(cli, db_cursor, config):
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 400
 
+    # Incorrect attributes in object_data for links
+    for object_data in [{}, {"link": "https://google.com", "incorrect_attr": 1}, {"link": "not a link"},
+                        {"link": ""}, {"link": 123}]:
+        obj = deepcopy(test_link2)
+        obj.pop("object_type")
+        obj["object_id"] = 1
+        obj["object_data"] = object_data
+        resp = await cli.put("/objects/update", json = {"object": obj})
+        assert resp.status == 400
+
     # Correct update (general attributes + link)
     obj = deepcopy(test_link3)
     obj.pop("object_type")
