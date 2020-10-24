@@ -32,7 +32,8 @@ async def update_link(request, conn, obj_data):
     validate_link(new_link["link"])
 
     links = request.app["tables"]["links"]
-    await conn.execute(links.update().\
+    await conn.execute(links.update().
+        where(links.c.object_id == obj_data["object_id"]).
         values(new_link)
     )        
 
