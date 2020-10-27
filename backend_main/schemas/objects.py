@@ -1,3 +1,5 @@
+object_types_enum = ["link"]
+
 objects_add_schema = {
     "type": "object",
     "required": ["object"],
@@ -131,5 +133,48 @@ objects_delete_schema = {
                 "minimum": 1
             }
         }
+    }
+}
+
+objects_get_page_object_ids_schema = {
+    "type": "object",
+    "required": ["pagination_info"],
+    "additionalProperties": False,
+    "properties": {
+            "pagination_info": {
+                "type": "object",
+                "required": ["page", "items_per_page", "order_by", "sort_order", "filter_text", "object_types"],
+                "additionalProperties": False,
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "items_per_page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "order_by": {
+                        "type": "string",
+                        "enum": ["object_name", "modified_at"]
+                    },
+                    "sort_order": {
+                        "type": "string",
+                        "enum": ["asc", "desc"]
+                    },
+                    "filter_text": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "object_types": {
+                        "type": "array",
+                        "uniqueItems": True,
+                        "items": {
+                            "type": "string",
+                            "enum": object_types_enum
+                        }
+                    }
+                }
+            }
     }
 }

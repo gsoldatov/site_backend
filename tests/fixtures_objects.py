@@ -1,6 +1,7 @@
-from datetime import datetime #, timedelta
+from datetime import datetime, timedelta
 
-__all__ = ["test_link", "test_link2", "test_link3", "incorrect_object_values", "objects_list", "links_list"]
+
+__all__ = ["test_link", "test_link2", "test_link3", "incorrect_object_values", "object_list", "links_list"]
 
 test_link = {
     "object_id": 1,
@@ -41,15 +42,25 @@ incorrect_object_values = [
 ]
 
 def _get_obj_type(x):
-    return "link" #TODO insert other object types when they will be required for tests
+    return "link" if 1 <= x <= 10 else "unknown"
 
-objects_list = [{
+def _get_obj_timestamp(x):
+    """
+    IDs dividable by 4 are created/modified earlier than IDs which are not.
+    IDs dividable by 4 are sorted in descending order by timestamp; IDs not dividable by 4 are sorted in ascending order.
+    E.g.: 
+    ... 16 12 8 4 1 2 3 5 6 7 9 ...
+    """
+    return datetime.utcnow() + timedelta(minutes = -x if x % 4 == 0 else x)
+
+
+object_list = [{
         "object_id": x,
         "object_type": f"{_get_obj_type(x)}",
-        "created_at": datetime.utcnow(), #TODO add sorting rules
-        "modified_at": datetime.utcnow(), #TODO add sorting rules
-        "object_name": f"{_get_obj_type(x)} {x}",
-        "object_description": f"{_get_obj_type(x)} {x} description"
+        "created_at": _get_obj_timestamp(x),
+        "modified_at": _get_obj_timestamp(x),
+        "object_name": chr(ord("a") + x) + str((x+1) % 2),
+        "object_description": chr(ord("a") + x) + str((x+1) % 2) + " description"
     } for x in range(1, 11)
 ]
 

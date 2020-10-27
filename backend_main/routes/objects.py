@@ -8,10 +8,10 @@ from aiohttp import web
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
-    objects_update_schema_link_object_data
+    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, object_types_enum
 
 from backend_main.routes.objects_links import add_link, view_link, update_link, delete_link
 
@@ -36,10 +36,10 @@ async def add(request):
                 # Insert general object data
                 objects = request.app["tables"]["objects"]
                 
-                result = await conn.execute(objects.insert().\
-                    returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                            objects.c.object_name, objects.c.object_description).\
-                    values(data["object"])
+                result = await conn.execute(objects.insert()
+                    .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
+                            objects.c.object_name, objects.c.object_description)
+                    .values(data["object"])
                     )
                 record = await result.fetchone()
             
@@ -81,8 +81,8 @@ async def view(request):
             # Query general attributes for provided object_ids
             if len(object_ids) > 0:
                 result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
-                                                    objects.c.modified_at, objects.c.object_name, objects.c.object_description]).
-                                            where(objects.c.object_id.in_(object_ids))
+                                                    objects.c.modified_at, objects.c.object_name, objects.c.object_description])
+                                            .where(objects.c.object_id.in_(object_ids))
                 )
                 for row in await result.fetchall():
                     object_attrs.append(row_proxy_to_dict(row))
@@ -90,9 +90,9 @@ async def view(request):
             # Query object data for provided object_data_ids
             if len(object_data_ids) > 0:
                 # Query object types for the requested objects
-                result = await conn.execute(select([objects.c.object_type]).
-                                            distinct().
-                                            where(objects.c.object_id.in_(object_data_ids))
+                result = await conn.execute(select([objects.c.object_type])
+                                            .distinct()
+                                            .where(objects.c.object_id.in_(object_data_ids))
                 )
                 object_types = []
                 for row in await result.fetchall():
@@ -137,10 +137,10 @@ async def update(request):
                 objects = request.app["tables"]["objects"]
                 object_id = data["object"]["object_id"]
                 
-                result = await conn.execute(objects.update().\
-                    where(objects.c.object_id == object_id).\
-                    values(data["object"]).\
-                    returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
+                result = await conn.execute(objects.update()
+                    .where(objects.c.object_id == object_id)
+                    .values(data["object"])
+                    .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
                             objects.c.object_name, objects.c.object_description)
                     )
                 record = await result.fetchone()
@@ -183,9 +183,9 @@ async def delete(request):
             try:
                 # Get object types and call handlers for each type to delete object-specific data
                 objects = request.app["tables"]["objects"]
-                result = await conn.execute(select([objects.c.object_type]).
-                            distinct().
-                            where(objects.c.object_id.in_(data["object_ids"]))
+                result = await conn.execute(select([objects.c.object_type])
+                            .distinct()
+                            .where(objects.c.object_id.in_(data["object_ids"]))
                             )
                 object_types = []
                 for row in await result.fetchall():
@@ -199,9 +199,9 @@ async def delete(request):
                     await handler(request, conn, data["object_ids"])
 
                 # Delete general data
-                result = await conn.execute(objects.delete().\
-                            where(objects.c.object_id.in_(data["object_ids"])).\
-                            returning(objects.c.object_id)
+                result = await conn.execute(objects.delete()
+                            .where(objects.c.object_id.in_(data["object_ids"]))
+                            .returning(objects.c.object_id)
                             )
                 object_ids = []
                 for row in await result.fetchall():
@@ -225,7 +225,60 @@ async def delete(request):
 
 
 async def get_page_object_ids(request):
-    pass
+    # Validate request data
+    try:
+        # Validate request data
+        data = await request.json()
+        validate(instance = data, schema = objects_get_page_object_ids_schema)
+
+        async with request.app["engine"].acquire() as conn:
+            # Set query params
+            objects = request.app["tables"]["objects"]
+            p = data["pagination_info"]
+            order_by = objects.c.modified_at if p["order_by"] == "modified_at" else objects.c.object_name
+            order_asc = p["sort_order"] == "asc"
+            items_per_page = p["items_per_page"]
+            first = (p["page"] - 1) * items_per_page
+            filter_text = f"%{p['filter_text'].lower()}%"
+            object_types = p["object_types"] if len(p["object_types"]) > 0 else object_types_enum
+
+            # Get object ids
+            result = await conn.execute(select([objects.c.object_id])
+                    .where(func.lower(objects.c.object_name).like(filter_text))
+                    .where(objects.c.object_type.in_(object_types))
+                    .order_by(order_by if order_asc else order_by.desc())
+                    .limit(items_per_page)
+                    .offset(first)
+                    )
+            object_ids = []
+            for row in await result.fetchall():
+                object_ids.append(row["object_id"])
+            
+            if len(object_ids) == 0:
+                raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
+
+            # Get object count
+            result = await conn.execute(select([func.count()]).select_from(objects)
+                                        .where(objects.c.object_name.like(filter_text))
+                                        .where(objects.c.object_type.in_(object_types)))
+            total_items = (await result.fetchone())[0]
+
+            # Send response
+            response = {
+                "page": p["page"],
+                "items_per_page": items_per_page,
+                "total_items": total_items,
+                "order_by": p["order_by"],
+                "sort_order": p["sort_order"],
+                "filter_text": p["filter_text"],
+                "object_types": object_types,
+                "object_ids": object_ids
+            }
+            return web.json_response(response)
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
 async def get_object_ids(request):
