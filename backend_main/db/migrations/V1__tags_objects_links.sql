@@ -20,7 +20,7 @@ CREATE TABLE objects (
 CREATE INDEX "object_type_index" ON objects (object_type);
 CREATE UNIQUE INDEX "lowered_object_name" ON objects ((LOWER(object_name)));
 
-CREATE TABLE objects_tags_link (
+CREATE TABLE objects_tags (
     tag_id INT NOT NULL REFERENCES tags(tag_id),
     object_id INT NOT NULL REFERENCES objects(object_id)
 );

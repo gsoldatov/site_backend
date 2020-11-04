@@ -32,8 +32,8 @@ def get_tables(config):
             Index("object_type_index", "object_type")
         ),
 
-        "objects_tags_link": Table(
-            "objects_tags_link", 
+        "objects_tags": Table(
+            "objects_tags", 
             meta,
             Column("tag_id", Integer, ForeignKey("tags.tag_id")),
             Column("object_id", Integer, ForeignKey("objects.object_id"))

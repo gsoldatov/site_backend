@@ -12,15 +12,15 @@ async def add_link(request, conn, obj_data):
     validate_link(new_link["link"])
 
     links = request.app["tables"]["links"]
-    await conn.execute(links.insert().\
-            values(new_link)
+    await conn.execute(links.insert()
+            .values(new_link)
     )
 
 
 async def view_link(request, conn, object_ids):
     links = request.app["tables"]["links"]
-    records = await conn.execute(select([links.c.object_id, links.c.link]).
-                                 where(links.c.object_id.in_(object_ids))
+    records = await conn.execute(select([links.c.object_id, links.c.link])
+                                 .where(links.c.object_id.in_(object_ids))
     )
     result = []
     for row in await records.fetchall():
@@ -33,14 +33,14 @@ async def update_link(request, conn, obj_data):
     validate_link(new_link["link"])
 
     links = request.app["tables"]["links"]
-    await conn.execute(links.update().
-        where(links.c.object_id == obj_data["object_id"]).
-        values(new_link)
+    await conn.execute(links.update()
+        .where(links.c.object_id == obj_data["object_id"])
+        .values(new_link)
     )        
 
 
 async def delete_link(request, conn, object_ids):
     links = request.app["tables"]["links"]
-    await conn.execute(links.delete().\
-        where(links.c.object_id.in_(object_ids))
+    await conn.execute(links.delete()
+        .where(links.c.object_id.in_(object_ids))
     )
