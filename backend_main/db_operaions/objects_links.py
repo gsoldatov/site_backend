@@ -3,7 +3,8 @@
 """
 from sqlalchemy import select
 
-from backend_main.routes.util import link_data_row_proxy_to_dict, validate_link
+from backend_main.util.json import link_data_row_proxy_to_dict
+from backend_main.util.validation import validate_link
 
 
 async def add_link(request, conn, obj_data):

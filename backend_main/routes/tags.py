@@ -7,7 +7,7 @@ from jsonschema.exceptions import ValidationError
 from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
-from backend_main.routes.util import row_proxy_to_dict, error_json
+from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, tags_get_page_tag_ids_schema
 
 
