@@ -36,7 +36,8 @@ def get_tables(config):
             "objects_tags", 
             meta,
             Column("tag_id", Integer, ForeignKey("tags.tag_id")),
-            Column("object_id", Integer, ForeignKey("objects.object_id"))
+            Column("object_id", Integer, ForeignKey("objects.object_id")),
+            Index("objects_tags_index", "object_id", "tag_id", unique = True),
         ),
 
         "links": Table(

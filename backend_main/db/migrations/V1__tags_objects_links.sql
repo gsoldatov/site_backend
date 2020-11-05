@@ -25,6 +25,8 @@ CREATE TABLE objects_tags (
     object_id INT NOT NULL REFERENCES objects(object_id)
 );
 
+CREATE UNIQUE INDEX "objects_tags_index" ON objects_tags (object_id, tag_id);
+
 CREATE TABLE links (
     object_id INT NOT NULL REFERENCES objects(object_id),
     link TEXT NOT NULL
