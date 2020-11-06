@@ -99,3 +99,29 @@ tags_get_page_tag_ids_schema = {
             }
     }
 }
+
+
+tags_search_schema = {
+    "type": "object",
+    "required": ["query"],
+    "additionalProperties": False,
+    "properties": {
+        "query": {
+            "type": "object",
+            "required": ["query_text"],
+            "additionalProperties": False,
+            "properties": {
+                "query_text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                },
+                "maximum_values": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                }
+            }
+        }
+    }
+}

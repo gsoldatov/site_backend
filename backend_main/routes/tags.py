@@ -8,7 +8,8 @@ from psycopg2.errors import InvalidTextRepresentation, UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.util.json import row_proxy_to_dict, error_json
-from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, tags_get_page_tag_ids_schema
+from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
+    tags_get_page_tag_ids_schema, tags_search_schema
 
 
 async def add(request):
@@ -134,7 +135,7 @@ async def get_page_tag_ids(request):
     try:
         # Validate request data
         data = await request.json()
-        validate(instance = data, schema = tags_get_page_tag_ids_schema)        
+        validate(instance = data, schema = tags_get_page_tag_ids_schema)
         
         async with request.app["engine"].acquire() as conn:
             # Set query params
@@ -183,8 +184,36 @@ async def get_page_tag_ids(request):
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
-async def view_all(request):
-    pass
+async def search(request):
+    try:
+        # Validate request data
+        data = await request.json()
+        validate(instance = data, schema = tags_search_schema)
+
+        async with request.app["engine"].acquire() as conn:
+            # Set query params
+            tags = request.app["tables"]["tags"]
+            query_text = "%" + data["query"]["query_text"] + "%"
+            maximum_values = data["query"].get("maximum_values", 10)
+
+            # Get tag ids
+            result = await conn.execute(select([tags.c.tag_id])
+                                        .where(func.lower(tags.c.tag_name).like(query_text))
+                                        .limit(maximum_values)
+            )
+            tag_ids = []
+            for row in await result.fetchall():
+                tag_ids.append(row["tag_id"])
+            
+            if len(tag_ids) == 0:
+                raise web.HTTPNotFound(text = error_json("No tags found."), content_type = "application/json")
+
+            return web.json_response({"tag_ids": tag_ids})
+    
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
 async def merge(request):
@@ -211,7 +240,7 @@ def get_subapp():
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
                     web.post("/get_page_tag_ids", get_page_tag_ids, name = "get_page_tag_ids"),
-                    web.get("/view/all", view_all, name = "view_all"),
+                    web.post("/search", search, name = "search"),
                     web.put("/merge", merge, name = "merge"),
                     web.post("/link/{type}", link, name = "link"),
                     web.delete("/unlink/{type}", unlink, name = "unlink"),
