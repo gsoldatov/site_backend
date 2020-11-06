@@ -11,7 +11,7 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
-    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, object_types_enum
+    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, object_types_enum
 
 from backend_main.db_operaions.objects_links import add_link, view_link, update_link, delete_link
 
@@ -282,8 +282,37 @@ async def get_page_object_ids(request):
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
-async def get_object_ids(request):
-    pass
+async def search(request):
+    try:
+        # Validate request data
+        data = await request.json()
+        validate(instance = data, schema = objects_search_schema)
+
+        async with request.app["engine"].acquire() as conn:
+            # Set query params
+            objects = request.app["tables"]["objects"]
+            query_text = "%" + data["query"]["query_text"] + "%"
+            maximum_values = data["query"].get("maximum_values", 10)
+
+            # Get object ids
+            result = await conn.execute(select([objects.c.object_id])
+                                        .where(func.lower(objects.c.object_name).like(query_text))
+                                        .limit(maximum_values)
+            )
+            object_ids = []
+            for row in await result.fetchall():
+                object_ids.append(row["object_id"])
+            
+            if len(object_ids) == 0:
+                raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
+
+            return web.json_response({"object_ids": object_ids})
+    
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except ValidationError as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+
 
 
 def get_func_name(route, object_type):
@@ -302,6 +331,6 @@ def get_subapp():
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
                     web.post("/get_page_object_ids", get_page_object_ids, name = "get_page_object_ids"),
-                    web.post("/get_object_ids", get_object_ids, name = "get_object_ids")
+                    web.post("/search", search, name = "search")
                 ])
     return app
