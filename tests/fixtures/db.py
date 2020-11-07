@@ -135,9 +135,9 @@ def migrate(config):
         if _cwd: # Migrate the db only once per test module
             return
         
-        cwd = cwd or os.path.dirname(os.path.abspath(__file__)) + "/migrations"
+        cwd = cwd or os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/migrations"
         # copy_migrations_from = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/db/migrations"
-        copy_migrations_from = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/backend_main/db/migrations"
+        copy_migrations_from = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + "/backend_main/db/migrations"
         
         _cwd = cwd
 
@@ -179,4 +179,4 @@ def migrate(config):
             if os.path.exists(_cwd):
                 shutil.rmtree(_cwd)
 
-from fixtures_app import config
+from fixtures.app import config

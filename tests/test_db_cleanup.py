@@ -8,7 +8,7 @@ import pytest
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 
 from backend_main.db.cleanup import close_engine
-from fixtures_app import *
+from fixtures.app import *
 
 
 async def test_cleanup(app):

@@ -10,7 +10,7 @@ from jsonschema import ValidationError
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 
 from backend_main.config import _validate_and_set_values
-from fixtures_app import base_config
+from fixtures.app import base_config
 
 
 setting_groups = ["app", "cors_urls", "db"]

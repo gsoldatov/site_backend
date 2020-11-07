@@ -10,7 +10,7 @@ from sqlalchemy import Table
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 
 from backend_main.db.tables import get_tables
-from fixtures_db import config, init_db_cursor, db_cursor, db_and_user, migrate
+from fixtures.db import config, init_db_cursor, db_cursor, db_and_user, migrate
 
 
 def test_get_tables(config, db_cursor):

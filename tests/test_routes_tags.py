@@ -1,17 +1,17 @@
 """
-routes/tags.py tests
+routes/tags.py tests.
+
+Object tagging logic is tested in test_objects_tags.py
 """
 import os
 import json
-from datetime import datetime
 from copy import deepcopy
 
 import pytest
-from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures_app import *
-from fixtures_tags import *
+from fixtures.app import *
+from fixtures.tags import *
 
 
 async def test_add(cli, db_cursor, config):
@@ -23,15 +23,13 @@ async def test_add(cli, db_cursor, config):
 
     # Check required elements
     for attr in ("tag_name", "tag_description"):
-        tag = deepcopy(test_tag)
-        tag.pop("tag_id")
+        tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
         tag.pop(attr)
         resp = await cli.post("/tags/add", json = {"tag": tag})
         assert resp.status == 400
 
     # Unallowed elements
-    tag = deepcopy(test_tag)
-    tag.pop("tag_id")
+    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
     tag["unallowed"] = "unallowed"
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 400
@@ -39,15 +37,13 @@ async def test_add(cli, db_cursor, config):
     # Incorrect values
     for k, v in incorrect_tag_values:
         if k != "tag_id":
-            tag = deepcopy(test_tag)
-            tag.pop("tag_id")
+            tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
             tag[k] = v
             resp = await cli.post("/tags/add", json = {"tag": tag})
             assert resp.status == 400
 
     # Write a correct tag
-    tag = deepcopy(test_tag)
-    tag.pop("tag_id")
+    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 200
     resp_json = await resp.json()
@@ -72,15 +68,10 @@ async def test_add(cli, db_cursor, config):
 async def test_update(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
-    created_at = datetime.utcnow()
-    modified_at = created_at
-
+    
     # Insert mock values
-    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s)",
-                (AsIs(table), 
-                created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
-                created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"])
-                )
+    tag_list = [get_test_tag(1), get_test_tag(2)]
+    insert_tags(tag_list, db_cursor, config)
     
     # Incorrect request body
     resp = await cli.put("/tags/update", data = "not a JSON document.")
@@ -92,39 +83,39 @@ async def test_update(cli, db_cursor, config):
     
     # Missing attributes
     for attr in ("tag_id", "tag_name", "tag_description"):
-        tag = deepcopy(test_tag)
+        tag = get_test_tag(1, ["created_at", "modified_at"])
         tag.pop(attr)
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Incorrect attribute types and lengths:
     for k, v in incorrect_tag_values:
-        tag = deepcopy(test_tag)
+        tag = get_test_tag(1, ["created_at", "modified_at"])
         tag[k] = v
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Non-existing tag_id
-    tag = deepcopy(test_tag)
+    tag = get_test_tag(1, ["created_at", "modified_at"])
     tag["tag_id"] = 100
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 404
 
     # Duplicate tag_name
-    tag = deepcopy(test_tag2)
+    tag = get_test_tag(2, ["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
     
     # Lowercase duplicate tag_name
-    tag = deepcopy(test_tag2)
+    tag = get_test_tag(2, ["created_at", "modified_at"])
     tag["tag_id"] = 1
     tag["tag_name"] = tag["tag_name"].upper()
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
     
     # Correct update
-    tag = deepcopy(test_tag3)
+    tag = get_test_tag(3, ["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200
@@ -135,16 +126,10 @@ async def test_update(cli, db_cursor, config):
 async def test_delete(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
-    created_at = datetime.utcnow()
-    modified_at = created_at
 
     # Insert mock values
-    cursor.execute("INSERT INTO %s VALUES (1, %s, %s, %s, %s), (2, %s, %s, %s, %s), (3, %s, %s, %s, %s)", 
-        (AsIs(table), 
-        created_at, modified_at, test_tag["tag_name"], test_tag["tag_description"],
-        created_at, modified_at, test_tag2["tag_name"], test_tag2["tag_description"],
-        created_at, modified_at, test_tag3["tag_name"], test_tag3["tag_description"])
-    )
+    tag_list = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
+    insert_tags(tag_list, db_cursor, config)
     
     # Incorrect values
     for value in ["123", {"incorrect_key": "incorrect_value"}, {"tag_ids": "incorrect_value"}, {"tag_ids": []}]:
@@ -172,13 +157,7 @@ async def test_delete(cli, db_cursor, config):
 
 async def test_view(cli, db_cursor, config):
     # Insert data
-    cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tag_list))))
-    table = config["db"]["db_schema"] + ".tags"
-    params = [AsIs(table)]
-    for t in tag_list:
-        params.extend(t.values())
-    cursor.execute(query, params)
+    insert_tags(tag_list, db_cursor, config)
 
     # Incorrect request body
     resp = await cli.post("/tags/view", data = "not a JSON document.")
@@ -209,14 +188,7 @@ async def test_view(cli, db_cursor, config):
 async def test_get_page_tag_ids(cli, db_cursor, config):
     # Insert data
     pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}
-
-    cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tag_list))))
-    table = config["db"]["db_schema"] + ".tags"
-    params = [AsIs(table)]
-    for t in tag_list:
-        params.extend(t.values())
-    cursor.execute(query, params)
+    insert_tags(tag_list, db_cursor, config)
 
     # Incorrect request body
     resp = await cli.post("/tags/get_page_tag_ids", data = "not a JSON document.")
@@ -284,6 +256,39 @@ async def test_get_page_tag_ids(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == len(tag_list) // 2
     assert data["tag_ids"] == [1, 3] # a0, c0
+
+
+async def test_search(cli, db_cursor, config):
+    # Insert data
+    insert_tags(tag_list, db_cursor, config)
+
+    # Incorrect request
+    for req_body in ["not an object", 1, {"incorrect attribute": {}}, {"query": "not an object"}, {"query": 1},
+        {"query": {"query_text": "123"}, "incorrect attribute": {}}, {"query": {"incorrect attribute": "123"}},
+        {"query": {"query_text": "123", "incorrect_attribute": 1}}]:
+        resp = await cli.post("/tags/search", json = req_body)
+        assert resp.status == 400
+    
+    # Incorrect attribute values
+    for req_body in [{"query": {"query_text": ""}}, {"query": {"query_text": 1}}, {"query": {"query_text": "a"*256}},
+        {"query": {"query_text": "123", "maximum_values": "1"}}, {"query": {"query_text": "123", "maximum_values": -1}},
+        {"query": {"query_text": "123", "maximum_values": 101}}]:
+        resp = await cli.post("/tags/search", json = req_body)
+        assert resp.status == 400
+    
+    # Correct request - non-existing tags
+    req_body = {"query": {"query_text": "non-existing tag"}}
+    resp = await cli.post("/tags/search", json = req_body)
+    assert resp.status == 404
+
+    # Correct request - check response and maximum_values limit
+    req_body = {"query": {"query_text": "0", "maximum_values": 2}}
+    resp = await cli.post("/tags/search", json = req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert "tag_ids" in data
+    assert type(data["tag_ids"]) == list
+    assert data["tag_ids"] == [1, 3]    # a0, c0
 
 
 if __name__ == "__main__":

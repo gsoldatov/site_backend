@@ -1,17 +1,18 @@
 """
-routes/objects.py tests
+routes/objects.py tests.
+
+Object tagging logic is tested in test_objects_tags.py
 """
 import os
 import json
-from datetime import datetime
 from copy import deepcopy
 
 import pytest
 from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures_app import *
-from fixtures_objects import *
+from fixtures.app import *
+from fixtures.objects import *
 
 
 async def test_add(cli, db_cursor, config):
@@ -23,15 +24,13 @@ async def test_add(cli, db_cursor, config):
     
     # Required attributes missing
     for attr in ("object_type", "object_name", "object_description"):
-        link = deepcopy(test_link)
-        link.pop("object_id")
+        link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
         link.pop(attr)
         resp = await cli.post("/objects/add", json = {"object": link})
         assert resp.status == 400
 
     # Unallowed attributes
-    link = deepcopy(test_link)
-    link.pop("object_id")
+    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
     link["unallowed"] = "unallowed"
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
@@ -39,22 +38,20 @@ async def test_add(cli, db_cursor, config):
     # Incorrect values for general attribute
     for k, v in incorrect_object_values:
         if k != "object_id":
-            link = deepcopy(test_link)
-            link.pop("object_id")
+            link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
             link[k] = v
             resp = await cli.post("/objects/add", json = {"object": link})
             assert resp.status == 400
     
     # Incorrect link attributes
     for attrs in [{"incorrect link attr": "123"}, {"incorrect link attr": "123", "link": "https://google.com"}]:
-        link = deepcopy(test_link)
+        link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
         link["object_data"] = attr
         resp = await cli.post("/objects/add", json = {"object": link})
         assert resp.status == 400
     
     # Incorrect link value
-    link = deepcopy(test_link)
-    link.pop("object_id")
+    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
     link["object_data"] = {"link": "not a valid link"}
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
@@ -66,8 +63,7 @@ async def test_add(cli, db_cursor, config):
     assert not cursor.fetchone()
 
     # Add a correct link
-    link = deepcopy(test_link)
-    link.pop("object_id")
+    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 200
     resp_json = await resp.json()
@@ -85,29 +81,16 @@ async def test_add(cli, db_cursor, config):
     assert cursor.fetchone() == (link["object_data"]["link"],)
 
     # Check if an object existing name is not added
-    link = deepcopy(test_link)
-    link.pop("object_id")
+    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
     link["object_name"] = link["object_name"].upper()
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
 
 
 async def test_view(cli, db_cursor, config):
-    # Insert data
-    cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(len(object_list))))
-    table = config["db"]["db_schema"] + ".objects"
-    params = [AsIs(table)]
-    for t in object_list:
-        params.extend(t.values())
-    cursor.execute(query, params)
-
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(links_list))))
-    table = config["db"]["db_schema"] + ".links"
-    params = [AsIs(table)]
-    for t in links_list:
-        params.extend(t.values())
-    cursor.execute(query, params)
+    # Insert mock values
+    insert_objects(object_list, db_cursor, config)
+    insert_links(links_list, db_cursor, config)
 
     # Incorrect request body
     resp = await cli.post("/objects/view", data = "not a JSON document.")
@@ -170,21 +153,12 @@ async def test_update(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
     links = config["db"]["db_schema"] + ".links"
-    created_at = datetime.utcnow()
-    modified_at = created_at
 
     # Insert mock values
-    cursor.execute("INSERT INTO %s VALUES (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s)",
-                (AsIs(objects), 
-                test_link["object_id"], test_link["object_type"], created_at, modified_at, test_link["object_name"], test_link["object_description"],
-                test_link2["object_id"], test_link2["object_type"], created_at, modified_at, test_link2["object_name"], test_link2["object_description"])
-                )
-    
-    cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s)",
-                (AsIs(links), 
-                test_link["object_id"], test_link["object_data"]["link"],
-                test_link2["object_id"], test_link2["object_data"]["link"])
-                )
+    obj_list = [get_test_object_link(1, ["object_data"]), get_test_object_link(2, ["object_data"])]
+    l_list = [get_test_link(1), get_test_link(2)]
+    insert_objects(obj_list, db_cursor, config)
+    insert_links(l_list, db_cursor, config)
     
     # Incorrect request body
     resp = await cli.put("/objects/update", data = "not a JSON document.")
@@ -196,8 +170,7 @@ async def test_update(cli, db_cursor, config):
     
     # Missing attributes
     for attr in ("object_id", "object_name", "object_description"):
-        obj = deepcopy(test_link)
-        obj.pop("object_type")
+        obj = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
         obj.pop(attr)
         resp = await cli.put("/objects/update", json = {"object": obj})
         assert resp.status == 400
@@ -205,29 +178,25 @@ async def test_update(cli, db_cursor, config):
     # Incorrect attribute types and lengths:
     for k, v in incorrect_object_values:
         if k != "object_type":
-            obj = deepcopy(test_link)
-            obj.pop("object_type")
+            obj = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
             obj[k] = v
             resp = await cli.put("/objects/update", json = {"object": obj})
             assert resp.status == 400
     
     # Non-existing object_id
-    obj = deepcopy(test_link)
-    obj.pop("object_type")
+    obj = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 100
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 404
 
     # Duplicate object_name
-    obj = deepcopy(test_link2)
-    obj.pop("object_type")
+    obj = get_test_object_link(2, ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 400
 
     # Lowercase duplicate object_name
-    obj = deepcopy(test_link2)
-    obj.pop("object_type")
+    obj = get_test_object_link(2, ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     obj["object_name"] = obj["object_name"].upper()
     resp = await cli.put("/objects/update", json = {"object": obj})
@@ -236,16 +205,14 @@ async def test_update(cli, db_cursor, config):
     # Incorrect attributes in object_data for links
     for object_data in [{}, {"link": "https://google.com", "incorrect_attr": 1}, {"link": "not a link"},
                         {"link": ""}, {"link": 123}]:
-        obj = deepcopy(test_link2)
-        obj.pop("object_type")
+        obj = get_test_object_link(3, ["created_at", "modified_at", "object_type"])
         obj["object_id"] = 1
         obj["object_data"] = object_data
         resp = await cli.put("/objects/update", json = {"object": obj})
         assert resp.status == 400
 
     # Correct update (general attributes + link)
-    obj = deepcopy(test_link3)
-    obj.pop("object_type")
+    obj = get_test_object_link(3, ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 200
@@ -259,23 +226,12 @@ async def test_delete(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
     links = config["db"]["db_schema"] + ".links"
-    created_at = datetime.utcnow()
-    modified_at = created_at
-
-    # Insert mock values
-    cursor.execute("INSERT INTO %s VALUES (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s), (%s, %s, %s, %s, %s, %s)",
-                (AsIs(objects), 
-                test_link["object_id"], test_link["object_type"], created_at, modified_at, test_link["object_name"], test_link["object_description"],
-                test_link2["object_id"], test_link2["object_type"], created_at, modified_at, test_link2["object_name"], test_link2["object_description"],
-                test_link3["object_id"], test_link3["object_type"], created_at, modified_at, test_link3["object_name"], test_link3["object_description"])
-                )
     
-    cursor.execute("INSERT INTO %s VALUES (%s, %s), (%s, %s), (%s, %s)",
-                (AsIs(links), 
-                test_link["object_id"], test_link["object_data"]["link"],
-                test_link2["object_id"], test_link2["object_data"]["link"],
-                test_link3["object_id"], test_link3["object_data"]["link"])
-                )
+    # Insert mock values
+    obj_list = [get_test_object_link(1, ["object_data"]), get_test_object_link(2, ["object_data"]), get_test_object_link(3, ["object_data"])]
+    l_list = [get_test_link(1), get_test_link(2), get_test_link(3)]
+    insert_objects(obj_list, db_cursor, config)
+    insert_links(l_list, db_cursor, config)
     
     # Incorrect attributes and values
     for value in ["123", {"incorrect_key": "incorrect_value"}, {"object_ids": "incorrect_value"}, {"object_ids": []}]:
@@ -307,14 +263,8 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"]}}
     links_count = sum((1 for obj in object_list if obj["object_type"] == "link")) # TODO change total count in subtests and default object types when new types are added
 
-    # Insert data
-    cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(len(object_list))))
-    table = config["db"]["db_schema"] + ".objects"
-    params = [AsIs(table)]
-    for t in object_list:
-        params.extend(t.values())
-    cursor.execute(query, params)
+    # Insert mock values
+    insert_objects(object_list, db_cursor, config)
 
     # Incorrect request body (not a json, missing attributes, wrong attributes)
     resp = await cli.post("/objects/get_page_object_ids", data = "not a JSON document.")
@@ -400,6 +350,39 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == links_count
     assert data["object_ids"] == [1, 2]
+
+
+async def test_search(cli, db_cursor, config):
+    # Insert mock values
+    insert_objects(object_list, db_cursor, config)
+
+    # Incorrect request
+    for req_body in ["not an object", 1, {"incorrect attribute": {}}, {"query": "not an object"}, {"query": 1},
+        {"query": {"query_text": "123"}, "incorrect attribute": {}}, {"query": {"incorrect attribute": "123"}},
+        {"query": {"query_text": "123", "incorrect_attribute": 1}}]:
+        resp = await cli.post("/objects/search", json = req_body)
+        assert resp.status == 400
+    
+    # Incorrect attribute values
+    for req_body in [{"query": {"query_text": ""}}, {"query": {"query_text": 1}}, {"query": {"query_text": "a"*256}},
+        {"query": {"query_text": "123", "maximum_values": "1"}}, {"query": {"query_text": "123", "maximum_values": -1}},
+        {"query": {"query_text": "123", "maximum_values": 101}}]:
+        resp = await cli.post("/objects/search", json = req_body)
+        assert resp.status == 400
+    
+    # Correct request - non-existing objects
+    req_body = {"query": {"query_text": "non-existing object"}}
+    resp = await cli.post("/objects/search", json = req_body)
+    assert resp.status == 404
+
+    # Correct request - check response and maximum_values limit
+    req_body = {"query": {"query_text": "0", "maximum_values": 2}}
+    resp = await cli.post("/objects/search", json = req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert "object_ids" in data
+    assert type(data["object_ids"]) == list
+    assert data["object_ids"] == [1, 3]    # a0, c0
 
 
 if __name__ == "__main__":

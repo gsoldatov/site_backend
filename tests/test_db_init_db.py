@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(sys.path[0], '..'))
 
 from backend_main.db.init_db import (connect, disconnect, create_user, create_db,
                         create_schema, create_flyway_conf, migrate_db)
-from fixtures_db import *
+from fixtures.db import *
 
 
 def test_connect_disconnect(config):

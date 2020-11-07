@@ -38,7 +38,7 @@ async def app(loop, db_and_user, db_cursor, config):
 
 @pytest.fixture(scope = "module")
 def config():
-    config_file = os.path.dirname(os.path.abspath(__file__)) \
+    config_file = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) \
             + "/test_config.json"
     
     with open(config_file, "r") as stream:
@@ -67,4 +67,4 @@ def base_config():
 }
 
 
-from fixtures_db import init_db_cursor, db_cursor, migrate, db_and_user
+from fixtures.db import init_db_cursor, db_cursor, migrate, db_and_user
