@@ -33,14 +33,21 @@ tag_list = [{
     } for x in range(10)
 ]
 
-def insert_tags(tags, db_cursor, config):
+def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
     """
     Inserts a list of tags into <db_schema>.tags table.
     """
-    cursor = db_cursor(apply_migrations = True)
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tags))))
+    cursor = db_cursor(apply_migrations = True)    
     table = config["db"]["db_schema"] + ".tags"
     params = [AsIs(table)]
-    for t in tags:
-        params.extend(t.values())
+    query = ""
+
+    if generate_tag_ids:
+        query = "INSERT INTO %s VALUES " + ", ".join(("(DEFAULT, %s, %s, %s, %s)" for _ in range(len(tags))))
+        for t in tags:
+            params.extend((t[k] for k in t if k != "tag_id"))
+    else:
+        query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tags))))
+        for t in tags:
+            params.extend(t.values())
     cursor.execute(query, params)
