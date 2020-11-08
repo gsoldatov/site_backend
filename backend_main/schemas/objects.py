@@ -23,6 +23,9 @@ objects_add_schema = {
                 },
                 "object_data": {
                     "type": "object"
+                },
+                "added_tags": {         # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
                 }
             },
             "oneOf": [
@@ -73,6 +76,12 @@ objects_update_schema = {
                 },
                 "object_data": {
                     "type": "object"
+                },
+                "added_tags": {         # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
+                },
+                "removed_tag_ids": {    # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
                 }
             }
         }
@@ -102,7 +111,7 @@ objects_view_schema = {
             "type": "array",
             "minItems": 1,
             "maxItems": 10000,
-            "items" : {
+            "items": {
                 "type": "integer",
                 "minimum": 1
             }
@@ -111,7 +120,7 @@ objects_view_schema = {
             "type": "array",
             "minItems": 1,
             "maxItems": 10000,
-            "items" : {
+            "items": {
                 "type": "integer",
                 "minimum": 1
             }

@@ -14,9 +14,10 @@ from backend_main.schemas.objects import objects_add_schema, objects_update_sche
     objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, object_types_enum
 
 from backend_main.db_operaions.objects_links import add_link, view_link, update_link, delete_link
+from backend_main.db_operaions.objects_tags import update_objects_tags
 
 from backend_main.util.json import row_proxy_to_dict, error_json
-from backend_main.util.validation import LinkValidationException
+from backend_main.util.validation import LinkValidationException, ObjectsTagsUpdateException
 
 
 async def add(request):
@@ -27,6 +28,7 @@ async def add(request):
         current_time = datetime.utcnow()
         data["object"]["created_at"] = current_time
         data["object"]["modified_at"] = current_time
+        added_tags = data["object"].pop("added_tags", None)
 
         # Insert data in a transaction
         async with request.app["engine"].acquire() as conn:
@@ -43,17 +45,23 @@ async def add(request):
                     .values(data["object"])
                     )
                 record = await result.fetchone()
+                response_data = row_proxy_to_dict(record)
+                object_id = record["object_id"]
             
                 # Call handler to add object-specific data
-                specific_data = {"object_id": record["object_id"], "object_data": object_data}
+                specific_data = {"object_id": object_id, "object_data": object_data}
                 handler = get_func_name("add", data["object"]["object_type"])
                 await handler(request, conn, specific_data)
+
+                # Set tags of the new object
+                if added_tags:
+                    response_data["tag_updates"] = await update_objects_tags(request, conn, {"object_ids": [object_id], "added_tags": added_tags})
                 
                 # Commit transaction
                 await trans.commit()
 
                 # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-                return web.json_response({"object": row_proxy_to_dict(record)})
+                return web.json_response({"object": response_data})
             except Exception as e:
                 # Rollback if an error occurs
                 await trans.rollback()
@@ -61,7 +69,7 @@ async def add(request):
 
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, LinkValidationException) as e:
+    except (ValidationError, LinkValidationException, ObjectsTagsUpdateException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json("Submitted object name already exists."), content_type = "application/json")
@@ -75,18 +83,32 @@ async def view(request):
 
         async with request.app["engine"].acquire() as conn:
             objects = request.app["tables"]["objects"]
+            objects_tags = request.app["tables"]["objects_tags"]
             object_ids = data.get("object_ids", [])
             object_data_ids = data.get("object_data_ids", [])
-            object_attrs, object_data = [], []
+            object_attrs, object_data = {}, []
 
-            # Query general attributes for provided object_ids
+            # Query general attributes and tag IDs for provided object_ids
             if len(object_ids) > 0:
-                result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
+                # Attributes
+                object_attrs_result = await conn.execute(select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
                                                     objects.c.modified_at, objects.c.object_name, objects.c.object_description])
                                             .where(objects.c.object_id.in_(object_ids))
                 )
-                for row in await result.fetchall():
-                    object_attrs.append(row_proxy_to_dict(row))
+
+                for row in await object_attrs_result.fetchall():
+                    object_attrs[row["object_id"]] = row_proxy_to_dict(row)
+                    object_attrs[row["object_id"]]["current_tag_ids"] = []
+                
+                # Tag IDs
+                objects_tags_result = await conn.execute(select([objects_tags.c.object_id, objects_tags.c.tag_id])
+                                                        .where(objects_tags.c.object_id.in_(object_ids))
+                )
+                for row in await objects_tags_result.fetchall():
+                    object_attrs[row["object_id"]]["current_tag_ids"].append(row["tag_id"])
+                
+                # Convert object_attrs to list
+                object_attrs = [object_attrs[k] for k in object_attrs]
             
             # Query object data for provided object_data_ids
             if len(object_data_ids) > 0:
@@ -98,7 +120,6 @@ async def view(request):
                 object_types = []
                 for row in await result.fetchall():
                     object_types.append(row["object_type"])
-                
                 
                 # Run handlers for each of the object types
                 for object_type in object_types:
@@ -127,6 +148,8 @@ async def update(request):
         validate(instance = data, schema = objects_update_schema)
         current_time = datetime.utcnow()
         data["object"]["modified_at"] = current_time
+        added_tags = data["object"].pop("added_tags", [])
+        removed_tag_ids = data["object"].pop("removed_tag_ids", [])
 
         # Insert general object data
         async with request.app["engine"].acquire() as conn:
@@ -148,6 +171,7 @@ async def update(request):
                 if not record:
                     await trans.rollback()
                     raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
+                response_data = row_proxy_to_dict(record)
             
                 # Validate object_data property and call handler to update object-specific data
                 validate(instance = object_data, schema = get_object_data_update_schema(record["object_type"]))
@@ -155,18 +179,23 @@ async def update(request):
                 handler = get_func_name("update", record["object_type"])
                 await handler(request, conn, specific_data)
                 
+                # Update object's tags
+                if added_tags:
+                    response_data["tag_updates"] = await update_objects_tags(request, conn, 
+                        {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
+                
                 # Commit transaction
                 await trans.commit()
 
                 # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-                return web.json_response({"object": row_proxy_to_dict(record)})
+                return web.json_response({"object": response_data})
             except Exception as e:
                 # Rollback if an error occurs
                 await trans.rollback()
                 raise e
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, LinkValidationException) as e:
+    except (ValidationError, LinkValidationException, ObjectsTagsUpdateException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json("Submitted object name already exists."), content_type = "application/json")
@@ -181,12 +210,16 @@ async def delete(request):
         # Delete objects in a transaction
         async with request.app["engine"].acquire() as conn:
             trans = await conn.begin()
+            object_ids = data["object_ids"]
             try:
+                # Remove objects' tags
+                await update_objects_tags(request, conn, {"object_ids": object_ids, "remove_all_tags": True})
+
                 # Get object types and call handlers for each type to delete object-specific data
                 objects = request.app["tables"]["objects"]
                 result = await conn.execute(select([objects.c.object_type])
                             .distinct()
-                            .where(objects.c.object_id.in_(data["object_ids"]))
+                            .where(objects.c.object_id.in_(object_ids))
                             )
                 object_types = []
                 for row in await result.fetchall():
@@ -197,11 +230,11 @@ async def delete(request):
 
                 for object_type in object_types:
                     handler = get_func_name("delete", object_type)
-                    await handler(request, conn, data["object_ids"])
+                    await handler(request, conn, object_ids)
 
                 # Delete general data
                 result = await conn.execute(objects.delete()
-                            .where(objects.c.object_id.in_(data["object_ids"]))
+                            .where(objects.c.object_id.in_(object_ids))
                             .returning(objects.c.object_id)
                             )
                 object_ids = []

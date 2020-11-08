@@ -15,6 +15,13 @@ def validate_link(link):
         raise LinkValidationException("Provided string is not a valid URL")
 
 
-class LinkValidationException(Exception):
+class BaseException(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class LinkValidationException(BaseException):
+    pass
+    
+class ObjectsTagsUpdateException(BaseException):
+    pass
