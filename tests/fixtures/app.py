@@ -33,8 +33,7 @@ async def app(loop, db_and_user, db_cursor, config):
     schema = config["db"]["db_schema"]
     
     for table in app["tables"]:
-        cursor.execute(f"TRUNCATE {schema}.{table} CASCADE")
-
+        cursor.execute(f"TRUNCATE {schema}.{table} RESTART IDENTITY CASCADE")
 
 @pytest.fixture(scope = "module")
 def config():
