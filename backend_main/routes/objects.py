@@ -28,7 +28,7 @@ async def add(request):
         current_time = datetime.utcnow()
         data["object"]["created_at"] = current_time
         data["object"]["modified_at"] = current_time
-        added_tags = data["object"].pop("added_tags", None)
+        added_tags = data["object"].pop("added_tags", [])
 
         # Insert data in a transaction
         async with request.app["engine"].acquire() as conn:
@@ -54,8 +54,7 @@ async def add(request):
                 await handler(request, conn, specific_data)
 
                 # Set tags of the new object
-                if added_tags:
-                    response_data["tag_updates"] = await update_objects_tags(request, conn, {"object_ids": [object_id], "added_tags": added_tags})
+                response_data["tag_updates"] = await update_objects_tags(request, conn, {"object_ids": [object_id], "added_tags": added_tags})
                 
                 # Commit transaction
                 await trans.commit()
@@ -180,9 +179,8 @@ async def update(request):
                 await handler(request, conn, specific_data)
                 
                 # Update object's tags
-                if added_tags:
-                    response_data["tag_updates"] = await update_objects_tags(request, conn, 
-                        {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
+                response_data["tag_updates"] = await update_objects_tags(request, conn, 
+                    {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
                 
                 # Commit transaction
                 await trans.commit()

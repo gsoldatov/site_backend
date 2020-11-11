@@ -15,6 +15,9 @@ tags_add_schema = {
                 },
                 "tag_description": {
                     "type": "string"
+                },
+                "added_object_ids": {       # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
                 }
             }
         }
@@ -42,6 +45,13 @@ tags_update_schema = {
                 },
                 "tag_description": {
                     "type": "string"
+                },
+
+                "added_object_ids": {   # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
+                },
+                "removed_object_ids": {    # detailed checks are performed in objects_tags_update_schema
+                    "type": "array"
                 }
             }
         }
@@ -61,6 +71,10 @@ tags_view_delete_schema = {
                 "type": "integer",
                 "minimum": 1
             }
+        },
+        
+        "return_current_object_ids": {
+            "type": "boolean"
         }
     }
 }
