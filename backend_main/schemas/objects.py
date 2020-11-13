@@ -212,3 +212,13 @@ objects_search_schema = {
         }
     }
 }
+
+objects_update_tags_schema = {  # Detailed property checks are performed in update_objects_tags function
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "object_ids": True,
+        "added_tags": True,
+        "removed_tag_ids": True
+    }
+}

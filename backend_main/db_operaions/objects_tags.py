@@ -11,13 +11,19 @@ from backend_main.schemas.objects_tags import objects_tags_update_schema
 from backend_main.util.validation import ObjectsTagsUpdateException
 
 
-async def update_objects_tags(request, conn, objects_tags_data):
+async def update_objects_tags(request, conn, objects_tags_data, check_ids = False):
     """
     Performs remove and add operations for provided tag and object ids.
+    
+    If check_ids == True, IDs in object_ids list will be checked for existance in the database.
+    IDs from added_tags are always checked.
+    This functionality is not implemented for tag update case (when tag_ids is provided instead of object_ids).
     """
     validate(instance = objects_tags_data, schema = objects_tags_update_schema)
     # Update tags for objects
     if "object_ids" in objects_tags_data:
+        if check_ids:
+            await _check_object_ids(request, conn, objects_tags_data["object_ids"])
         tag_updates = {}
         tag_updates["removed_tag_ids"] = await _remove_tags_for_objects(request, conn, objects_tags_data)
         tag_updates["added_tag_ids"] = await _add_tags_for_objects(request, conn, objects_tags_data)
@@ -139,13 +145,7 @@ async def _add_objects_for_tags(request, conn, objects_tags_data):
         return []
     
     # Check if all of the provided object ids exist
-    objects = request.app["tables"]["objects"]
-    result = await conn.execute(select([objects.c.object_id])
-                                .where(objects.c.object_id.in_(added_object_ids)))
-    existing_object_ids = {row["object_id"] for row in await result.fetchall()}
-    non_existing_object_ids = added_object_ids.difference(existing_object_ids)
-    if len(non_existing_object_ids) > 0:
-        raise ObjectsTagsUpdateException(f"Object IDs {non_existing_object_ids} do not exist.")
+    await _check_object_ids(request, conn, added_object_ids)
 
     # Delete existing combinations of provided tag and object IDs
     await _remove_objects_for_tags(request, conn, {"tag_ids": objects_tags_data["tag_ids"], "removed_object_ids": added_object_ids})
@@ -188,3 +188,15 @@ async def _remove_objects_for_tags(request, conn, objects_tags_data):
     
     else:
        return []
+
+
+async def _check_object_ids(request, conn, checked_object_ids):
+    if type(checked_object_ids) != set:
+        checked_object_ids = set(checked_object_ids)
+    objects = request.app["tables"]["objects"]
+    result = await conn.execute(select([objects.c.object_id])
+                                .where(objects.c.object_id.in_(checked_object_ids)))
+    existing_object_ids = {row["object_id"] for row in await result.fetchall()}
+    non_existing_object_ids = checked_object_ids.difference(existing_object_ids)
+    if len(non_existing_object_ids) > 0:
+        raise ObjectsTagsUpdateException(f"Object IDs {non_existing_object_ids} do not exist.")

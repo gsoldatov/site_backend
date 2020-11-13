@@ -11,10 +11,11 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy import select, func
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
-    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, object_types_enum
+    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, object_types_enum
 
 from backend_main.db_operaions.objects_links import add_link, view_link, update_link, delete_link
 from backend_main.db_operaions.objects_tags import update_objects_tags
+from backend_main.db_operaions.objects import set_modified_at
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.util.validation import LinkValidationException, ObjectsTagsUpdateException
@@ -345,6 +346,34 @@ async def search(request):
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
 
 
+async def update_tags(request):
+    try:
+        # Perform basic data validation
+        data = await request.json()
+        validate(instance = data, schema = objects_update_tags_schema)
+
+        # Update objects_tags and send response
+        async with request.app["engine"].acquire() as conn:
+            trans = await conn.begin()
+            try:
+                response_data = {}
+                # Update tags
+                response_data["tag_updates"] = await update_objects_tags(request, conn, data, check_ids = True)
+                
+                # Set objects' modified_at time
+                response_data["modified_at"] = str(await set_modified_at(request, conn, data["object_ids"]))
+
+                await trans.commit()
+                return web.json_response(response_data)
+            except Exception as e:
+                # Rollback if an error occurs
+                await trans.rollback()
+                raise e
+    except JSONDecodeError:
+        raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
+    except (ValidationError, ObjectsTagsUpdateException) as e:
+        raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
+
 
 def get_func_name(route, object_type):
     return globals()[f"{route}_{object_type}"]
@@ -362,6 +391,7 @@ def get_subapp():
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/view", view, name = "view"),
                     web.post("/get_page_object_ids", get_page_object_ids, name = "get_page_object_ids"),
-                    web.post("/search", search, name = "search")
+                    web.post("/search", search, name = "search"),
+                    web.put("/update_tags", update_tags, name = "update_tags"),
                 ])
     return app
