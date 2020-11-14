@@ -10,10 +10,11 @@ from backend_main.cors import setup_cors
 from backend_main.db.cleanup import close_engine
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
+from backend_main.errors import error_middleware
 
 
 async def create_app(config_file = None, config = None):
-    app = web.Application()
+    app = web.Application(middlewares = [error_middleware])
     app["config"] = config if config and type(config) == dict else get_config(config_file)
 
     db_config = app["config"]["db"]
