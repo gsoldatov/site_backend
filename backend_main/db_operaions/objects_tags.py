@@ -84,7 +84,7 @@ async def _add_tags_for_objects(request, conn, objects_tags_data):
                                     .returning(tags.c.tag_id)
                                     .values([{
                                         "tag_name": name,
-                                        "tag_description": None,
+                                        "tag_description": "",
                                         "created_at": current_time,
                                         "modified_at": current_time
                                     } for name in tag_names ])
