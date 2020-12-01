@@ -384,6 +384,29 @@ async def test_search(cli, db_cursor, config):
     assert type(data["object_ids"]) == list
     assert data["object_ids"] == [1, 3]    # a0, c0
 
+    # Correct request - check if query case is ignored
+    insert_objects([{"object_id": 11, "object_type": "link", "created_at": object_list[0]["created_at"], "modified_at": object_list[0]["modified_at"], 
+                    "object_name": "A", "object_description": ""}]
+                    , db_cursor, config)
+    req_body = {"query": {"query_text": "A"}}
+    resp = await cli.post("/objects/search", json = req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["object_ids"] == [1, 11]    #a0, A
+
+    req_body = {"query": {"query_text": "a"}}
+    resp = await cli.post("/objects/search", json = req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["object_ids"] == [1, 11]    #a0, A
+
+    # Correct request - check if existing_ids are excluded from result
+    req_body = {"query": {"query_text": "0", "maximum_values": 2, "existing_ids": [1, 3, 9]}}
+    resp = await cli.post("/objects/search", json = req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["object_ids"] == [5, 7]    #e0, g0
+
 
 if __name__ == "__main__":
     os.system(f'pytest "{os.path.abspath(__file__)}" -v')

@@ -54,8 +54,8 @@ object_list = [{
         "object_type": f"{_get_obj_type(x)}",
         "created_at": _get_obj_timestamp(x),
         "modified_at": _get_obj_timestamp(x),
-        "object_name": chr(ord("a") + x) + str((x+1) % 2),
-        "object_description": chr(ord("a") + x) + str((x+1) % 2) + " description"
+        "object_name": chr(ord("a") + x - 1) + str((x+1) % 2),
+        "object_description": chr(ord("a") + x - 1) + str((x+1) % 2) + " description"
     } for x in range(1, 11)
 ]
 

@@ -134,6 +134,13 @@ tags_search_schema = {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 100
+                },
+                "existing_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
                 }
             }
         }

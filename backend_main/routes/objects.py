@@ -6,6 +6,7 @@ from datetime import datetime
 from aiohttp import web
 from jsonschema import validate
 from sqlalchemy import select, func
+from sqlalchemy.sql import and_
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
     objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, object_types_enum
@@ -288,10 +289,14 @@ async def search(request):
         objects = request.app["tables"]["objects"]
         query_text = "%" + data["query"]["query_text"] + "%"
         maximum_values = data["query"].get("maximum_values", 10)
+        existing_ids = data["query"].get("existing_ids", [])
 
         # Get object ids
         result = await conn.execute(select([objects.c.object_id])
-                                    .where(func.lower(objects.c.object_name).like(query_text))
+                                    .where(and_(
+                                        func.lower(objects.c.object_name).like(func.lower(query_text)),
+                                        objects.c.object_id.notin_(existing_ids)
+                                    ))
                                     .limit(maximum_values)
         )
         object_ids = []

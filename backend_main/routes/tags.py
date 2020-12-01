@@ -3,6 +3,7 @@ from datetime import datetime
 from aiohttp import web
 from jsonschema import validate
 from sqlalchemy import select, func
+from sqlalchemy.sql import and_
 
 from backend_main.db_operaions.objects_tags import update_objects_tags
 from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
@@ -207,7 +208,6 @@ async def get_page_tag_ids(request):
         return web.json_response(response)
         
 
-
 async def search(request):
     # Validate request data
     data = await request.json()
@@ -218,10 +218,14 @@ async def search(request):
         tags = request.app["tables"]["tags"]
         query_text = "%" + data["query"]["query_text"] + "%"
         maximum_values = data["query"].get("maximum_values", 10)
+        existing_ids = data["query"].get("existing_ids", [])
 
         # Get tag ids
         result = await conn.execute(select([tags.c.tag_id])
-                                    .where(func.lower(tags.c.tag_name).like(query_text))
+                                    .where(and_(
+                                        func.lower(tags.c.tag_name).like(func.lower(query_text)),
+                                        tags.c.tag_id.notin_(existing_ids)
+                                    ))
                                     .limit(maximum_values)
         )
         tag_ids = []
