@@ -41,7 +41,18 @@ def create_user(cursor, user, password):
 
 
 def create_db(cursor, db_name, db_owner):
-    cursor.execute(f"DROP DATABASE IF EXISTS {db_name};")
+    # Close connections and drop db if it exists
+    cursor.execute(f"SELECT COUNT(*) as count FROM pg_database WHERE datname='{db_name}'")
+    db_exists = cursor.fetchone()[0]
+    if db_exists:
+        cursor.execute(f"""
+                        SELECT pg_terminate_backend(pg_stat_activity.pid)
+                        FROM pg_stat_activity
+                        WHERE pg_stat_activity.datname = '{db_name}'
+                        AND pid <> pg_backend_pid();
+        """)
+        cursor.execute(f"DROP DATABASE {db_name};")
+    
     cursor.execute(f"CREATE DATABASE {db_name} ENCODING 'UTF-8' OWNER {db_owner} TEMPLATE template0;")
     print("Finished creating the database.")
 
