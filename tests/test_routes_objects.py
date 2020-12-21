@@ -214,8 +214,11 @@ async def test_delete(cli, db_cursor, config):
 
 async def test_get_page_object_ids(cli, db_cursor, config):
     pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"]}}
-    obj_list = get_object_list(1, 10)
-    links_count = sum((1 for obj in obj_list if obj["object_type"] == "link")) # TODO change total count in subtests and default object types when new types are added
+    obj_list = get_object_list(1, 10)   # links
+    obj_list.extend(get_object_list(11, 18)) # markdown
+    obj_count = len(obj_list)
+    links_count = sum((1 for obj in obj_list if obj["object_type"] == "link"))
+    markdown_count = sum((1 for obj in obj_list if obj["object_type"] == "markdown"))
 
     # Insert mock values
     insert_objects(obj_list, db_cursor, config)
@@ -238,7 +241,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
         resp = await cli.post("/objects/get_page_object_ids", json = pi)
         assert resp.status == 400
     
-    # Correct request - sort by object_name asc + check response body
+    # Correct request - sort by object_name asc + check response body (links only)
     pi = deepcopy(pagination_info)
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
     assert resp.status == 200
@@ -249,7 +252,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == links_count
     assert data["object_ids"] == [1, 2] # a0, b1
 
-    # Correct request - sort by object_name desc
+    # Correct request - sort by object_name desc (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["sort_order"] = "desc"
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -258,7 +261,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == links_count
     assert data["object_ids"] == [10, 9] # j1, h0
 
-    # Correct request - sort by modified_at asc
+    # Correct request - sort by modified_at asc (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["order_by"] = "modified_at"
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -267,7 +270,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == links_count
     assert data["object_ids"] == [8, 4]
 
-    # Correct request - sort by modified_at desc + query second page
+    # Correct request - sort by modified_at desc + query second page (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["page"] = 2
     pi["pagination_info"]["order_by"] = "modified_at"
@@ -278,7 +281,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == links_count
     assert data["object_ids"] == [7, 6]
 
-    # Correct request - sort by object_name asc with filter text
+    # Correct request - sort by object_name asc with filter text (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "0"
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -293,17 +296,25 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count
+    assert data["total_items"] == obj_count
     assert data["object_ids"] == [1, 2]
 
     # Correct request - sort by object_name and filter "link" object_type
     pi = deepcopy(pagination_info)
-    pi["pagination_info"]["object_types"] = []
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count
     assert data["object_ids"] == [1, 2]
+
+    # Correct request - sort by object_name and filter "markdown" object_type
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["object_types"] = ["markdown"]
+    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["total_items"] == markdown_count
+    assert data["object_ids"] == [11, 12]
 
 
 async def test_search(cli, db_cursor, config):
