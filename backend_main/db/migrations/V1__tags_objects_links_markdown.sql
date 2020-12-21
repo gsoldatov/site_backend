@@ -28,7 +28,11 @@ CREATE TABLE objects_tags (
 CREATE UNIQUE INDEX "objects_tags_index" ON objects_tags (object_id, tag_id);
 
 CREATE TABLE links (
-    object_id INT NOT NULL REFERENCES objects(object_id),
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
     link TEXT NOT NULL
 );
 
+CREATE TABLE markdown (
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
+    raw_text TEXT NOT NULL
+);

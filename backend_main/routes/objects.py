@@ -9,9 +9,11 @@ from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
-    objects_update_schema_link_object_data, objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, object_types_enum
+    objects_update_schema_link_object_data, objects_update_schema_markdown_object_data,\
+    objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, object_types_enum
 
 from backend_main.db_operaions.objects_links import add_link, view_link, update_link, delete_link
+from backend_main.db_operaions.objects_markdown import add_markdown, view_markdown, update_markdown, delete_markdown
 from backend_main.db_operaions.objects_tags import update_objects_tags
 from backend_main.db_operaions.objects import set_modified_at
 

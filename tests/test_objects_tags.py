@@ -9,7 +9,7 @@ from psycopg2.extensions import AsIs
 
 from fixtures.app import *
 from fixtures.tags import insert_tags, tag_list, get_test_tag
-from fixtures.objects import get_test_object_link, insert_objects, object_list
+from fixtures.objects import get_test_object, insert_objects, get_object_list
 from fixtures.objects_tags import insert_objects_tags
 
 
@@ -22,19 +22,19 @@ async def test_objects_add(cli, db_cursor, config):
 
     # Incorrect object's tags
     for added_tags in ["not a list", 1, {}]:
-        link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
+        link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
         link["added_tags"] = added_tags
         resp = await cli.post("/objects/add", json = {"object": link})
         assert resp.status == 400
 
     # Add non-existing tag by tag_id (and get a 400 error)
-    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
     link["added_tags"] = [1, 100]
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 400
 
     # Add existing tags by tag_id and tag_name (and check duplicate tag_ids handling)
-    link = get_test_object_link(1, ["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
     link["added_tags"] = ["a0", 1, "b1", 2, 9, 10]
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 200
@@ -46,7 +46,7 @@ async def test_objects_add(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 9, 10]
     
     # Add non-existing tags by tag_name (and check duplicate tag_name handling)
-    link = get_test_object_link(2, ["object_id", "created_at", "modified_at"])
+    link = get_test_object(2, pop_keys = ["object_id", "created_at", "modified_at"])
     link["added_tags"] = ["a0", 2, 3, 4, "New Tag", "New Tag 2", "new tag"]
     resp = await cli.post("/objects/add", json = {"object": link})
     assert resp.status == 200
@@ -65,30 +65,30 @@ async def test_objects_update(cli, db_cursor, config):
 
     # Insert mock data
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    insert_objects([get_test_object_link(1, ["object_data"])], db_cursor, config)
+    insert_objects([get_test_object(1, pop_keys = ["object_data"])], db_cursor, config)
     insert_objects_tags([1], [1, 2, 3, 4, 5], db_cursor, config)
     
     # Incorrect added_tags and removed_tag_ids
     for added_tags in ["not a list", 1, {}]:
-        link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+        link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
         link["added_tags"] = added_tags
         resp = await cli.put("/objects/update", json = {"object": link})
         assert resp.status == 400
     
     for removed_tag_ids in ["not a list", 1, {}]:
-        link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+        link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
         link["removed_tag_ids"] = removed_tag_ids
         resp = await cli.put("/objects/update", json = {"object": link})
         assert resp.status == 400
     
     # Add non-existing tag by tag_id (and get a 400 error)
-    link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+    link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     link["added_tags"] = [1, 100]
     resp = await cli.put("/objects/update", json = {"object": link})
     assert resp.status == 400
 
     # Add existing tags by tag_id and tag_name (check duplicates in request handling (added once) and retagging with the same tags (tag is reapplied))
-    link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+    link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     link["added_tags"] = ["a0", 1, "b1", 2, "i0", 10]
     resp = await cli.put("/objects/update", json = {"object": link})
     assert resp.status == 200
@@ -101,7 +101,7 @@ async def test_objects_update(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 9, 10]
 
     # Add non-existing tags by tag_name (and check duplicate tag_name handling) + remove existing tags
-    link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+    link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     link["added_tags"] = ["a0", 2, "New Tag", "New Tag 2", "new tag"]
     link["removed_tag_ids"] = [9, 10]
     resp = await cli.put("/objects/update", json = {"object": link})
@@ -115,7 +115,7 @@ async def test_objects_update(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
     # Add tags only
-    link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+    link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     link["added_tags"] = ["a0", 2, 6, "New Tag 3"]
     resp = await cli.put("/objects/update", json = {"object": link})
     assert resp.status == 200
@@ -126,7 +126,7 @@ async def test_objects_update(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11, 12, 13] # 6 and 13 were added
 
     # Remove tags only
-    link = get_test_object_link(1, ["created_at", "modified_at", "object_type"])
+    link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     link["removed_tag_ids"] = [11, 12, 13]
     resp = await cli.put("/objects/update", json = {"object": link})
     assert resp.status == 200
@@ -140,7 +140,7 @@ async def test_objects_update(cli, db_cursor, config):
 async def test_objects_view(cli, db_cursor, config):
     # Insert mock data
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    objects = [get_test_object_link(1, ["object_data"]), get_test_object_link(2, ["object_data"]), get_test_object_link(3, ["object_data"])]
+    objects = [get_test_object(1, pop_keys = ["object_data"]), get_test_object(2, pop_keys = ["object_data"]), get_test_object(3, pop_keys = ["object_data"])]
     insert_objects(objects, db_cursor, config)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags([1], objects_tags[1], db_cursor, config)
@@ -174,7 +174,7 @@ async def test_objects_delete(cli, db_cursor, config):
 
     # Insert mock values
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    objects = [get_test_object_link(1, ["object_data"]), get_test_object_link(2, ["object_data"]), get_test_object_link(3, ["object_data"])]
+    objects = [get_test_object(1, pop_keys = ["object_data"]), get_test_object(2, pop_keys = ["object_data"]), get_test_object(3, pop_keys = ["object_data"])]
     insert_objects(objects, db_cursor, config)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
     insert_objects_tags([1], objects_tags[1], db_cursor, config)
@@ -197,7 +197,7 @@ async def test_tags_add(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
     
     # Insert mock data
-    insert_objects(object_list, db_cursor, config)
+    insert_objects(get_object_list(1, 10), db_cursor, config)
     
     # Incorrect tag's objects
     for added_object_ids in ["not a list", 1, {}]:
@@ -229,7 +229,7 @@ async def test_tags_update(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock data
-    insert_objects(object_list, db_cursor, config)
+    insert_objects(get_object_list(1, 10), db_cursor, config)
     insert_tags([get_test_tag(1)], db_cursor, config)
     insert_objects_tags([1, 2, 3, 4, 5], [1], db_cursor, config)
 
@@ -291,7 +291,7 @@ async def test_tags_view(cli, db_cursor, config):
     # Insert mock data
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
     insert_tags(tags, db_cursor, config)
-    insert_objects(object_list, db_cursor, config)
+    insert_objects(get_object_list(1, 10), db_cursor, config)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags(tags_objects[1], [1], db_cursor, config)
     insert_objects_tags(tags_objects[2], [2], db_cursor, config)
@@ -323,7 +323,7 @@ async def test_tags_delete(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock values
-    insert_objects(object_list, db_cursor, config)
+    insert_objects(get_object_list(1, 10), db_cursor, config)
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
     insert_tags(tags, db_cursor, config)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
@@ -345,10 +345,11 @@ async def test_tags_delete(cli, db_cursor, config):
 async def test_objects_update_tags(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
+    obj_list = get_object_list(1, 10)
 
     # Insert mock values
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    insert_objects(object_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor, config)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags([1], objects_tags[1], db_cursor, config)
     insert_objects_tags([2], objects_tags[2], db_cursor, config)
@@ -396,7 +397,7 @@ async def test_objects_update_tags(cli, db_cursor, config):
     cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 1")
     assert str(cursor.fetchone()[0]) == data["modified_at"]
     cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 2")
-    assert cursor.fetchone()[0] == object_list[1]["modified_at"]
+    assert cursor.fetchone()[0] == obj_list[1]["modified_at"]
 
     # Remove tags by tag_id
     updates = {"object_ids": [1], "removed_tag_ids": [1, 2, 3]}

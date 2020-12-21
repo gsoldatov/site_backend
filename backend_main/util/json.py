@@ -27,3 +27,9 @@ def link_data_row_proxy_to_dict(row):
     result = row_proxy_to_dict(row)
     result["object_data"] = {"link": result.pop("link")}
     return result
+
+
+def markdown_data_row_proxy_to_dict(row):
+    result = row_proxy_to_dict(row)
+    result["object_data"] = {"raw_text": result.pop("raw_text")}
+    return result

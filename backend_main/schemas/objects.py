@@ -1,4 +1,4 @@
-object_types_enum = ["link"]
+object_types_enum = ["link", "markdown"]
 
 objects_add_schema = {
     "type": "object",
@@ -40,7 +40,27 @@ objects_add_schema = {
                         "additionalProperties": False,
                             "properties": {
                                 "link": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            }
+                        }
+                    }
+                },
+
+                # markdown-specific data
+                {
+                    "properties": {
+                        "object_type": {
+                            "const": "markdown"
+                        },
+                        "object_data": {
+                            "required": ["raw_text"],
+                        "additionalProperties": False,
+                            "properties": {
+                                "raw_text": {
+                                    "type": "string",
+                                    "minLength": 1
                                 }
                             }
                         }
@@ -93,7 +113,19 @@ objects_update_schema_link_object_data = {
     "additionalProperties": False,
     "properties": {
         "link": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
+        }
+    }
+}
+
+objects_update_schema_markdown_object_data = {
+    "required": ["raw_text"],
+    "additionalProperties": False,
+    "properties": {
+        "raw_text": {
+            "type": "string",
+            "minLength": 1
         }
     }
 }

@@ -43,7 +43,14 @@ def get_tables(config):
         "links": Table(
             "links", 
             meta,
-            Column("object_id", Integer, ForeignKey("objects.object_id")),
+            Column("object_id", Integer, ForeignKey("objects.object_id"), unique = True),
             Column("link", Text, nullable = False)
+        ),
+
+        "markdown": Table(
+            "markdown", 
+            meta,
+            Column("object_id", Integer, ForeignKey("objects.object_id"), unique = True),
+            Column("raw_text", Text, nullable = False)
         )
     }
