@@ -13,6 +13,8 @@ from psycopg2.extensions import AsIs
 from util import check_ids
 from fixtures.app import *
 from fixtures.objects import *
+from fixtures.tags import insert_tags, tag_list
+from fixtures.objects_tags import insert_objects_tags
 
 
 async def test_add(cli, db_cursor, config):
@@ -213,7 +215,7 @@ async def test_delete(cli, db_cursor, config):
 
 
 async def test_get_page_object_ids(cli, db_cursor, config):
-    pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"]}}
+    pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}
     obj_list = get_object_list(1, 10)   # links
     obj_list.extend(get_object_list(11, 18)) # markdown
     obj_count = len(obj_list)
@@ -222,6 +224,12 @@ async def test_get_page_object_ids(cli, db_cursor, config):
 
     # Insert mock values
     insert_objects(obj_list, db_cursor, config)
+
+    insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
+    objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
+    insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor, config)
+    insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor, config)
+    insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor, config)
 
     # Incorrect request body (not a json, missing attributes, wrong attributes)
     resp = await cli.post("/objects/get_page_object_ids", data = "not a JSON document.")
@@ -235,7 +243,8 @@ async def test_get_page_object_ids(cli, db_cursor, config):
 
     # Incorrect param values
     for k, v in [("page", "text"), ("page", -1), ("items_per_page", "text"), ("items_per_page", -1), ("order_by", 1), ("order_by", "wrong text"),
-                 ("sort_order", 1), ("sort_order", "wrong text"), ("filter_text", 1), ("object_types", "not a list"), ("object_types", ["wrong object type"])]:
+                 ("sort_order", 1), ("sort_order", "wrong text"), ("filter_text", 1), ("object_types", "not a list"), ("object_types", ["wrong object type"]),
+                 ("tags_filter", 1), ("tags_filter", "string"), ("tags_filter", [1, 2, -1]), ("tags_filter", [1, 2, "not a number"])]:
         pi = deepcopy(pagination_info)
         pi["pagination_info"][k] = v
         resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -315,6 +324,14 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == markdown_count
     assert data["object_ids"] == [11, 12]
+
+    # Correct request - filter objects by their tags
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["tags_filter"] = [1, 2, 3]
+    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert sorted(data["object_ids"]) == [5, 7]
 
 
 async def test_search(cli, db_cursor, config):

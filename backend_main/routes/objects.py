@@ -238,6 +238,7 @@ async def get_page_object_ids(request):
     async with request.app["engine"].acquire() as conn:
         # Set query params
         objects = request.app["tables"]["objects"]
+        objects_tags = request.app["tables"]["objects_tags"]
         p = data["pagination_info"]
         order_by = objects.c.modified_at if p["order_by"] == "modified_at" else objects.c.object_name
         order_asc = p["sort_order"] == "asc"
@@ -245,11 +246,24 @@ async def get_page_object_ids(request):
         first = (p["page"] - 1) * items_per_page
         filter_text = f"%{p['filter_text'].lower()}%"
         object_types = p["object_types"] if len(p["object_types"]) > 0 else object_types_enum
+        tags_filter = p["tags_filter"]
+
+        # Sub-query for filtering objects which match tags filter condition
+        tags_filter_subquery = (
+            select([objects_tags.c.object_id.label("object_id"), func.count().label("tags_count")])
+            .where(objects_tags.c.tag_id.in_(tags_filter))
+            .group_by(objects_tags.c.object_id)
+        ).alias("t_f_subquery")
+        tags_filter_query = (
+            select([tags_filter_subquery.c.object_id]).select_from(tags_filter_subquery)
+            .where(tags_filter_subquery.c.tags_count == len(tags_filter))
+        ).as_scalar()
 
         # Get object ids
         result = await conn.execute(select([objects.c.object_id])
                 .where(func.lower(objects.c.object_name).like(filter_text))
                 .where(objects.c.object_type.in_(object_types))
+                .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
                 .order_by(order_by if order_asc else order_by.desc())
                 .limit(items_per_page)
                 .offset(first)

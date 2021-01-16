@@ -182,41 +182,49 @@ objects_get_page_object_ids_schema = {
     "required": ["pagination_info"],
     "additionalProperties": False,
     "properties": {
-            "pagination_info": {
-                "type": "object",
-                "required": ["page", "items_per_page", "order_by", "sort_order", "filter_text", "object_types"],
-                "additionalProperties": False,
-                "properties": {
-                    "page": {
+        "pagination_info": {
+            "type": "object",
+            "required": ["page", "items_per_page", "order_by", "sort_order", "filter_text", "object_types", "tags_filter"],
+            "additionalProperties": False,
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "items_per_page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "order_by": {
+                    "type": "string",
+                    "enum": ["object_name", "modified_at"]
+                },
+                "sort_order": {
+                    "type": "string",
+                    "enum": ["asc", "desc"]
+                },
+                "filter_text": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "object_types": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "items": {
+                        "type": "string",
+                        "enum": object_types_enum
+                    }
+                },
+                "tags_filter": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "items": {
                         "type": "integer",
                         "minimum": 1
-                    },
-                    "items_per_page": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "order_by": {
-                        "type": "string",
-                        "enum": ["object_name", "modified_at"]
-                    },
-                    "sort_order": {
-                        "type": "string",
-                        "enum": ["asc", "desc"]
-                    },
-                    "filter_text": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "object_types": {
-                        "type": "array",
-                        "uniqueItems": True,
-                        "items": {
-                            "type": "string",
-                            "enum": object_types_enum
-                        }
                     }
                 }
             }
+        }
     }
 }
 
