@@ -10,7 +10,7 @@ def row_proxy_to_dict(row_proxy):
     Converts SQLAlchemy RowProxy object into a dict.
     datetime fields are converted into strings.
     """
-    return {k: row_proxy[k] if type(row_proxy[k]) != datetime else str(row_proxy[k]) for k in row_proxy}
+    return {k: row_proxy[k] if type(row_proxy[k]) != datetime else row_proxy[k].isoformat() for k in row_proxy}
 
 
 def error_json(e):
