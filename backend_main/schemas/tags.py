@@ -1,3 +1,6 @@
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
+
+
 tags_add_schema = {
     "type": "object",
     "required": ["tag"],
@@ -63,16 +66,7 @@ tags_view_delete_schema = {
     "required": ["tag_ids"],
     "additionalProperties": False,
     "properties": {
-        "tag_ids": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 10000,
-            "items" : {
-                "type": "integer",
-                "minimum": 1
-            }
-        },
-        
+        "tag_ids": non_empty_list_of_ids(),        
         "return_current_object_ids": {
             "type": "boolean"
         }
@@ -135,13 +129,7 @@ tags_search_schema = {
                     "minimum": 1,
                     "maximum": 100
                 },
-                "existing_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer",
-                        "minimum": 1
-                    }
-                }
+                "existing_ids": list_of_ids()
             }
         }
     }

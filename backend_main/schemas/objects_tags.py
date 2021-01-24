@@ -1,3 +1,24 @@
+# added_tags = {
+#     "type": "array",
+#     "maxItems": 100,
+#     "items": {
+#         "oneOf": [
+#             {
+#                 "type": "integer",
+#                 "minimum": 1
+#             },
+#             {
+#                 "type": "string",
+#                 "minLength": 1,
+#                 "maxLength": 255
+#             }
+#         ]
+#     }
+# }
+
+from backend_main.schemas.common import non_empty_list_of_ids
+
+
 objects_tags_update_schema = {
     "type": "object",
     "oneOf": [
@@ -47,15 +68,7 @@ objects_tags_update_schema = {
     "additionalProperties": False,
     "properties": {
         # Objects' data updating properties
-        "object_ids": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 1000,
-            "items": {
-                "type": "integer",
-                "minimum": 1
-            }
-        },
+        "object_ids": non_empty_list_of_ids(),
 
         "added_tags": {
             "type": "array",
@@ -89,15 +102,7 @@ objects_tags_update_schema = {
         },
 
         # Tags' data updating properties
-        "tag_ids": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 1000,
-            "items": {
-                "type": "integer",
-                "minimum": 1
-            }
-        },
+        "tag_ids": non_empty_list_of_ids(),
         
         "added_object_ids": {
             "type": "array",

@@ -1,4 +1,5 @@
 from backend_main.schemas.object_data import object_type_and_data_options
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
 
 
 object_types_enum = ["link", "markdown", "to_do_list"]
@@ -81,24 +82,8 @@ objects_view_schema = {
     
     "additionalProperties": False,
     "properties": {
-        "object_ids": {     # ids to return general attributes for
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 10000,
-            "items": {
-                "type": "integer",
-                "minimum": 1
-            }
-        },
-        "object_data_ids": {    # ids to return data for
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 10000,
-            "items": {
-                "type": "integer",
-                "minimum": 1
-            }
-        }
+        "object_ids": non_empty_list_of_ids(),          # ids to return general attributes for
+        "object_data_ids": non_empty_list_of_ids()      # ids to return data for
     }
 }
 
@@ -107,15 +92,7 @@ objects_delete_schema = {
     "required": ["object_ids"],
     "additionalProperties": False,
     "properties": {
-        "object_ids": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 10000,
-            "items" : {
-                "type": "integer",
-                "minimum": 1
-            }
-        }
+        "object_ids": non_empty_list_of_ids()
     }
 }
 
@@ -157,14 +134,7 @@ objects_get_page_object_ids_schema = {
                         "enum": object_types_enum
                     }
                 },
-                "tags_filter": {
-                    "type": "array",
-                    "uniqueItems": True,
-                    "items": {
-                        "type": "integer",
-                        "minimum": 1
-                    }
-                }
+                "tags_filter": list_of_ids()
             }
         }
     }
@@ -190,13 +160,7 @@ objects_search_schema = {
                     "minimum": 1,
                     "maximum": 100
                 },
-                "existing_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer",
-                        "minimum": 1
-                    }
-                }
+                "existing_ids": list_of_ids()
             }
         }
     }
