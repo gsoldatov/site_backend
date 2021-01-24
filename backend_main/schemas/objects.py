@@ -1,4 +1,7 @@
-object_types_enum = ["link", "markdown"]
+from backend_main.schemas.object_data import object_type_and_data_options
+
+
+object_types_enum = ["link", "markdown", "to_do_list"]
 
 objects_add_schema = {
     "type": "object",
@@ -28,46 +31,7 @@ objects_add_schema = {
                     "type": "array"
                 }
             },
-            "oneOf": [
-                # link-specific data
-                {
-                    "properties": {
-                        "object_type": {
-                            "const": "link"
-                        },
-                        "object_data": {
-                            "required": ["link"],
-                        "additionalProperties": False,
-                            "properties": {
-                                "link": {
-                                    "type": "string",
-                                    "minLength": 1
-                                }
-                            }
-                        }
-                    }
-                },
-
-                # markdown-specific data
-                {
-                    "properties": {
-                        "object_type": {
-                            "const": "markdown"
-                        },
-                        "object_data": {
-                            "required": ["raw_text"],
-                        "additionalProperties": False,
-                            "properties": {
-                                "raw_text": {
-                                    "type": "string",
-                                    "minLength": 1
-                                }
-                            }
-                        }
-                    }
-                }
-                
-            ]
+            "oneOf": object_type_and_data_options
         }
     }
 }
@@ -104,28 +68,6 @@ objects_update_schema = {
                     "type": "array"
                 }
             }
-        }
-    }
-}
-
-objects_update_schema_link_object_data = {
-    "required": ["link"],
-    "additionalProperties": False,
-    "properties": {
-        "link": {
-            "type": "string",
-            "minLength": 1
-        }
-    }
-}
-
-objects_update_schema_markdown_object_data = {
-    "required": ["raw_text"],
-    "additionalProperties": False,
-    "properties": {
-        "raw_text": {
-            "type": "string",
-            "minLength": 1
         }
     }
 }
