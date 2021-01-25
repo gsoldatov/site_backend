@@ -1,7 +1,7 @@
-def non_empty_list_of_ids(max_items = 1000):
+def non_empty_list_of_ids(max_items = 1000, unique = True):
     return {
         "type": "array",
-        "uniqueItems": True,
+        "uniqueItems": unique,
         "minItems": 1,
         "maxItems": max_items,
         "items": {
@@ -10,11 +10,11 @@ def non_empty_list_of_ids(max_items = 1000):
         }
     }
 
-def list_of_ids(max_items = 1000):
+def list_of_ids(max_items = 1000, unique = True):
     return {
         "type": "array",
-        "uniqueItems": True,
-        "maxItems": 1000,
+        "uniqueItems": unique,
+        "maxItems": max_items,
         "items": {
             "type": "integer",
             "minimum": 1

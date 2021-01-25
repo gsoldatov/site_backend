@@ -1,5 +1,6 @@
-from backend_main.schemas.object_data import object_type_and_data_options
 from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
+from backend_main.schemas.object_data import object_type_and_data_options
+from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
 
 object_types_enum = ["link", "markdown", "to_do_list"]
@@ -28,9 +29,7 @@ objects_add_schema = {
                 "object_data": {
                     "type": "object"
                 },
-                "added_tags": {         # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                }
+                "added_tags": added_tags
             },
             "oneOf": object_type_and_data_options
         }
@@ -62,12 +61,8 @@ objects_update_schema = {
                 "object_data": {
                     "type": "object"
                 },
-                "added_tags": {         # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                },
-                "removed_tag_ids": {    # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                }
+                "added_tags": added_tags,
+                "removed_tag_ids": removed_tag_ids
             }
         }
     }
@@ -170,8 +165,8 @@ objects_update_tags_schema = {  # Detailed property checks are performed in upda
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        "object_ids": True,
-        "added_tags": True,
-        "removed_tag_ids": True
+        "object_ids": non_empty_list_of_ids(),
+        "added_tags": added_tags,
+        "removed_tag_ids": removed_tag_ids
     }
 }

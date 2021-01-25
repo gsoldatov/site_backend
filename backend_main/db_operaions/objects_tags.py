@@ -7,7 +7,6 @@ from jsonschema import validate
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
-from backend_main.schemas.objects_tags import objects_tags_update_schema
 from backend_main.util.validation import ObjectsTagsUpdateException
 
 
@@ -19,7 +18,6 @@ async def update_objects_tags(request, conn, objects_tags_data, check_ids = Fals
     IDs from added_tags are always checked.
     This functionality is not implemented for tag update case (when tag_ids is provided instead of object_ids).
     """
-    validate(instance = objects_tags_data, schema = objects_tags_update_schema)
     # Update tags for objects
     if "object_ids" in objects_tags_data:
         if check_ids:

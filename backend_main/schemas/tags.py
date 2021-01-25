@@ -1,4 +1,5 @@
 from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
+from backend_main.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
 tags_add_schema = {
@@ -19,9 +20,7 @@ tags_add_schema = {
                 "tag_description": {
                     "type": "string"
                 },
-                "added_object_ids": {       # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                }
+                "added_object_ids": added_object_ids
             }
         }
     }
@@ -50,12 +49,8 @@ tags_update_schema = {
                     "type": "string"
                 },
 
-                "added_object_ids": {   # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                },
-                "removed_object_ids": {    # detailed checks are performed in objects_tags_update_schema
-                    "type": "array"
-                }
+                "added_object_ids": added_object_ids,
+                "removed_object_ids": removed_object_ids
             }
         }
     }
