@@ -1,4 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
 from backend_main.schemas.object_data import object_type_and_data_options
 from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
@@ -18,14 +18,8 @@ objects_add_schema = {
                 "object_type": {
                     "type": "string"
                 },
-                "object_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
-                "object_description": {
-                    "type": "string"
-                },
+                "object_name": name,
+                "object_description": description,
                 "object_data": {
                     "type": "object"
                 },
@@ -46,18 +40,9 @@ objects_update_schema = {
             "required": ["object_id", "object_name", "object_description", "object_data"],
             "additionalProperties": False,
             "properties": {
-                "object_id": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "object_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
-                "object_description": {
-                    "type": "string"
-                },
+                "object_id": object_id,
+                "object_name": name,
+                "object_description": description,
                 "object_data": {
                     "type": "object"
                 },
@@ -145,11 +130,7 @@ objects_search_schema = {
             "required": ["query_text"],
             "additionalProperties": False,
             "properties": {
-                "query_text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
+                "query_text": name,
                 "maximum_values": {
                     "type": "integer",
                     "minimum": 1,

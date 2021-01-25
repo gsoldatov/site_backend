@@ -1,4 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
 from backend_main.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
@@ -12,14 +12,8 @@ tags_add_schema = {
             "required": ["tag_name", "tag_description"],
             "additionalProperties": False,
             "properties": {
-                "tag_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
-                "tag_description": {
-                    "type": "string"
-                },
+                "tag_name": name,
+                "tag_description": description,
                 "added_object_ids": added_object_ids
             }
         }
@@ -36,19 +30,9 @@ tags_update_schema = {
             "required": ["tag_id", "tag_name", "tag_description"],
             "additionalProperties": False,
             "properties": {
-                "tag_id": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "tag_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
-                "tag_description": {
-                    "type": "string"
-                },
-
+                "tag_id": object_id,
+                "tag_name": name,
+                "tag_description": description,
                 "added_object_ids": added_object_ids,
                 "removed_object_ids": removed_object_ids
             }
@@ -114,11 +98,7 @@ tags_search_schema = {
             "required": ["query_text"],
             "additionalProperties": False,
             "properties": {
-                "query_text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
+                "query_text": name,
                 "maximum_values": {
                     "type": "integer",
                     "minimum": 1,

@@ -4,10 +4,7 @@ def non_empty_list_of_ids(max_items = 1000, unique = True):
         "uniqueItems": unique,
         "minItems": 1,
         "maxItems": max_items,
-        "items": {
-            "type": "integer",
-            "minimum": 1
-        }
+        "items": object_id
     }
 
 def list_of_ids(max_items = 1000, unique = True):
@@ -15,8 +12,20 @@ def list_of_ids(max_items = 1000, unique = True):
         "type": "array",
         "uniqueItems": unique,
         "maxItems": max_items,
-        "items": {
-            "type": "integer",
-            "minimum": 1
-        }
+        "items": object_id
     }
+
+object_id = {
+    "type": "integer",
+    "minimum": 1
+}
+
+name = {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 255
+}
+
+description = {
+    "type": "string"
+}
