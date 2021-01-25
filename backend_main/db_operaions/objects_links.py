@@ -7,19 +7,21 @@ from backend_main.util.json import link_data_row_proxy_to_dict
 from backend_main.util.validation import validate_link
 
 
-async def add_link(request, conn, obj_data):
+async def add_link(request, obj_data):
     new_link = {"object_id": obj_data["object_id"], "link": obj_data["object_data"]["link"]}
     validate_link(new_link["link"])
 
+    conn = request["conn"]
     links = request.app["tables"]["links"]
     await conn.execute(links.insert()
             .values(new_link)
     )
 
 
-async def view_link(request, conn, object_ids):
+async def view_link(request, object_ids):
+    conn = request["conn"]
     links = request.app["tables"]["links"]
-    records = await conn.execute(select([links.c.object_id, links.c.link])
+    records = await request["conn"].execute(select([links.c.object_id, links.c.link])
                                  .where(links.c.object_id.in_(object_ids))
     )
     result = []
@@ -28,10 +30,11 @@ async def view_link(request, conn, object_ids):
     return result
 
 
-async def update_link(request, conn, obj_data):
+async def update_link(request, obj_data):
     new_link = {"object_id": obj_data["object_id"], "link": obj_data["object_data"]["link"]}
     validate_link(new_link["link"])
 
+    conn = request["conn"]
     links = request.app["tables"]["links"]
     await conn.execute(links.update()
         .where(links.c.object_id == obj_data["object_id"])
@@ -39,7 +42,8 @@ async def update_link(request, conn, obj_data):
     )        
 
 
-async def delete_link(request, conn, object_ids):
+async def delete_link(request, object_ids):
+    conn = request["conn"]
     links = request.app["tables"]["links"]
     await conn.execute(links.delete()
         .where(links.c.object_id.in_(object_ids))

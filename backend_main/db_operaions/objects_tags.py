@@ -10,7 +10,7 @@ from sqlalchemy.sql import and_
 from backend_main.util.validation import ObjectsTagsUpdateException
 
 
-async def update_objects_tags(request, conn, objects_tags_data, check_ids = False):
+async def update_objects_tags(request, objects_tags_data, check_ids = False):
     """
     Performs remove and add operations for provided tag and object ids.
     
@@ -21,24 +21,25 @@ async def update_objects_tags(request, conn, objects_tags_data, check_ids = Fals
     # Update tags for objects
     if "object_ids" in objects_tags_data:
         if check_ids:
-            await _check_object_ids(request, conn, objects_tags_data["object_ids"])
+            await _check_object_ids(request, objects_tags_data["object_ids"])
         tag_updates = {}
-        tag_updates["removed_tag_ids"] = await _remove_tags_for_objects(request, conn, objects_tags_data)
-        tag_updates["added_tag_ids"] = await _add_tags_for_objects(request, conn, objects_tags_data)
+        tag_updates["removed_tag_ids"] = await _remove_tags_for_objects(request, objects_tags_data)
+        tag_updates["added_tag_ids"] = await _add_tags_for_objects(request, objects_tags_data)
         return tag_updates
     # Update objects for tags
     else:
         object_updates = {}
-        object_updates["removed_object_ids"] = await _remove_objects_for_tags(request, conn, objects_tags_data)
-        object_updates["added_object_ids"] = await _add_objects_for_tags(request, conn, objects_tags_data)
+        object_updates["removed_object_ids"] = await _remove_objects_for_tags(request, objects_tags_data)
+        object_updates["added_object_ids"] = await _add_objects_for_tags(request, objects_tags_data)
         return object_updates
 
     
-async def _add_tags_for_objects(request, conn, objects_tags_data):
+async def _add_tags_for_objects(request, objects_tags_data):
     if len(objects_tags_data.get("added_tags", [])) == 0:
         return []
     
     ## Handle tag_ids passed in added_tags
+    conn = request["conn"]
     tags = request.app["tables"]["tags"]
     tag_ids = {id for id in objects_tags_data["added_tags"] if type(id) == int}
     
@@ -95,7 +96,7 @@ async def _add_tags_for_objects(request, conn, objects_tags_data):
     tag_ids.update(tag_ids_for_tag_names)
 
     # Delete existing combinations of provided object and tag IDs
-    await _remove_tags_for_objects(request, conn, {"object_ids": objects_tags_data["object_ids"], "removed_tag_ids": tag_ids})
+    await _remove_tags_for_objects(request, {"object_ids": objects_tags_data["object_ids"], "removed_tag_ids": tag_ids})
 
     # Add all combinations of object and tag IDs
     objects_tags = request.app["tables"]["objects_tags"]
@@ -108,10 +109,11 @@ async def _add_tags_for_objects(request, conn, objects_tags_data):
     return list(tag_ids)
     
 
-async def _remove_tags_for_objects(request, conn, objects_tags_data):
+async def _remove_tags_for_objects(request, objects_tags_data):
     # Delete data from objects_tags if:
     # 1. "object_ids" and "removed_tag_ids" in otd
     # 2. "object_ids" in otd and "remove_all_tags" == True
+    conn = request["conn"]
     objects_tags = request.app["tables"]["objects_tags"]
 
     # 1
@@ -137,16 +139,17 @@ async def _remove_tags_for_objects(request, conn, objects_tags_data):
        return []
 
 
-async def _add_objects_for_tags(request, conn, objects_tags_data):
+async def _add_objects_for_tags(request, objects_tags_data):
     added_object_ids = set(objects_tags_data.get("added_object_ids", []))
     if len(added_object_ids) == 0:
         return []
+    conn = request["conn"]
     
     # Check if all of the provided object ids exist
-    await _check_object_ids(request, conn, added_object_ids)
+    await _check_object_ids(request, added_object_ids)
 
     # Delete existing combinations of provided tag and object IDs
-    await _remove_objects_for_tags(request, conn, {"tag_ids": objects_tags_data["tag_ids"], "removed_object_ids": added_object_ids})
+    await _remove_objects_for_tags(request, {"tag_ids": objects_tags_data["tag_ids"], "removed_object_ids": added_object_ids})
 
     # Add all combinations of object and tag IDs
     objects_tags = request.app["tables"]["objects_tags"]
@@ -159,10 +162,11 @@ async def _add_objects_for_tags(request, conn, objects_tags_data):
     return list(added_object_ids)
 
 
-async def _remove_objects_for_tags(request, conn, objects_tags_data):
+async def _remove_objects_for_tags(request, objects_tags_data):
     # Delete data from objects_tags if:
     # 1. "tag_ids" and "removed_object_ids" in otd
     # 2. "tag_ids" in otd and "remove_all_objects" == True
+    conn = request["conn"]
     objects_tags = request.app["tables"]["objects_tags"]
 
     # 1
@@ -188,7 +192,8 @@ async def _remove_objects_for_tags(request, conn, objects_tags_data):
        return []
 
 
-async def _check_object_ids(request, conn, checked_object_ids):
+async def _check_object_ids(request, checked_object_ids):
+    conn = request["conn"]
     if type(checked_object_ids) != set:
         checked_object_ids = set(checked_object_ids)
     objects = request.app["tables"]["objects"]

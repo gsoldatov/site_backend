@@ -4,7 +4,7 @@
 from datetime import datetime
 
 
-async def set_modified_at(request, conn, object_ids, modified_at = None):
+async def set_modified_at(request, object_ids, modified_at = None):
     # Check parameter values
     object_ids = object_ids or None
     if type(object_ids) != list:
@@ -15,6 +15,7 @@ async def set_modified_at(request, conn, object_ids, modified_at = None):
         raise TypeError("modified_at is not a datetime object")
 
     # Update modified_at
+    conn = request["conn"]
     objects = request.app["tables"]["objects"]
     await conn.execute(objects.update()
                     .where(objects.c.object_id.in_(object_ids))

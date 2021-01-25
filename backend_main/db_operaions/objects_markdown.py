@@ -6,15 +6,17 @@ from sqlalchemy import select
 from backend_main.util.json import markdown_data_row_proxy_to_dict
 
 
-async def add_markdown(request, conn, obj_data):
+async def add_markdown(request, obj_data):
     object_data = {"object_id": obj_data["object_id"], "raw_text": obj_data["object_data"]["raw_text"]}
 
+    conn = request["conn"]
     markdown = request.app["tables"]["markdown"]
     await conn.execute(markdown.insert()
             .values(object_data)
     ) 
 
-async def view_markdown(request, conn, object_ids):
+async def view_markdown(request, object_ids):
+    conn = request["conn"]
     markdown = request.app["tables"]["markdown"]
     records = await conn.execute(select([markdown.c.object_id, markdown.c.raw_text])
                                  .where(markdown.c.object_id.in_(object_ids))
@@ -25,9 +27,10 @@ async def view_markdown(request, conn, object_ids):
     return result
 
 
-async def update_markdown(request, conn, obj_data):
+async def update_markdown(request, obj_data):
     object_data = {"object_id": obj_data["object_id"], "raw_text": obj_data["object_data"]["raw_text"]}
 
+    conn = request["conn"]
     markdown = request.app["tables"]["markdown"]
     await conn.execute(markdown.update()
         .where(markdown.c.object_id == obj_data["object_id"])
@@ -35,7 +38,8 @@ async def update_markdown(request, conn, obj_data):
     )  
 
 
-async def delete_markdown(request, conn, object_ids):
+async def delete_markdown(request, object_ids):
+    conn = request["conn"]
     markdown = request.app["tables"]["markdown"]
     await conn.execute(markdown.delete()
         .where(markdown.c.object_id.in_(object_ids))
