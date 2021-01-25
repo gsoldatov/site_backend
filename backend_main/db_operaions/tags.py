@@ -158,24 +158,3 @@ async def search_tags(request, query):
     if len(tag_ids) == 0:
         raise web.HTTPNotFound(text = error_json("No tags found."), content_type = "application/json")
     return tag_ids
-    # objects = request.app["tables"]["objects"]
-    # query_text = "%" + query["query_text"] + "%"
-    # maximum_values = query.get("maximum_values", 10)
-    # existing_ids = query.get("existing_ids", [])
-
-    # # Get object ids
-    # result = await request["conn"].execute(
-    #     select([objects.c.object_id])
-    #     .where(and_(
-    #         func.lower(objects.c.object_name).like(func.lower(query_text)),
-    #         objects.c.object_id.notin_(existing_ids)
-    #     ))
-    #     .limit(maximum_values)
-    # )
-    # object_ids = []
-    # for row in await result.fetchall():
-    #     object_ids.append(row["object_id"])
-    
-    # if len(object_ids) == 0:
-    #     raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
-    # return object_ids

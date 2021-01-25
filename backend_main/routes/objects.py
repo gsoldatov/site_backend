@@ -13,8 +13,8 @@ from backend_main.schemas.object_data import link_object_data, markdown_object_d
 from backend_main.db_operaions.objects import add_object, update_object, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at
 from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
-from backend_main.db_operaions.objects_links import add_link, view_link, update_link, delete_link
-from backend_main.db_operaions.objects_markdown import add_markdown, view_markdown, update_markdown, delete_markdown
+from backend_main.db_operaions.objects_links import add_link, view_link, update_link
+from backend_main.db_operaions.objects_markdown import add_markdown, view_markdown, update_markdown
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 
@@ -128,20 +128,7 @@ async def delete(request):
     validate(instance = data, schema = objects_delete_schema)
     object_ids = data["object_ids"]
 
-    # Get object types and call handlers for each type to delete object-specific data
-    object_types = await view_objects_types(request, object_ids)
-
-    if len(object_types) == 0:
-        raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
-
-    for object_type in object_types:
-        handler = get_func_name("delete", object_type)
-        await handler(request, object_ids)
-    
-    # Remove objects' tags
-    await update_objects_tags(request, {"object_ids": object_ids, "remove_all_tags": True})
-
-    # Delete general data
+    # Cascade delete objects and related data
     await delete_objects(request, object_ids)
 
     # Send response

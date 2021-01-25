@@ -86,10 +86,14 @@ async def delete_objects(request, object_ids):
         Deletes object attributes for provided object_ids.
     """
     objects = request.app["tables"]["objects"]
-    await request["conn"].execute(
+    result = await request["conn"].execute(
         objects.delete()
         .where(objects.c.object_id.in_(object_ids))
+        .returning(objects.c.object_id)
     )
+
+    if not await result.fetchone():
+        raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
 
 
 async def get_page_object_ids_data(request, pagination_info):

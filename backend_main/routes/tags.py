@@ -81,10 +81,7 @@ async def delete(request):
     validate(instance = data, schema = tags_view_delete_schema)
     tag_ids = data["tag_ids"]
     
-    # Remove objects' tags
-    await update_objects_tags(request, {"tag_ids": tag_ids, "remove_all_objects": True})
-
-    # Delete tags
+    # Cascade delete tags
     await delete_tags(request, tag_ids)
     
     # Send response
@@ -111,20 +108,20 @@ async def search(request):
     return web.json_response({"tag_ids": tag_ids})
 
 
-async def merge(request):
-    pass
+# async def merge(request):
+#     pass
 
 
-async def link(request):
-    pass
+# async def link(request):
+#     pass
 
 
-async def unlink(request):
-    pass
+# async def unlink(request):
+#     pass
 
 
-async def get_linked(request):
-    pass
+# async def get_linked(request):
+#     pass
 
 
 def get_subapp():
@@ -135,10 +132,10 @@ def get_subapp():
                     web.post("/view", view, name = "view"),
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/get_page_tag_ids", get_page_tag_ids, name = "get_page_tag_ids"),
-                    web.post("/search", search, name = "search"),
-                    web.put("/merge", merge, name = "merge"),
-                    web.post("/link/{type}", link, name = "link"),
-                    web.delete("/unlink/{type}", unlink, name = "unlink"),
-                    web.get("/get_linked/{id}", get_linked, name="get_linked")
+                    web.post("/search", search, name = "search")#,
+                    # web.put("/merge", merge, name = "merge"),
+                    # web.post("/link/{type}", link, name = "link"),
+                    # web.delete("/unlink/{type}", unlink, name = "unlink"),
+                    # web.get("/get_linked/{id}", get_linked, name="get_linked")
                 ])
     return app

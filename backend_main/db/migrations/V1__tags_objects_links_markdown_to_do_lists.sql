@@ -21,29 +21,29 @@ CREATE INDEX "object_type_index" ON objects (object_type);
 CREATE UNIQUE INDEX "lowered_object_name" ON objects ((LOWER(object_name)));
 
 CREATE TABLE objects_tags (
-    tag_id INT NOT NULL REFERENCES tags(tag_id),
-    object_id INT NOT NULL REFERENCES objects(object_id)
+    tag_id INT NOT NULL REFERENCES tags(tag_id) ON DELETE CASCADE,
+    object_id INT NOT NULL REFERENCES objects(object_id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX "objects_tags_index" ON objects_tags (object_id, tag_id);
 
 CREATE TABLE links (
-    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id) ON DELETE CASCADE,
     link TEXT NOT NULL
 );
 
 CREATE TABLE markdown (
-    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id) ON DELETE CASCADE,
     raw_text TEXT NOT NULL
 );
 
 CREATE TABLE to_do_lists (
-    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id) ON DELETE CASCADE,
     sort_type VARCHAR(32) NOT NULL
 );
 
 CREATE TABLE to_do_list_items (
-    object_id INT NOT NULL REFERENCES to_do_lists(object_id),
+    object_id INT NOT NULL REFERENCES to_do_lists(object_id) ON DELETE CASCADE,
     item_number INT NOT NULL,
     item_state VARCHAR(32) NOT NULL,
     item_text TEXT,
