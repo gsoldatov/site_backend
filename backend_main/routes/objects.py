@@ -29,41 +29,31 @@ async def add(request):
     data["object"]["modified_at"] = current_time
     added_tags = data["object"].pop("added_tags", [])
 
-    # Insert data in a transaction
     conn = request["conn"]
-    trans = await conn.begin()
-    try:
-        object_data = data["object"].pop("object_data")
+    object_data = data["object"].pop("object_data")
 
-        # Insert general object data
-        objects = request.app["tables"]["objects"]
-        
-        result = await conn.execute(objects.insert()
-            .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                    objects.c.object_name, objects.c.object_description)
-            .values(data["object"])
-            )
-        record = await result.fetchone()
-        response_data = row_proxy_to_dict(record)
-        object_id = record["object_id"]
+    # Insert general object data
+    objects = request.app["tables"]["objects"]
     
-        # Call handler to add object-specific data
-        specific_data = {"object_id": object_id, "object_data": object_data}
-        handler = get_func_name("add", data["object"]["object_type"])
-        await handler(request, specific_data)
+    result = await conn.execute(objects.insert()
+        .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
+                objects.c.object_name, objects.c.object_description)
+        .values(data["object"])
+        )
+    record = await result.fetchone()
+    response_data = row_proxy_to_dict(record)
+    object_id = record["object_id"]
 
-        # Set tags of the new object
-        response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
-        
-        # Commit transaction
-        await trans.commit()
+    # Call handler to add object-specific data
+    specific_data = {"object_id": object_id, "object_data": object_data}
+    handler = get_func_name("add", data["object"]["object_type"])
+    await handler(request, specific_data)
 
-        # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-        return web.json_response({"object": response_data})
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    # Set tags of the new object
+    response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
+
+    # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
+    return web.json_response({"object": response_data})
 
 
 async def view(request):
@@ -138,45 +128,35 @@ async def update(request):
 
     # Insert general object data
     conn = request["conn"]
-    trans = await conn.begin()
-    try:
-        object_data = data["object"].pop("object_data")
+    object_data = data["object"].pop("object_data")
 
-        # Insert general object data
-        objects = request.app["tables"]["objects"]
-        object_id = data["object"]["object_id"]
-        
-        result = await conn.execute(objects.update()
-            .where(objects.c.object_id == object_id)
-            .values(data["object"])
-            .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                    objects.c.object_name, objects.c.object_description)
-            )
-        record = await result.fetchone()
-        if not record:
-            await trans.rollback()
-            raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
-        response_data = row_proxy_to_dict(record)
+    # Insert general object data
+    objects = request.app["tables"]["objects"]
+    object_id = data["object"]["object_id"]
     
-        # Validate object_data property and call handler to update object-specific data
-        validate(instance = object_data, schema = get_object_data_update_schema(record["object_type"]))
-        specific_data = {"object_id": record["object_id"], "object_data": object_data}
-        handler = get_func_name("update", record["object_type"])
-        await handler(request, specific_data)
-        
-        # Update object's tags
-        response_data["tag_updates"] = await update_objects_tags(request, 
-            {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
-        
-        # Commit transaction
-        await trans.commit()
+    result = await conn.execute(objects.update()
+        .where(objects.c.object_id == object_id)
+        .values(data["object"])
+        .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
+                objects.c.object_name, objects.c.object_description)
+        )
+    record = await result.fetchone()
+    if not record:
+        raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
+    response_data = row_proxy_to_dict(record)
 
-        # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-        return web.json_response({"object": response_data})
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    # Validate object_data property and call handler to update object-specific data
+    validate(instance = object_data, schema = get_object_data_update_schema(record["object_type"]))
+    specific_data = {"object_id": record["object_id"], "object_data": object_data}
+    handler = get_func_name("update", record["object_type"])
+    await handler(request, specific_data)
+    
+    # Update object's tags
+    response_data["tag_updates"] = await update_objects_tags(request, 
+        {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
+
+    # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
+    return web.json_response({"object": response_data})
 
 
 async def delete(request):
@@ -184,50 +164,41 @@ async def delete(request):
     data = await request.json()
     validate(instance = data, schema = objects_delete_schema)
 
-    # Delete objects in a transaction
     conn = request["conn"]
-    trans = await conn.begin()
     object_ids = data["object_ids"]
-    try:
-        # Remove objects' tags
-        await update_objects_tags(request, {"object_ids": object_ids, "remove_all_tags": True})
+        
+    # Remove objects' tags
+    await update_objects_tags(request, {"object_ids": object_ids, "remove_all_tags": True})
 
-        # Get object types and call handlers for each type to delete object-specific data
-        objects = request.app["tables"]["objects"]
-        result = await conn.execute(select([objects.c.object_type])
-                    .distinct()
-                    .where(objects.c.object_id.in_(object_ids))
-                    )
-        object_types = []
-        for row in await result.fetchall():
-            object_types.append(row["object_type"])
+    # Get object types and call handlers for each type to delete object-specific data
+    objects = request.app["tables"]["objects"]
+    result = await conn.execute(select([objects.c.object_type])
+                .distinct()
+                .where(objects.c.object_id.in_(object_ids))
+                )
+    object_types = []
+    for row in await result.fetchall():
+        object_types.append(row["object_type"])
 
-        if len(object_types) == 0:
-            raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
+    if len(object_types) == 0:
+        raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
 
-        for object_type in object_types:
-            handler = get_func_name("delete", object_type)
-            await handler(request, object_ids)
+    for object_type in object_types:
+        handler = get_func_name("delete", object_type)
+        await handler(request, object_ids)
 
-        # Delete general data
-        result = await conn.execute(objects.delete()
-                    .where(objects.c.object_id.in_(object_ids))
-                    .returning(objects.c.object_id)
-                    )
-        object_ids = []
-        for row in await result.fetchall():
-            object_ids.append(row["object_id"])
+    # Delete general data
+    result = await conn.execute(objects.delete()
+                .where(objects.c.object_id.in_(object_ids))
+                .returning(objects.c.object_id)
+                )
+    object_ids = []
+    for row in await result.fetchall():
+        object_ids.append(row["object_id"])
 
-        # Commit transaction
-        await trans.commit()
-
-        # Send response
-        response = {"object_ids": object_ids}
-        return web.json_response(response)
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    # Send response
+    response = {"object_ids": object_ids}
+    return web.json_response(response)
 
 
 async def get_page_object_ids(request):
@@ -332,21 +303,14 @@ async def update_tags(request):
 
     # Update objects_tags and send response
     conn = request["conn"]
-    trans = await conn.begin()
-    try:
-        response_data = {}
-        # Update tags
-        response_data["tag_updates"] = await update_objects_tags(request, data, check_ids = True)
-        
-        # Set objects' modified_at time
-        response_data["modified_at"] = str(await set_modified_at(request, data["object_ids"]))
+    response_data = {}
+    # Update tags
+    response_data["tag_updates"] = await update_objects_tags(request, data, check_ids = True)
+    
+    # Set objects' modified_at time
+    response_data["modified_at"] = str(await set_modified_at(request, data["object_ids"]))
 
-        await trans.commit()
-        return web.json_response(response_data)
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    return web.json_response(response_data)
 
 
 def get_func_name(route, object_type):

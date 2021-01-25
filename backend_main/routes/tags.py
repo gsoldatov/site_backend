@@ -19,31 +19,21 @@ async def add(request):
     data["tag"]["created_at"] = current_time
     data["tag"]["modified_at"] = current_time
     added_object_ids = data["tag"].pop("added_object_ids", [])
-
-    # Insert data in a transaction
     conn = request["conn"]
-    trans = await conn.begin()
-    try:
-        # Add the tag
-        tags = request.app["tables"]["tags"]      
-        result = await conn.execute(tags.insert().\
-            returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                    tags.c.tag_name, tags.c.tag_description).\
-            values(data["tag"])
-            )
-        tag = row_proxy_to_dict(await result.fetchone())
 
-        # Tag objects with the new tag
-        tag["object_updates"] = await update_objects_tags(request, {"tag_ids": [tag["tag_id"]], "added_object_ids": added_object_ids})
-        
-        # Commit transaction
-        await trans.commit()
+    # Add the tag
+    tags = request.app["tables"]["tags"]      
+    result = await conn.execute(tags.insert().\
+        returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
+                tags.c.tag_name, tags.c.tag_description).\
+        values(data["tag"])
+        )
+    tag = row_proxy_to_dict(await result.fetchone())
 
-        return web.json_response({"tag": tag})
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    # Tag objects with the new tag
+    tag["object_updates"] = await update_objects_tags(request, {"tag_ids": [tag["tag_id"]], "added_object_ids": added_object_ids})
+
+    return web.json_response({"tag": tag})
 
 
 async def update(request):
@@ -53,77 +43,57 @@ async def update(request):
     data["tag"]["modified_at"] = datetime.utcnow()
     added_object_ids = data["tag"].pop("added_object_ids", [])
     removed_object_ids = data["tag"].pop("removed_object_ids", [])
-
-    # Insert data in a transaction
     conn = request["conn"]
-    trans = await conn.begin()
-    try:
-        # Update the tag
-        tags = request.app["tables"]["tags"]
-        tag_id = data["tag"]["tag_id"]
 
-        result = await conn.execute(tags.update().\
-            where(tags.c.tag_id == tag_id).\
-            values(data["tag"]).\
-            returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                    tags.c.tag_name, tags.c.tag_description)
-            )
-        
-        record = await result.fetchone()
-        if not record:
-            raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' not found."), content_type = "application/json")
-        tag = row_proxy_to_dict(record)
+    # Update the tag
+    tags = request.app["tables"]["tags"]
+    tag_id = data["tag"]["tag_id"]
 
-        # Update object's tags
-        tag["object_updates"] = await update_objects_tags(request, 
-            {"tag_ids": [tag_id], "added_object_ids": added_object_ids, "removed_object_ids": removed_object_ids})
+    result = await conn.execute(tags.update().\
+        where(tags.c.tag_id == tag_id).\
+        values(data["tag"]).\
+        returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
+                tags.c.tag_name, tags.c.tag_description)
+        )
+    
+    record = await result.fetchone()
+    if not record:
+        raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' not found."), content_type = "application/json")
+    tag = row_proxy_to_dict(record)
 
-        # Commit transaction
-        await trans.commit()
+    # Update object's tags
+    tag["object_updates"] = await update_objects_tags(request, 
+        {"tag_ids": [tag_id], "added_object_ids": added_object_ids, "removed_object_ids": removed_object_ids})
 
-        return web.json_response({"tag": tag})
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    return web.json_response({"tag": tag})
 
 
 async def delete(request):
     # Validate request data and add missing values
     data = await request.json()
     validate(instance = data, schema = tags_view_delete_schema)
-
-    # Delete tags in a transaction
     conn = request["conn"]
-    trans = await conn.begin()
     tag_ids = data["tag_ids"]
-    try:
-        # Remove objects' tags
-        await update_objects_tags(request, {"tag_ids": tag_ids, "remove_all_objects": True})
+    
+    # Remove objects' tags
+    await update_objects_tags(request, {"tag_ids": tag_ids, "remove_all_objects": True})
 
-        # Delete the tags
-        tags = request.app["tables"]["tags"]
-        result = await conn.execute(tags.delete().\
-                    where(tags.c.tag_id.in_(tag_ids)).\
-                    returning(tags.c.tag_id)
-                    )
-        tag_ids = []
-        for row in await result.fetchall():
-            tag_ids.append(row["tag_id"])
-        
-        if len(tag_ids) == 0:
-            raise web.HTTPNotFound(text = error_json("Tag(s) not found."), content_type = "application/json")
-        
-        # Commit transaction
-        await trans.commit()
-        
-        # Send response
-        response = {"tag_ids": tag_ids}
-        return web.json_response(response)
-    except Exception as e:
-        # Rollback if an error occurs
-        await trans.rollback()
-        raise e
+    # Delete the tags
+    tags = request.app["tables"]["tags"]
+    result = await conn.execute(tags.delete().\
+                where(tags.c.tag_id.in_(tag_ids)).\
+                returning(tags.c.tag_id)
+                )
+    tag_ids = []
+    for row in await result.fetchall():
+        tag_ids.append(row["tag_id"])
+    
+    if len(tag_ids) == 0:
+        raise web.HTTPNotFound(text = error_json("Tag(s) not found."), content_type = "application/json")
+    
+    # Send response
+    response = {"tag_ids": tag_ids}
+    return web.json_response(response)
 
 
 async def view(request):
