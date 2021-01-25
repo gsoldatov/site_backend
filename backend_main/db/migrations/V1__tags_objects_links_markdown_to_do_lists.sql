@@ -36,3 +36,18 @@ CREATE TABLE markdown (
     object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
     raw_text TEXT NOT NULL
 );
+
+CREATE TABLE to_do_lists (
+    object_id INT UNIQUE NOT NULL REFERENCES objects(object_id),
+    sort_type VARCHAR(32) NOT NULL
+);
+
+CREATE TABLE to_do_list_items (
+    object_id INT NOT NULL REFERENCES to_do_lists(object_id),
+    item_number INT NOT NULL,
+    item_state VARCHAR(32) NOT NULL,
+    item_text TEXT,
+    commentary TEXT,
+    indent INT NOT NULL,
+    is_expanded BOOLEAN NOT NULL
+)

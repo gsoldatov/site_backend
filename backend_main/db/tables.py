@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, ForeignKey, Index, text,
-    DateTime, Integer, String, Text
+    DateTime, Integer, String, Text, Boolean
 )
 from sqlalchemy.schema import FetchedValue
 
@@ -23,7 +23,7 @@ def get_tables(config):
             "objects", 
             meta,
             Column("object_id", Integer, primary_key = True, server_default = FetchedValue()),
-            Column("object_type", Text, nullable = False),
+            Column("object_type", String(32), nullable = False),
             Column("created_at", DateTime, nullable = False),
             Column("modified_at", DateTime, nullable = False),
             Column("object_name", String(255), nullable = False, unique = True),
@@ -52,5 +52,24 @@ def get_tables(config):
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id"), unique = True),
             Column("raw_text", Text, nullable = False)
+        ),
+
+        "to_do_lists": Table(
+            "to_do_lists",
+            meta,
+            Column("object_id", Integer, ForeignKey("objects.object_id"), unique = True),
+            Column("sort_type", String(32), nullable = False)
+        ),
+
+        "to_do_list_items": Table(
+            "to_do_list_items",
+            meta,
+            Column("object_id", Integer, ForeignKey("to_dos.object_id")),
+            Column("item_number", Integer, nullable = False),
+            Column("item_state", String(32), nullable = False),
+            Column("item_text", Text),
+            Column("commentary", Text),
+            Column("indent", Integer, nullable = False),
+            Column("is_expanded", Boolean, nullable = False)
         )
     }
