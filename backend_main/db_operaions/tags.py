@@ -97,10 +97,16 @@ async def get_page_tag_ids_data(request, pagination_info):
     first = (pagination_info["page"] - 1) * items_per_page
     filter_text = f"%{pagination_info['filter_text'].lower()}%"
 
+    # return where clause statements for a select statement `s`.
+    def with_where_clause(s):
+        return s\
+            .where(func.lower(tags.c.tag_name).like(filter_text))
+
     # Get tag ids
     result = await request["conn"].execute(
-        select([tags.c.tag_id])
-        .where(func.lower(tags.c.tag_name).like(filter_text))
+        with_where_clause(
+            select([tags.c.tag_id])
+        )
         .order_by(order_by if order_asc else order_by.desc())
         .limit(items_per_page)
         .offset(first)
@@ -114,9 +120,10 @@ async def get_page_tag_ids_data(request, pagination_info):
 
     # Get tag count
     result = await request["conn"].execute(
-        select([func.count()])
-        .select_from(tags)
-        .where(func.lower(tags.c.tag_name).like(filter_text))
+        with_where_clause(
+            select([func.count()])
+            .select_from(tags)
+        )
     )
     total_items = (await result.fetchone())[0]
 

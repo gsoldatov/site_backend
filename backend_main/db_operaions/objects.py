@@ -127,12 +127,18 @@ async def get_page_object_ids_data(request, pagination_info):
         .where(tags_filter_subquery.c.tags_count == len(tags_filter))
     ).as_scalar()
 
+    # return where clause statements for a select statement `s`.
+    def with_where_clause(s):
+        return s\
+            .where(func.lower(objects.c.object_name).like(filter_text))\
+            .where(objects.c.object_type.in_(object_types))\
+            .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
+
     # Get object ids
     result = await request["conn"].execute(
-        select([objects.c.object_id])
-        .where(func.lower(objects.c.object_name).like(filter_text))
-        .where(objects.c.object_type.in_(object_types))
-        .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
+        with_where_clause(
+            select([objects.c.object_id])
+        )
         .order_by(order_by if order_asc else order_by.desc())
         .limit(items_per_page)
         .offset(first)
@@ -146,11 +152,10 @@ async def get_page_object_ids_data(request, pagination_info):
 
     # Get object count
     result = await request["conn"].execute(
-        select([func.count()])
-        .select_from(objects)
-        .where(objects.c.object_name.like(filter_text))
-        .where(objects.c.object_type.in_(object_types))
-        .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
+        with_where_clause(
+            select([func.count()])
+            .select_from(objects)
+        )
     )
     total_items = (await result.fetchone())[0]
 
