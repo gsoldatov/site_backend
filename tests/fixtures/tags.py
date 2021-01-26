@@ -3,13 +3,14 @@ from datetime import datetime, timedelta
 from psycopg2.extensions import AsIs
 
 
-__all__ = ["get_test_tag", "incorrect_tag_values", "tag_list", "insert_tags"]
+__all__ = ["get_test_tag", "incorrect_tag_values", "tag_list", "insert_tags", "delete_tags"]
 
-def get_test_tag(i, pop_keys = []):
+def get_test_tag(i, name = None, pop_keys = []):
     """
-    Returns a new tag dictionary with attributes specified in pop_keys popped from it.
+    Returns a new dictionary for tags table with attributes specified in pop_keys popped from it.
+    If name is not provided, uses one of the default values (which are bound to specific IDs).
     """
-    name = _tag_names[i]
+    name = name or _tag_names[i]
     curr_time = datetime.utcnow()
     tag = {"tag_id": i, "created_at": curr_time, "modified_at": curr_time, "tag_name": name, "tag_description": f"Everything Related to {name}"}
     for k in pop_keys:
@@ -50,4 +51,16 @@ def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
         query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tags))))
         for t in tags:
             params.extend(t.values())
+    cursor.execute(query, params)
+
+
+def delete_tags(tag_ids, db_cursor, config):
+    """
+    Deletes tags with provided IDs (this should also result in a cascade delete of related data from other tables).
+    """
+    cursor = db_cursor(apply_migrations = True)
+    table = config["db"]["db_schema"] + ".tags"
+    query = "DELETE FROM %s WHERE tag_id IN (" + ", ".join(("%s" for _ in range(len(tag_ids)))) + ")"
+    params = [AsIs(table)]
+    params.extend(tag_ids)
     cursor.execute(query, params)

@@ -226,10 +226,10 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     insert_objects(obj_list, db_cursor, config)
 
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor, config)
     insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor, config)
     insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor, config)
+    insert_objects_tags([11, 12], [1, 2, 3], db_cursor, config)
 
     # Incorrect request body (not a json, missing attributes, wrong attributes)
     resp = await cli.post("/objects/get_page_object_ids", data = "not a JSON document.")
@@ -290,7 +290,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == links_count
     assert data["object_ids"] == [7, 6]
 
-    # Correct request - sort by object_name asc with filter text (links only)
+    # Correct request - filter by text (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "0"
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -298,6 +298,18 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == links_count // 2
     assert data["object_ids"] == [1, 3] # a0, c0
+
+    # Correct request - filter by text + check if filter_text case is ignored (links only)
+    insert_objects([get_test_object(100, "aa", pop_keys = ["object_data"]), get_test_object(101, "AaA", pop_keys = ["object_data"])
+        , get_test_object(102, "AAaa", pop_keys = ["object_data"]), get_test_object(103, "aaaAa", pop_keys = ["object_data"])], db_cursor, config)
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["filter_text"] = "aA"
+    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["total_items"] == 4 # id = [100, 101, 102, 103]
+    assert data["object_ids"] == [100, 101]
+    delete_objects([100, 101, 102, 103], db_cursor, config)
 
     # Correct request - sort by object_name with no object names provided (query all object types)
     pi = deepcopy(pagination_info)
@@ -325,13 +337,15 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["total_items"] == markdown_count
     assert data["object_ids"] == [11, 12]
 
-    # Correct request - filter objects by their tags
+    # Correct request - filter objects by their tags (all object types)
     pi = deepcopy(pagination_info)
+    pi["pagination_info"]["object_types"] = []
     pi["pagination_info"]["tags_filter"] = [1, 2, 3]
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
     assert resp.status == 200
     data = await resp.json()
     assert sorted(data["object_ids"]) == [5, 7]
+    assert data["total_items"] == 4     # object_ids = [5, 7, 11, 12]
 
 
 async def test_search(cli, db_cursor, config):

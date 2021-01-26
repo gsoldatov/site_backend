@@ -201,19 +201,19 @@ async def test_tags_add(cli, db_cursor, config):
     
     # Incorrect tag's objects
     for added_object_ids in ["not a list", 1, {}]:
-        tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
         tag["added_object_ids"] = added_object_ids
         resp = await cli.post("/tags/add", json = {"tag": tag})
         assert resp.status == 400
 
     # Attempt to tag non-existing objects (and get a 404 error)
-    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
     tag["added_object_ids"] = [1, 100]
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 400
 
     # Tag existing objects (and check duplicate object_ids handling)
-    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
     tag["added_object_ids"] = [1, 2, 4, 6, 4, 6, 4, 6]
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 200
@@ -235,25 +235,25 @@ async def test_tags_update(cli, db_cursor, config):
 
     # Incorrect added_object_ids and removed_object_ids
     for added_object_ids in ["not a list", 1, {}]:
-        tag = get_test_tag(1, ["created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
         tag["added_object_ids"] = added_object_ids
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     for removed_object_ids in ["not a list", 1, {}]:
-        tag = get_test_tag(1, ["created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
         tag["removed_object_ids"] = removed_object_ids
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Attempt to tag non-existing objects (and get a 404 error)
-    tag = get_test_tag(1, ["created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
     tag["added_object_ids"] = [1, 100]
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
 
     # Tag/untag existing objects (and check duplicate object_ids handling)
-    tag = get_test_tag(1, ["created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
     tag["added_object_ids"] = [3, 4, 6, 7, 6, 7]
     tag["removed_object_ids"] = [1, 2]
     resp = await cli.put("/tags/update", json = {"tag": tag})
@@ -265,7 +265,7 @@ async def test_tags_update(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed; 6, 7 were added
 
     # Tag objects only
-    tag = get_test_tag(1, ["created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
     tag["added_object_ids"] = [1, 2, 3, 1, 2]
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200
@@ -276,7 +276,7 @@ async def test_tags_update(cli, db_cursor, config):
     assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 7] # 1, 2 were added
 
     # Untag objects only
-    tag = get_test_tag(1, ["created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
     tag["removed_object_ids"] = [2, 1, 1, 2]
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200

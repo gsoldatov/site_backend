@@ -23,13 +23,13 @@ async def test_add(cli, db_cursor, config):
 
     # Check required elements
     for attr in ("tag_name", "tag_description"):
-        tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
         tag.pop(attr)
         resp = await cli.post("/tags/add", json = {"tag": tag})
         assert resp.status == 400
 
     # Unallowed elements
-    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
     tag["unallowed"] = "unallowed"
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 400
@@ -37,13 +37,13 @@ async def test_add(cli, db_cursor, config):
     # Incorrect values
     for k, v in incorrect_tag_values:
         if k != "tag_id":
-            tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+            tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
             tag[k] = v
             resp = await cli.post("/tags/add", json = {"tag": tag})
             assert resp.status == 400
 
     # Write a correct tag
-    tag = get_test_tag(1, ["tag_id", "created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["tag_id", "created_at", "modified_at"])
     resp = await cli.post("/tags/add", json = {"tag": tag})
     assert resp.status == 200
     resp_json = await resp.json()
@@ -83,39 +83,39 @@ async def test_update(cli, db_cursor, config):
     
     # Missing attributes
     for attr in ("tag_id", "tag_name", "tag_description"):
-        tag = get_test_tag(1, ["created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
         tag.pop(attr)
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Incorrect attribute types and lengths:
     for k, v in incorrect_tag_values:
-        tag = get_test_tag(1, ["created_at", "modified_at"])
+        tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
         tag[k] = v
         resp = await cli.put("/tags/update", json = {"tag": tag})
         assert resp.status == 400
     
     # Non-existing tag_id
-    tag = get_test_tag(1, ["created_at", "modified_at"])
+    tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
     tag["tag_id"] = 100
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 404
 
     # Duplicate tag_name
-    tag = get_test_tag(2, ["created_at", "modified_at"])
+    tag = get_test_tag(2, pop_keys = ["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
     
     # Lowercase duplicate tag_name
-    tag = get_test_tag(2, ["created_at", "modified_at"])
+    tag = get_test_tag(2, pop_keys = ["created_at", "modified_at"])
     tag["tag_id"] = 1
     tag["tag_name"] = tag["tag_name"].upper()
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 400
     
     # Correct update
-    tag = get_test_tag(3, ["created_at", "modified_at"])
+    tag = get_test_tag(3, pop_keys = ["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200
@@ -256,6 +256,17 @@ async def test_get_page_tag_ids(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == len(tag_list) // 2
     assert data["tag_ids"] == [1, 3] # a0, c0
+
+    # Correct request - filter by text + check if filter_text case is ignored
+    insert_tags([get_test_tag(100, "aa"), get_test_tag(101, "AaA"), get_test_tag(102, "AAaa"), get_test_tag(103, "aaaAa")], db_cursor, config)
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["filter_text"] = "aA"
+    resp = await cli.post("/tags/get_page_tag_ids", json = pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["total_items"] == 4 # id = [100, 101, 102, 103]
+    assert data["tag_ids"] == [100, 101]
+    delete_tags([100, 101, 102, 103], db_cursor, config)
 
 
 async def test_search(cli, db_cursor, config):

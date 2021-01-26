@@ -4,26 +4,30 @@ from psycopg2.extensions import AsIs
 
 
 __all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_object_list", "links_list", "markdown_list",
-            "insert_objects", "insert_links", "insert_markdown"]
+            "insert_objects", "insert_links", "insert_markdown", "delete_objects"]
 
 
-def get_test_object(i, pop_keys = []):
+def get_test_object(id, name = None, pop_keys = []):
     """
     Returns a new dictionary for objects table with attributes specified in pop_keys popped from it.
+    If name is not provided, uses one of the default values (which are bound to specific IDs).
     """
-    if 1 <= i <= 3:
+    if 1 <= id <= 3:
         object_type = "link"
-        object_data = {"link": _links[i]}
-    elif 4 <= i <= 6:
+        object_data = {"link": _links[id]}
+    elif 4 <= id <= 6:
         object_type = "markdown"
-        object_data = {"raw_text": _markdown_raw_text[i]}
+        object_data = {"raw_text": _markdown_raw_text[id]}
+    elif name is not None:
+        object_type = "link"
+        object_data = {"link": f"https://test.link.{id}"}        
     else:
-        raise ValueError(f"Received an incorrect object id in get_test_object function: {i}")
+        raise ValueError(f"Received an incorrect object id in get_test_object function: {id}")
     
-    name = _object_names[i]
+    name = name or _object_names[id]
     curr_time = datetime.utcnow()
 
-    obj = {"object_id": i, "object_type": object_type, "created_at": curr_time, "modified_at": curr_time, "object_name": name, "object_description": f"Everything Related to {name}",
+    obj = {"object_id": id, "object_type": object_type, "created_at": curr_time, "modified_at": curr_time, "object_name": name, "object_description": f"Everything Related to {name}",
         "object_data": object_data}
     for k in pop_keys:
         obj.pop(k, None)
@@ -135,4 +139,16 @@ def insert_markdown(texts, db_cursor, config):
     params = [AsIs(table)]
     for l in texts:
         params.extend(l.values())
+    cursor.execute(query, params)
+
+
+def delete_objects(object_ids, db_cursor, config):
+    """
+    Deletes objects with provided IDs (this should also result in a cascade delete of related data from other tables).
+    """
+    cursor = db_cursor(apply_migrations = True)
+    table = config["db"]["db_schema"] + ".objects"
+    query = "DELETE FROM %s WHERE object_id IN (" + ", ".join(("%s" for _ in range(len(object_ids)))) + ")"
+    params = [AsIs(table)]
+    params.extend(object_ids)
     cursor.execute(query, params)
