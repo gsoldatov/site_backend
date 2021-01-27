@@ -47,26 +47,6 @@ async def test_add(cli, db_cursor, config):
     assert cursor.fetchone() == (md["object_data"]["raw_text"],)
 
 
-async def test_view(cli, db_cursor, config):
-    # Insert mock values
-    insert_objects(get_object_list(11, 20), db_cursor, config)
-    insert_markdown(markdown_list, db_cursor, config)
-    
-    # Correct request (object_data_ids only, markdown)
-    object_data_ids = [_ for _ in range(11, 21)]
-    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
-    assert resp.status == 200
-    data = await resp.json()
-    assert "object_data" in data
-
-    for field in ("object_id", "object_type", "object_data"):
-        assert field in data["object_data"][0]
-    assert "raw_text" in data["object_data"][0]["object_data"]
-
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request, markdown object_data_ids only")
-
-
 async def test_update(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
@@ -93,6 +73,31 @@ async def test_update(cli, db_cursor, config):
     assert resp.status == 200
     cursor.execute(f"SELECT raw_text FROM {markdown} WHERE object_id = 4")
     assert cursor.fetchone() == (obj["object_data"]["raw_text"],)
+
+
+async def test_view(cli, db_cursor, config):
+    # Insert mock values
+    insert_objects(get_object_list(11, 20), db_cursor, config)
+    insert_markdown(markdown_list, db_cursor, config)
+
+    # Correct request (object_data_ids only, links), non-existing ids
+    object_data_ids = [_ for _ in range(1001, 1011)]
+    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    assert resp.status == 404
+    
+    # Correct request (object_data_ids only, markdown)
+    object_data_ids = [_ for _ in range(11, 21)]
+    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    assert resp.status == 200
+    data = await resp.json()
+    assert "object_data" in data
+
+    for field in ("object_id", "object_type", "object_data"):
+        assert field in data["object_data"][0]
+    assert "raw_text" in data["object_data"][0]["object_data"]
+
+    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request, markdown object_data_ids only")
 
 
 async def test_delete(cli, db_cursor, config):
