@@ -7,7 +7,7 @@ from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation
 
 from backend_main.util.json import error_json
-from backend_main.util.validation import LinkValidationException, ObjectsTagsUpdateException
+from backend_main.util.validation import LinkValidationException, To_Do_Lists_ValidationException, ObjectsTagsUpdateException
 
 
 def _get_uv_msg(e):
@@ -31,7 +31,7 @@ async def error_middleware(request, handler):
         return await handler(request)
     except JSONDecodeError:
         raise web.HTTPBadRequest(text = error_json("Request body must be a valid JSON document."), content_type = "application/json")
-    except (ValidationError, LinkValidationException, ObjectsTagsUpdateException) as e:
+    except (ValidationError, LinkValidationException, To_Do_Lists_ValidationException, ObjectsTagsUpdateException) as e:
         raise web.HTTPBadRequest(text = error_json(e), content_type = "application/json")
     except UniqueViolation as e:
             raise web.HTTPBadRequest(text = error_json(_get_uv_msg(e)), content_type = "application/json")

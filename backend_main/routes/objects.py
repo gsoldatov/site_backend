@@ -13,8 +13,9 @@ from backend_main.schemas.object_data import link_object_data, markdown_object_d
 from backend_main.db_operaions.objects import add_object, update_object, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at
 from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
-from backend_main.db_operaions.objects_links import add_link, view_link, update_link
-from backend_main.db_operaions.objects_markdown import add_markdown, view_markdown, update_markdown
+from backend_main.db_operaions.objects_links import add_link, update_link, view_link 
+from backend_main.db_operaions.objects_markdown import add_markdown, update_markdown, view_markdown
+from backend_main.db_operaions.objects_to_do_lists import add_to_do_list, update_to_do_list, view_to_do_list
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 
@@ -110,7 +111,7 @@ async def view(request):
         for object_type in object_types:
             handler = get_func_name("view", object_type)
 
-            # handler function must return a list of dict objects with specific object_data attributes
+            # handler function must return a list of dict objects with "object_id" and "object_data" keys
             object_type_data = await handler(request, object_data_ids)
             for d in object_type_data:
                 d["object_type"] = object_type

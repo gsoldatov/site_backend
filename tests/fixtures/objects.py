@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from psycopg2.extensions import AsIs
 
 
-__all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_object_list", "links_list", "markdown_list",
-            "insert_objects", "insert_links", "insert_markdown", "delete_objects"]
+__all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_object_list", "links_list", "markdown_list", "to_do_lists_list",
+            "insert_objects", "insert_links", "insert_markdown", "insert_to_do_lists", "delete_objects"]
 
 
 def get_test_object(id, name = None, pop_keys = []):
@@ -14,17 +14,20 @@ def get_test_object(id, name = None, pop_keys = []):
     """
     if 1 <= id <= 3:
         object_type = "link"
-        object_data = {"link": _links[id]}
+        object_data = {"link": _get_link(id)}
     elif 4 <= id <= 6:
         object_type = "markdown"
-        object_data = {"raw_text": _markdown_raw_text[id]}
+        object_data = {"raw_text": _get_markdown_raw_text(id)}
+    elif 7 <= id <= 9:
+        object_type = "to_do_list"
+        object_data = _get_to_do_list_object_data(id)
     elif name is not None:
         object_type = "link"
-        object_data = {"link": f"https://test.link.{id}"}        
+        object_data = {"link": _get_link(id)}
     else:
-        raise ValueError(f"Received an incorrect object id in get_test_object function: {id}")
+        raise ValueError(f"Received an incorrect combination of object id and name in get_test_object function: '{id}', '{name}'")
     
-    name = name or _object_names[id]
+    name = name or _get_object_name(id)
     curr_time = datetime.utcnow()
 
     obj = {"object_id": id, "object_type": object_type, "created_at": curr_time, "modified_at": curr_time, "object_name": name, "object_description": f"Everything Related to {name}",
@@ -34,20 +37,37 @@ def get_test_object(id, name = None, pop_keys = []):
     return obj
 
 
-def get_test_object_data(i):
+# Used in object type specific tests
+def get_test_object_data(id):
     """
     Returns a dict with data to insert into and object data table (links, markdown, etc.)
     """
-    if 1 <= i <= 3:
-        return {"object_id": i, "link": _links[i]}
-    elif 4 <= i <= 6:
-        return {"object_id": i, "raw_text": _markdown_raw_text[i]}
+    if 1 <= id <= 3:
+        return {"object_id": id, "link": _get_link(id)}
+    elif 4 <= id <= 6:
+        return {"object_id": id, "raw_text": _get_markdown_raw_text(id)}
+    elif 7 <= id <= 9:
+        return {"object_id": id, "object_data": _get_to_do_list_object_data(id)}
     else:
-        raise ValueError(f"Received an incorrect object id in get_test_object_data function: {i}")
+        raise ValueError(f"Received an incorrect object id in get_test_object_data function: {id}")
 
-_object_names = {1: "Google", 2: "Wikipedia", 3: "BBC", 4: "Text #4", 5: "Text #5", 6: "Text #6"}
-_links = {1: "https://google.com", 2: "https://wikipedia.org", 3: "https://bbc.co.uk"}
-_markdown_raw_text = {4: "Raw markdown text #4", 5: "Raw markdown text #5", 6: "Raw markdown text #6"}
+
+_get_object_name = lambda id: f"Object #{id}"
+_get_link = lambda id: f"https://test.link.{id}"
+_get_markdown_raw_text = lambda id: f"Raw markdown text #{id}"
+def _get_to_do_list_object_data(id):
+    _item_states = ["active", "completed", "cancelled"]
+    return {
+        "sort_type": "default",
+        "items": [{     # item key order must match the order in which columns are declared in DB schemas, because to-do lists tests depend on this order when comparing added/updated data
+            "item_number": x + 1,
+            "item_state": _item_states[x % 3],
+            "item_text": f"To-do list #{id}, item #{x+1}",
+            "commentary": f"Commentary for to-do list #{id}, item #{x+1}",
+            "indent": 0 if x % 4 < 2 else 1,
+            "is_expanded": True
+        } for x in range(id)]
+    }
 
 
 incorrect_object_values = [
@@ -60,7 +80,7 @@ incorrect_object_values = [
 
 
 def _get_obj_type(x):
-    return "link" if 1 <= x <= 10 else "markdown" if 11 <= x <= 20 else "unknown"
+    return "link" if 1 <= x <= 10 else "markdown" if 11 <= x <= 20 else "to_do_list" if 21 <= x <= 30 else "unknown"
 
 
 def _get_obj_timestamp(x):
@@ -78,6 +98,7 @@ def get_object_list(min_id, max_id):
         Returns a list object attributes for each object_id between min_id and max_id including.
         id <= 10 => link
         id <= 20 => markdown
+        id <= 30 => to-do list
     """
     return [{
         "object_id": x,
@@ -89,20 +110,29 @@ def get_object_list(min_id, max_id):
     } for x in range(min_id, max_id + 1)]
 
 
+# Object data lists to be supplied into insert functions below
 links_list = [{
         "object_id": x,
-        "link": f"https://website{x}.com"
+        "link": _get_link(x)
     } for x in range(1, 11)
 ]
 
 
 markdown_list = [{
         "object_id": x,
-        "raw_text": f"Raw markdown text #{x}"
+        "raw_text": _get_markdown_raw_text(x)
     } for x in range(11, 21)
 ]
 
 
+to_do_lists_list = [{
+        "object_id": x,
+        "object_data": _get_to_do_list_object_data(x)
+    } for x in range(21, 31)
+]
+
+
+# Insert/delete functions for manipulating test data in the database
 def insert_objects(objects, db_cursor, config):
     """
     Inserts a list of objects into <db_schema>.objects table.
@@ -139,6 +169,29 @@ def insert_markdown(texts, db_cursor, config):
     params = [AsIs(table)]
     for l in texts:
         params.extend(l.values())
+    cursor.execute(query, params)
+
+
+def insert_to_do_lists(lists, db_cursor, config):
+    cursor = db_cursor(apply_migrations = True)
+
+    # to_do_lists
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(lists))))
+    table = config["db"]["db_schema"] + ".to_do_lists"
+    params = [AsIs(table)]
+    for l in lists:
+        params.extend([l["object_id"], l["object_data"]["sort_type"]])
+    cursor.execute(query, params)
+
+    # to_do_list_items
+    num_of_lines = sum((len(t["object_data"]["items"]) for t in lists))
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
+    table = config["db"]["db_schema"] + ".to_do_list_items"
+    params = [AsIs(table)]
+    for l in lists:
+        for i in l["object_data"]["items"]:
+            params.append(l["object_id"])
+            params.extend(i.values())
     cursor.execute(query, params)
 
 

@@ -53,9 +53,10 @@ to_do_list_object_data = {
         },
         "items": {
             "type": "array",
+            "minItems": 1,
             "items": {
                 "type": "object",
-                "required": ["item_number", "item_state", "item_text", "commentary", "indent", "isExpanded"],
+                "required": ["item_number", "item_state", "item_text", "commentary", "indent", "is_expanded"],
                 "additionalProperties": False,
                 "properties": {
                     "item_number": {
@@ -76,7 +77,7 @@ to_do_list_object_data = {
                         "type": "integer",
                         "minimum": 0
                     },
-                    "isExpanded": {
+                    "is_expanded": {
                         "type": "boolean"
                     }
                 }
