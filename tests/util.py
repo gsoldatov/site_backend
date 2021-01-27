@@ -1,7 +1,11 @@
 import pytest
+from copy import deepcopy
 
 
-def check_ids(received, expected, message = "Expected ids check"):
+def check_ids(expected, received, message = "Expected ids check"):
+    expected = deepcopy(expected)
+    received = deepcopy(received)
+    
     for r in received:
         try:
             expected.remove(r)
