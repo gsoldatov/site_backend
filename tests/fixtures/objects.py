@@ -56,12 +56,12 @@ _get_object_name = lambda id: f"Object #{id}"
 _get_link = lambda id: f"https://test.link.{id}"
 _get_markdown_raw_text = lambda id: f"Raw markdown text #{id}"
 def _get_to_do_list_object_data(id):
-    _item_states = ["active", "completed", "cancelled"]
+    _item_states = ["active", "completed", "optional", "cancelled"]
     return {
         "sort_type": "default",
         "items": [{     # item key order must match the order in which columns are declared in DB schemas, because to-do lists tests depend on this order when comparing added/updated data
             "item_number": x + 1,
-            "item_state": _item_states[x % 3],
+            "item_state": _item_states[x % 4],
             "item_text": f"To-do list #{id}, item #{x+1}",
             "commentary": f"Commentary for to-do list #{id}, item #{x+1}",
             "indent": 0 if x % 4 < 2 else 1,

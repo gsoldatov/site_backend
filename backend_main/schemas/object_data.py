@@ -65,7 +65,7 @@ to_do_list_object_data = {
                     },
                     "item_state": {
                         "type": "string",
-                        "enum": ["active", "completed", "cancelled"]
+                        "enum": ["active", "completed", "optional", "cancelled"]
                     },
                     "item_text": {
                         "type": "string"
