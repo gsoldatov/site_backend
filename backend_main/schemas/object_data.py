@@ -61,7 +61,7 @@ to_do_list_object_data = {
                 "properties": {
                     "item_number": {
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 0
                     },
                     "item_state": {
                         "type": "string",

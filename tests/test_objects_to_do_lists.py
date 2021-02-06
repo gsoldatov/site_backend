@@ -42,7 +42,7 @@ async def test_add(cli, db_cursor, config):
         assert resp.status == 400
     
     # Incorrect attribute values (to-do list items)
-    for k, v in [("item_number", "string"), ("item_number", 0), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
+    for k, v in [("item_number", "string"), ("item_number", -1), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
                 ("indent", "string"), ("indent", -1), ("is_expanded", 0), ("is_expanded", "string")]:
         tdl = get_test_object(7, pop_keys = ["object_id", "created_at", "modified_at"])
         tdl["object_data"]["items"][0][k] = v
@@ -122,7 +122,7 @@ async def test_update(cli, db_cursor, config):
         assert resp.status == 400
     
     # Incorrect attribute values (to-do list items)
-    for k, v in [("item_number", "string"), ("item_number", 0), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
+    for k, v in [("item_number", "string"), ("item_number", -1), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
                 ("indent", "string"), ("indent", -1), ("is_expanded", 0), ("is_expanded", "string")]:
         tdl = get_test_object(7, pop_keys = ["created_at", "modified_at", "object_type"])
         tdl["object_data"]["items"][0][k] = v
