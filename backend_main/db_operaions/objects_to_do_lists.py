@@ -100,8 +100,10 @@ async def view_to_do_list(request, object_ids):
     )
     
     for item in await items.fetchall():
-        object_id = item["object_id"]
-        data[object_id]["items"].append(row_proxy_to_dict(item))
+        item_dict = row_proxy_to_dict(item)
+        object_id = item_dict.pop("object_id")
+        # object_id = item["object_id"]
+        data[object_id]["items"].append(item_dict)
     
     # Return correctly formatted object data
     return [{ "object_id": k, "object_data": data[k] } for k in data]
