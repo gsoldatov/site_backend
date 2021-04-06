@@ -89,13 +89,13 @@ async def test_objects_update(cli, db_cursor, config):
 
     # Add existing tags by tag_id and tag_name (check duplicates in request handling (added once) and retagging with the same tags (tag is reapplied))
     link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
-    link["added_tags"] = ["a0", 1, "b1", 2, "i0", 10]
+    link["added_tags"] = ["a0", "A0", 1, "B1", "i0", "I0", 10]
     resp = await cli.put("/objects/update", json = {"object": link})
     assert resp.status == 200
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert type(added_tag_ids) == list
-    assert sorted(added_tag_ids) == [1, 2, 9, 10] # "i0", 10 were added; 1, 2 were reapplied 
+    assert sorted(added_tag_ids) == [1, 2, 9, 10] # "i0", 10 were added; 1, 2 ("a0", "b1") were reapplied 
                                                   # (and should be returned for the case with partially applied tags in route with multiple objects being tagged)
     cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 9, 10]

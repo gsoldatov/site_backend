@@ -91,7 +91,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         # Get non-existing tag names and filter out possible duplicates in tag_names list
         new_tag_names = []
         for name in tag_names:
-            if name not in lowered_existing_tag_names:
+            if name.lower() not in lowered_existing_tag_names:
                 new_tag_names.append(name)
                 lowered_existing_tag_names.add(name.lower())
         tag_names = new_tag_names
