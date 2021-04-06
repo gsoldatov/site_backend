@@ -62,11 +62,11 @@ async def test_add(cli, db_cursor, config):
     cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
     assert cursor.fetchone() == (link["object_name"],)
 
-    # Check if an object with existing name is not added
+    # Check if an object with existing name is added
     link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
     link["object_name"] = link["object_name"].upper()
     resp = await cli.post("/objects/add", json = {"object": link})
-    assert resp.status == 400
+    assert resp.status == 200
 
 
 async def test_view(cli, db_cursor, config):
@@ -163,14 +163,14 @@ async def test_update(cli, db_cursor, config):
     obj = get_test_object(2, pop_keys = ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json = {"object": obj})
-    assert resp.status == 400
+    assert resp.status == 200
 
     # Lowercase duplicate object_name
     obj = get_test_object(2, pop_keys = ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     obj["object_name"] = obj["object_name"].upper()
     resp = await cli.put("/objects/update", json = {"object": obj})
-    assert resp.status == 400
+    assert resp.status == 200
 
     # Correct update (general attributes)
     obj = get_test_object(3, pop_keys = ["created_at", "modified_at", "object_type"])
@@ -179,6 +179,7 @@ async def test_update(cli, db_cursor, config):
     assert resp.status == 200
     cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
     assert cursor.fetchone() == (obj["object_name"],)
+
 
 async def test_delete(cli, db_cursor, config):
     cursor = db_cursor(apply_migrations = True)

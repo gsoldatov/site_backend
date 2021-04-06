@@ -14,7 +14,7 @@ def _get_uv_msg(e):
     """
     Returns custom message to return in case of a UniqueViolation error.
     """
-    uv_field_names = {"tag_name": "tag name", "object_name": "object name"}
+    uv_field_names = {"tag_name": "tag name"}
     error_text = str(e)
     field_name = "data"
     for fn in uv_field_names:
