@@ -7,14 +7,12 @@ import os
 import pytest
 from psycopg2.extensions import AsIs
 
-from fixtures.app import *
 from fixtures.tags import insert_tags, tag_list, get_test_tag
 from fixtures.objects import get_test_object, insert_objects, get_object_list
 from fixtures.objects_tags import insert_objects_tags
 
 
 async def test_objects_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
 
     # Insert mock data
@@ -42,8 +40,8 @@ async def test_objects_add(cli, db_cursor, config):
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert type(added_tag_ids) == list
     assert sorted(added_tag_ids) == [1, 2, 9, 10] # "a0", "b1", 9, 10
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 9, 10]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 9, 10]
     
     # Add non-existing tags by tag_name (and check duplicate tag_name handling)
     link = get_test_object(2, pop_keys = ["object_id", "created_at", "modified_at"])
@@ -53,14 +51,13 @@ async def test_objects_add(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 3, 4, 11, 12] # "a0", 2, 3, 4, "new tag", "new tag 2"
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 11, 12]
-    cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
-    assert sorted([r[0] for r in cursor.fetchall()]) == ["New Tag", "New Tag 2"]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 11, 12]
+    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
 
 async def test_objects_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
 
     # Insert mock data
@@ -97,8 +94,8 @@ async def test_objects_update(cli, db_cursor, config):
     assert type(added_tag_ids) == list
     assert sorted(added_tag_ids) == [1, 2, 9, 10] # "i0", 10 were added; 1, 2 ("a0", "b1") were reapplied 
                                                   # (and should be returned for the case with partially applied tags in route with multiple objects being tagged)
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 9, 10]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 9, 10]
 
     # Add non-existing tags by tag_name (and check duplicate tag_name handling) + remove existing tags
     link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
@@ -109,10 +106,10 @@ async def test_objects_update(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 11, 12] # 1, 2 were reapplied; "New Tag", "New Tag 2"
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 11, 12] # 9, 10 were removed; 11, 12 were added
-    cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
-    assert sorted([r[0] for r in cursor.fetchall()]) == ["New Tag", "New Tag 2"]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 11, 12] # 9, 10 were removed; 11, 12 were added
+    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
     # Add tags only
     link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
@@ -122,8 +119,8 @@ async def test_objects_update(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 6, 13] # 1, 2 were reapplied; 6 and 13 were added
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11, 12, 13] # 6 and 13 were added
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11, 12, 13] # 6 and 13 were added
 
     # Remove tags only
     link = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
@@ -133,8 +130,8 @@ async def test_objects_update(cli, db_cursor, config):
     data = await resp.json()
     removed_tag_ids = data.get("object", {}).get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [11, 12, 13]
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6]
 
 
 async def test_objects_view(cli, db_cursor, config):
@@ -169,7 +166,6 @@ async def test_objects_view(cli, db_cursor, config):
 
 
 async def test_objects_delete(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
 
     # Insert mock values
@@ -186,14 +182,13 @@ async def test_objects_delete(cli, db_cursor, config):
     assert resp.status == 200
 
     for id in [1, 2]:
-        cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE object_id = {id}")
-        assert not cursor.fetchone()
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 3")
-    assert sorted(objects_tags[3]) == sorted([r[0] for r in cursor.fetchall()])
+        db_cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE object_id = {id}")
+        assert not db_cursor.fetchone()
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 3")
+    assert sorted(objects_tags[3]) == sorted([r[0] for r in db_cursor.fetchall()])
 
 
 async def test_tags_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
     
     # Insert mock data
@@ -220,12 +215,11 @@ async def test_tags_add(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [1, 2, 4, 6]
-    cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 4, 6]
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 4, 6]
 
 
 async def test_tags_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
 
     # Insert mock data
@@ -261,8 +255,8 @@ async def test_tags_update(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [3, 4, 6, 7]
-    cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed; 6, 7 were added
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed; 6, 7 were added
 
     # Tag objects only
     tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
@@ -272,8 +266,8 @@ async def test_tags_update(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [1, 2, 3]
-    cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 7] # 1, 2 were added
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 7] # 1, 2 were added
 
     # Untag objects only
     tag = get_test_tag(1, pop_keys = ["created_at", "modified_at"])
@@ -283,8 +277,8 @@ async def test_tags_update(cli, db_cursor, config):
     data = await resp.json()
     removed_object_ids = data.get("tag", {}).get("object_updates", {}).get("removed_object_ids")
     assert sorted(removed_object_ids) == [1, 2]
-    cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed
 
 
 async def test_tags_view(cli, db_cursor, config):
@@ -319,7 +313,6 @@ async def test_tags_view(cli, db_cursor, config):
 
 
 async def test_tags_delete(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
 
     # Insert mock values
@@ -336,14 +329,13 @@ async def test_tags_delete(cli, db_cursor, config):
     assert resp.status == 200
 
     for id in [1, 2]:
-        cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE tag_id = {id}")
-        assert not cursor.fetchone()
-    cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = 3")
-    assert sorted(tags_objects[3]) == sorted([r[0] for r in cursor.fetchall()])
+        db_cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE tag_id = {id}")
+        assert not db_cursor.fetchone()
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = 3")
+    assert sorted(tags_objects[3]) == sorted([r[0] for r in db_cursor.fetchall()])
 
 
 async def test_objects_update_tags(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
     obj_list = get_object_list(1, 10)
 
@@ -387,17 +379,17 @@ async def test_objects_update_tags(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [3, 4, 5, 6, 11] # c0 = 3; 11 was added for "New Tag"
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11]
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
-    assert sorted([r[0] for r in cursor.fetchall()]) == sorted(objects_tags[2])
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11]
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == sorted(objects_tags[2])
     assert data.get("tag_updates", {}).get("removed_tag_ids") == []
 
     # Check modified_at values for modfied and not modified objects
-    cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 1")
-    assert str(cursor.fetchone()[0]) == data["modified_at"]
-    cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 2")
-    assert cursor.fetchone()[0] == obj_list[1]["modified_at"]
+    db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 1")
+    assert str(db_cursor.fetchone()[0]) == data["modified_at"]
+    db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 2")
+    assert db_cursor.fetchone()[0] == obj_list[1]["modified_at"]
 
     # Remove tags by tag_id
     updates = {"object_ids": [1], "removed_tag_ids": [1, 2, 3]}
@@ -407,8 +399,8 @@ async def test_objects_update_tags(cli, db_cursor, config):
     assert data.get("tag_updates", {}).get("added_tag_ids") == []
     removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [1, 2, 3]
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [4, 5, 6, 11] # 1, 2, 3 were removed
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [4, 5, 6, 11] # 1, 2, 3 were removed
     
     # Add and remove tags simultaneously
     updates = {"object_ids": [1, 2], "added_tags": [1, 2, "New Tag 2"], "removed_tag_ids": [3, 4, 5]}
@@ -419,10 +411,10 @@ async def test_objects_update_tags(cli, db_cursor, config):
     assert sorted(added_tag_ids) == [1, 2, 12] # 12 was added for "New Tag 2"
     removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [3, 4, 5]
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 6, 11, 12] # 1, 2, 12 were added; 4, 5 were removed
-    cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
-    assert sorted([r[0] for r in cursor.fetchall()]) == [1, 2, 12] # 1, 2 were added; 3, 4, 5 were removed
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 6, 11, 12] # 1, 2, 12 were added; 4, 5 were removed
+    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 12] # 1, 2 were added; 3, 4, 5 were removed
 
 
 if __name__ == "__main__":

@@ -9,12 +9,10 @@ import pytest
 from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures.app import *
 from fixtures.objects import *
 
 
 async def test_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"] 
     
     # Incorrect markdown attributes
@@ -30,10 +28,10 @@ async def test_add(cli, db_cursor, config):
     resp = await cli.post("/objects/add", json = {"object": md})
     assert resp.status == 400
 
-    cursor.execute(f"SELECT object_name FROM {schema}.objects") # Check that a new object was not created
-    assert not cursor.fetchone()
-    cursor.execute(f"SELECT raw_text FROM {schema}.markdown")
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT object_name FROM {schema}.objects") # Check that a new object was not created
+    assert not db_cursor.fetchone()
+    db_cursor.execute(f"SELECT raw_text FROM {schema}.markdown")
+    assert not db_cursor.fetchone()
 
     # Add a correct markdown object
     md = get_test_object(4, pop_keys = ["object_id", "created_at", "modified_at"])
@@ -43,12 +41,11 @@ async def test_add(cli, db_cursor, config):
     assert "object" in resp_json
     resp_object = resp_json["object"]
 
-    cursor.execute(f"SELECT raw_text FROM {schema}.markdown WHERE object_id = {resp_object['object_id']}")
-    assert cursor.fetchone() == (md["object_data"]["raw_text"],)
+    db_cursor.execute(f"SELECT raw_text FROM {schema}.markdown WHERE object_id = {resp_object['object_id']}")
+    assert db_cursor.fetchone() == (md["object_data"]["raw_text"],)
 
 
 async def test_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
     markdown = config["db"]["db_schema"] + ".markdown"
 
@@ -71,8 +68,8 @@ async def test_update(cli, db_cursor, config):
     obj["object_id"] = 4
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 200
-    cursor.execute(f"SELECT raw_text FROM {markdown} WHERE object_id = 4")
-    assert cursor.fetchone() == (obj["object_data"]["raw_text"],)
+    db_cursor.execute(f"SELECT raw_text FROM {markdown} WHERE object_id = 4")
+    assert db_cursor.fetchone() == (obj["object_data"]["raw_text"],)
 
 
 async def test_view(cli, db_cursor, config):
@@ -101,7 +98,6 @@ async def test_view(cli, db_cursor, config):
 
 
 async def test_delete(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     markdown = config["db"]["db_schema"] + ".markdown"
     
     # Insert mock values
@@ -113,15 +109,15 @@ async def test_delete(cli, db_cursor, config):
     # Correct deletes (general data + link)
     resp = await cli.delete("/objects/delete", json = {"object_ids": [4]})
     assert resp.status == 200
-    cursor.execute(f"SELECT object_id FROM {markdown}")
-    assert cursor.fetchone() == (5,)
-    assert cursor.fetchone() == (6,)
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT object_id FROM {markdown}")
+    assert db_cursor.fetchone() == (5,)
+    assert db_cursor.fetchone() == (6,)
+    assert not db_cursor.fetchone()
 
     resp = await cli.delete("/objects/delete", json = {"object_ids": [5, 6]})
     assert resp.status == 200
-    cursor.execute(f"SELECT object_id FROM {markdown}")
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT object_id FROM {markdown}")
+    assert not db_cursor.fetchone()
 
 
 if __name__ == "__main__":

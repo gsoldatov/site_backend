@@ -28,7 +28,7 @@ async def create_app(config_file = None, config = None):
                                   )
     app.on_cleanup.append(close_engine)
 
-    app["tables"] = get_tables(app["config"])
+    app["tables"] = get_tables(app["config"])[0]
     setup_routes(app)
     setup_cors(app)
 

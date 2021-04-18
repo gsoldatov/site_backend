@@ -5,12 +5,10 @@ import os
 from copy import deepcopy
 
 from util import check_ids
-from fixtures.app import *
 from fixtures.objects import *
 
 
 async def test_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
@@ -56,8 +54,8 @@ async def test_add(cli, db_cursor, config):
     assert resp.status == 400
 
     for table in ["objects", "to_do_lists", "to_do_list_items"]:    # Check that a new object was not created
-        cursor.execute(f"SELECT object_id FROM {schema}.{table}") 
-        assert not cursor.fetchone()
+        db_cursor.execute(f"SELECT object_id FROM {schema}.{table}") 
+        assert not db_cursor.fetchone()
     
     # Add a correct to-do list object
     tdl = get_test_object(7, pop_keys = ["object_id", "created_at", "modified_at"])
@@ -68,13 +66,13 @@ async def test_add(cli, db_cursor, config):
     resp_object = resp_json["object"]
 
     # Check to_do_lists table
-    cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {resp_object['object_id']}")
-    assert cursor.fetchone() == (tdl["object_data"]["sort_type"],)
+    db_cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {resp_object['object_id']}")
+    assert db_cursor.fetchone() == (tdl["object_data"]["sort_type"],)
     
     # Check to_do_list_items table
-    cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {resp_object['object_id']}")
     num_of_items = 0
-    for row in cursor.fetchall():
+    for row in db_cursor.fetchall():
         for item in tdl["object_data"]["items"]:
             if item["item_number"] == row[1]:  # fetchall returns tuple objects, so it's not possible to address columns by key
                 assert tuple(item.values()) == row[1:]  # row[0] contains object_id
@@ -84,7 +82,6 @@ async def test_add(cli, db_cursor, config):
 
 
 async def test_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"]
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
@@ -142,13 +139,13 @@ async def test_update(cli, db_cursor, config):
     assert resp.status == 200
 
     # Check to_do_lists table
-    cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {tdl['object_id']}")
-    assert cursor.fetchone() == (tdl["object_data"]["sort_type"],)
+    db_cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {tdl['object_id']}")
+    assert db_cursor.fetchone() == (tdl["object_data"]["sort_type"],)
     
     # Check to_do_list_items table
-    cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {tdl['object_id']}")
+    db_cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {tdl['object_id']}")
     num_of_items = 0
-    for row in cursor.fetchall():
+    for row in db_cursor.fetchall():
         for item in tdl["object_data"]["items"]:
             if item["item_number"] == row[1]:  # fetchall returns tuple objects, so it's not possible to address columns by key
                 assert tuple(item.values()) == row[1:]  # row[0] contains object_id

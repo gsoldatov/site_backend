@@ -8,16 +8,13 @@ import pytest
 from jsonschema import ValidationError
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-
 from backend_main.config import _validate_and_set_values
-from fixtures.app import base_config
 
 
 setting_groups = ["app", "cors_urls", "db"]
 required_app_settings = ["host", "port"]
 required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
                         "db_init_password", "db_database", "db_schema"]
-
 
 
 def test_setting_groups(base_config):
@@ -32,6 +29,7 @@ def test_setting_groups(base_config):
             config.pop(group)
             with pytest.raises(ValidationError):
                 _validate_and_set_values(config)
+
 
 def test_app_config(base_config):
     # Check lack of required app setting

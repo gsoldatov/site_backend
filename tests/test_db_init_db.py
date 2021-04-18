@@ -8,18 +8,16 @@ import pytest
 import psycopg2
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
-
 from backend_main.db.init_db import (connect, disconnect, create_user, create_db,
-                        create_schema, create_flyway_conf, migrate_db)
-from fixtures.db import *
+                        migrate)
 
 
 def test_connect_disconnect(config):
     try:
         db_config = config["db"]
-        cursor = connect(host = db_config["db_host"], port = db_config["db_port"], 
-                    database = db_config["db_init_database"], user = db_config["db_init_username"], 
-                    password = db_config["db_init_password"])
+        cursor = connect(host=db_config["db_host"], port=db_config["db_port"], 
+                    database=db_config["db_init_database"], user=db_config["db_init_username"], 
+                    password=db_config["db_init_password"])
         cursor.execute("SELECT 1")
         assert cursor.fetchone() == (1,)
 
@@ -39,36 +37,35 @@ def test_create_user(config, init_db_cursor):
 
 def test_create_db(config, init_db_cursor):
     db_config = config["db"]
-    create_db(init_db_cursor, db_config["db_database"], db_config["db_username"])
+    create_db(init_db_cursor, db_config["db_database"], db_config["db_username"], False)
     init_db_cursor.execute(f"SELECT datname FROM pg_database where datname = \'{db_config['db_database']}\'")
     assert init_db_cursor.fetchone() == (db_config["db_database"],)
 
+    init_db_cursor.execute(f"""
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = '{db_config["db_database"]}'
+                    AND pid <> pg_backend_pid();
+    """)
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {db_config["db_database"]}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {db_config["db_username"]}""")
 
-def test_create_schema(config, db_cursor):
-    cursor = db_cursor(apply_migrations = False)
+
+def test_migrate(config_path, config, db_and_user):
     db_config = config["db"]
-    create_schema(db_config["db_host"], db_config["db_port"], db_config["db_database"], db_config["db_username"], db_config["db_password"], db_config["db_schema"])
-    cursor.execute(f"SELECT schema_name FROM information_schema.schemata WHERE schema_name = \'{db_config['db_schema']}\'")
-    assert cursor.fetchone() == (db_config["db_schema"],)
+    migrate(config_file=config_path)
 
+    connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
+                    database=db_config["db_database"], user=db_config["db_username"], 
+                    password=db_config["db_password"])
+    connection.set_session(autocommit=True)
+    cursor = connection.cursor()
 
-def test_create_flyway_conf(config, migration_folder):
-    create_flyway_conf(config["db"], migration_folder)
-    config_file = migration_folder + "/flyway.conf"
-    assert os.path.exists(config_file)
-    
-    with open(config_file) as stream:
-        config = "".join(stream.readlines())
-        for setting in ("flyway.url", "flyway.user", "flyway.password",
-                        "flyway.schemas", "flyway.locations"):
-            assert config.index(setting) >= 0
+    cursor.execute("SELECT tablename FROM pg_tables WHERE tablename = 'alembic_version'")
+    assert cursor.fetchone() == ("alembic_version",)
 
-
-def test_migrate(migration_folder, db_cursor):
-    cursor = db_cursor(apply_migrations = False)
-    migrate_db(migration_folder)
-    cursor.execute("SELECT tablename FROM pg_tables WHERE tablename = 'test'")
-    assert cursor.fetchone() == ("test",)
+    cursor.close()
+    connection.close()
 
 
 if __name__ == "__main__":

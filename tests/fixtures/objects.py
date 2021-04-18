@@ -137,51 +137,46 @@ def insert_objects(objects, db_cursor, config):
     """
     Inserts a list of objects into <db_schema>.objects table.
     """
-    cursor = db_cursor(apply_migrations = True)
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(len(objects))))
     table = config["db"]["db_schema"] + ".objects"
     params = [AsIs(table)]
     for o in objects:
         params.extend(o.values())
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
 
 def insert_links(links, db_cursor, config):
     """
     Inserts a list of links into <db_schema>.links table.
     """
-    cursor = db_cursor(apply_migrations = True)
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(links))))
     table = config["db"]["db_schema"] + ".links"
     params = [AsIs(table)]
     for l in links:
         params.extend(l.values())
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
 
 def insert_markdown(texts, db_cursor, config):
     """
     Inserts a list of markdown texts into <db_schema>.markdown table.
     """
-    cursor = db_cursor(apply_migrations = True)
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(texts))))
     table = config["db"]["db_schema"] + ".markdown"
     params = [AsIs(table)]
     for l in texts:
         params.extend(l.values())
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
 
 def insert_to_do_lists(lists, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
-
     # to_do_lists
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(lists))))
     table = config["db"]["db_schema"] + ".to_do_lists"
     params = [AsIs(table)]
     for l in lists:
         params.extend([l["object_id"], l["object_data"]["sort_type"]])
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
     # to_do_list_items
     num_of_lines = sum((len(t["object_data"]["items"]) for t in lists))
@@ -192,16 +187,15 @@ def insert_to_do_lists(lists, db_cursor, config):
         for i in l["object_data"]["items"]:
             params.append(l["object_id"])
             params.extend(i.values())
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
 
 def delete_objects(object_ids, db_cursor, config):
     """
     Deletes objects with provided IDs (this should also result in a cascade delete of related data from other tables).
     """
-    cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".objects"
     query = "DELETE FROM %s WHERE object_id IN (" + ", ".join(("%s" for _ in range(len(object_ids)))) + ")"
     params = [AsIs(table)]
     params.extend(object_ids)
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)

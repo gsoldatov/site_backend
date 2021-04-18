@@ -37,8 +37,7 @@ tag_list = [{
 def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
     """
     Inserts a list of tags into <db_schema>.tags table.
-    """
-    cursor = db_cursor(apply_migrations = True)    
+    """  
     table = config["db"]["db_schema"] + ".tags"
     params = [AsIs(table)]
     query = ""
@@ -51,16 +50,15 @@ def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
         query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(len(tags))))
         for t in tags:
             params.extend(t.values())
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)
 
 
 def delete_tags(tag_ids, db_cursor, config):
     """
     Deletes tags with provided IDs (this should also result in a cascade delete of related data from other tables).
     """
-    cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
     query = "DELETE FROM %s WHERE tag_id IN (" + ", ".join(("%s" for _ in range(len(tag_ids)))) + ")"
     params = [AsIs(table)]
     params.extend(tag_ids)
-    cursor.execute(query, params)
+    db_cursor.execute(query, params)

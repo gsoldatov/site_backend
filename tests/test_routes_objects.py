@@ -11,14 +11,12 @@ import pytest
 from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures.app import *
 from fixtures.objects import *
 from fixtures.tags import insert_tags, tag_list
 from fixtures.objects_tags import insert_objects_tags
 
 
 async def test_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     schema = config["db"]["db_schema"] 
 
     # Incorrect request body
@@ -59,8 +57,8 @@ async def test_add(cli, db_cursor, config):
     assert link["object_name"] == resp_object["object_name"]
     assert link["object_description"] == resp_object["object_description"]
 
-    cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
-    assert cursor.fetchone() == (link["object_name"],)
+    db_cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
+    assert db_cursor.fetchone() == (link["object_name"],)
 
     # Check if an object with existing name is added
     link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
@@ -120,7 +118,6 @@ async def test_view(cli, db_cursor, config):
 
 
 async def test_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
     links = config["db"]["db_schema"] + ".links"
 
@@ -177,12 +174,11 @@ async def test_update(cli, db_cursor, config):
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json = {"object": obj})
     assert resp.status == 200
-    cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
-    assert cursor.fetchone() == (obj["object_name"],)
+    db_cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
+    assert db_cursor.fetchone() == (obj["object_name"],)
 
 
 async def test_delete(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     objects = config["db"]["db_schema"] + ".objects"
     
     # Insert mock values
@@ -204,15 +200,15 @@ async def test_delete(cli, db_cursor, config):
     # Correct deletes (general data + link)
     resp = await cli.delete("/objects/delete", json = {"object_ids": [1]})
     assert resp.status == 200
-    cursor.execute(f"SELECT object_id FROM {objects}")
-    assert cursor.fetchone() == (2,)
-    assert cursor.fetchone() == (3,)
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT object_id FROM {objects}")
+    assert db_cursor.fetchone() == (2,)
+    assert db_cursor.fetchone() == (3,)
+    assert not db_cursor.fetchone()
 
     resp = await cli.delete("/objects/delete", json = {"object_ids": [2, 3]})
     assert resp.status == 200
-    cursor.execute(f"SELECT object_id FROM {objects}")
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT object_id FROM {objects}")
+    assert not db_cursor.fetchone()
 
 
 async def test_get_page_object_ids(cli, db_cursor, config):

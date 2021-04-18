@@ -10,13 +10,10 @@ from copy import deepcopy
 import pytest
 
 from util import check_ids
-from fixtures.app import *
 from fixtures.tags import *
 
 
 async def test_add(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
-
     # Incorrect request body
     resp = await cli.post("/tags/add", data = "not a JSON document.")
     assert resp.status == 400
@@ -57,8 +54,8 @@ async def test_add(cli, db_cursor, config):
     assert tag["tag_description"] == resp_tag["tag_description"]
 
     schema = config["db"]["db_schema"]
-    cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_id = 1")
-    assert cursor.fetchone() == (tag["tag_name"],)
+    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_id = 1")
+    assert db_cursor.fetchone() == (tag["tag_name"],)
 
     # Add an existing tag_name
     resp = await cli.post("/tags/add", json = {"tag": tag})
@@ -66,7 +63,6 @@ async def test_add(cli, db_cursor, config):
 
 
 async def test_update(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
     
     # Insert mock values
@@ -119,12 +115,11 @@ async def test_update(cli, db_cursor, config):
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json = {"tag": tag})
     assert resp.status == 200
-    cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
-    assert cursor.fetchone() == (tag["tag_name"],)
+    db_cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
+    assert db_cursor.fetchone() == (tag["tag_name"],)
 
 
 async def test_delete(cli, db_cursor, config):
-    cursor = db_cursor(apply_migrations = True)
     table = config["db"]["db_schema"] + ".tags"
 
     # Insert mock values
@@ -144,15 +139,15 @@ async def test_delete(cli, db_cursor, config):
     # Correct deletes
     resp = await cli.delete("/tags/delete", json = {"tag_ids": [1]})
     assert resp.status == 200
-    cursor.execute(f"SELECT tag_id FROM {table}")
-    assert cursor.fetchone() == (2,)
-    assert cursor.fetchone() == (3,)
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT tag_id FROM {table}")
+    assert db_cursor.fetchone() == (2,)
+    assert db_cursor.fetchone() == (3,)
+    assert not db_cursor.fetchone()
 
     resp = await cli.delete("/tags/delete", json = {"tag_ids": [2, 3]})
     assert resp.status == 200
-    cursor.execute(f"SELECT tag_id FROM {table}")
-    assert not cursor.fetchone()
+    db_cursor.execute(f"SELECT tag_id FROM {table}")
+    assert not db_cursor.fetchone()
  
 
 async def test_view(cli, db_cursor, config):
