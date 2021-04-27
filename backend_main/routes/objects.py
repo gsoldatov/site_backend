@@ -17,7 +17,7 @@ from backend_main.db_operaions.objects_links import add_link, update_link, view_
 from backend_main.db_operaions.objects_markdown import add_markdown, update_markdown, view_markdown
 from backend_main.db_operaions.objects_to_do_lists import add_to_do_list, update_to_do_list, view_to_do_list
 
-from backend_main.util.json import row_proxy_to_dict, error_json
+from backend_main.util.json import row_proxy_to_dict, error_json, serialize_datetime_to_str
 
 
 async def add(request):
@@ -166,7 +166,7 @@ async def update_tags(request):
     response_data["tag_updates"] = await update_objects_tags(request, data, check_ids = True)
     
     # Set objects' modified_at time
-    response_data["modified_at"] = str(await set_modified_at(request, data["object_ids"]))
+    response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
 
     return web.json_response(response_data)
 

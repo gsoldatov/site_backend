@@ -3,6 +3,7 @@ Tests for object tagging in /objects/... and /tags/... routes.
 """
 
 import os
+from datetime import datetime, timezone
 
 import pytest
 from psycopg2.extensions import AsIs
@@ -386,8 +387,12 @@ async def test_objects_update_tags(cli, db_cursor, config):
     assert data.get("tag_updates", {}).get("removed_tag_ids") == []
 
     # Check modified_at values for modfied and not modified objects
+    # Response from server format: "2021-04-27T15:29:41.701892+00:00"
+    # Cursor value format - datetime without timezone, converted to str: "2021-04-27 15:43:02.557558"
     db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 1")
-    assert str(db_cursor.fetchone()[0]) == data["modified_at"]
+    db_modified_at_value = db_cursor.fetchone()[0].replace(tzinfo=timezone.utc) # add a UTC timezone for correct comparison
+    assert db_modified_at_value == datetime.strptime(data["modified_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+
     db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 2")
     assert db_cursor.fetchone()[0] == obj_list[1]["modified_at"]
 
