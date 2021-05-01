@@ -10,12 +10,12 @@ from backend_main.schemas.objects import objects_add_schema, objects_update_sche
     objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema
 from backend_main.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data
 
-from backend_main.db_operaions.objects import add_object, update_object, view_objects, view_objects_types, delete_objects,\
+from backend_main.db_operaions.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at
 from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
-from backend_main.db_operaions.objects_links import add_link, update_link, view_link 
+from backend_main.db_operaions.objects_links import add_links, update_links, view_links
 from backend_main.db_operaions.objects_markdown import add_markdown, update_markdown, view_markdown
-from backend_main.db_operaions.objects_to_do_lists import add_to_do_list, update_to_do_list, view_to_do_list
+from backend_main.db_operaions.objects_to_do_lists import add_to_do_lists, update_to_do_lists, view_to_do_lists
 
 from backend_main.util.json import row_proxy_to_dict, error_json, serialize_datetime_to_str
 
@@ -33,12 +33,12 @@ async def add(request):
     object_data = data["object"].pop("object_data")
     
     # Insert general object data
-    record = await add_object(request, data["object"])
+    record = (await add_objects(request, [data["object"]]))[0]
     response_data = row_proxy_to_dict(record)
     object_id = record["object_id"]
 
     # Call handler to add object-specific data
-    specific_data = {"object_id": object_id, "object_data": object_data}
+    specific_data = [{"object_id": object_id, "object_data": object_data}]
     handler = get_func_name("add", data["object"]["object_type"])
     await handler(request, specific_data)
 
@@ -62,11 +62,11 @@ async def update(request):
 
     # Update general object data
     object_id = data["object"]["object_id"]
-    response_data = row_proxy_to_dict(await update_object(request, data["object"]))
+    response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
 
     # Validate object_data property and call handler to update object-specific data
     validate(instance = object_data, schema = get_object_data_update_schema(response_data["object_type"]))
-    specific_data = {"object_id": response_data["object_id"], "object_data": object_data}
+    specific_data = [{"object_id": response_data["object_id"], "object_data": object_data}]
     handler = get_func_name("update", response_data["object_type"])
     await handler(request, specific_data)
     
@@ -172,7 +172,9 @@ async def update_tags(request):
 
 
 def get_func_name(route, object_type):
-    return globals()[f"{route}_{object_type}"]
+    _object_type_func_name_mapping = {"link": "links", "to_do_list": "to_do_lists"}
+    ot = _object_type_func_name_mapping.get(object_type, object_type)
+    return globals()[f"{route}_{ot}"]
 
 
 def get_object_data_update_schema(object_type):

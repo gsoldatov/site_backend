@@ -9,7 +9,7 @@ import pytest
 from psycopg2.extensions import AsIs
 
 from fixtures.tags import insert_tags, tag_list, get_test_tag
-from fixtures.objects import get_test_object, insert_objects, get_object_list
+from fixtures.objects import *
 from fixtures.objects_tags import insert_objects_tags
 
 
@@ -63,7 +63,10 @@ async def test_objects_update(cli, db_cursor, config):
 
     # Insert mock data
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
-    insert_objects([get_test_object(1, pop_keys = ["object_data"])], db_cursor, config)
+    insert_objects([get_test_object(1, pop_keys = ["object_data"])], db_cursor, config)    
+    l_list = [get_test_object_data(1)]
+    insert_links(l_list, db_cursor, config)
+
     insert_objects_tags([1], [1, 2, 3, 4, 5], db_cursor, config)
     
     # Incorrect added_tags and removed_tag_ids

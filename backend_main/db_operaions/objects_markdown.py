@@ -1,13 +1,14 @@
 """
     Markdown-specific database operations.
 """
+from aiohttp import web
 from sqlalchemy import select
 
-from backend_main.util.json import markdown_data_row_proxy_to_dict
+from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 
 
-async def add_markdown(request, obj_id_and_data):
-    object_data = {"object_id": obj_id_and_data["object_id"], "raw_text": obj_id_and_data["object_data"]["raw_text"]}
+async def add_markdown(request, obj_ids_and_data):
+    object_data = [{"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]} for o in obj_ids_and_data]
 
     markdown = request.app["tables"]["markdown"]
     await request["conn"].execute(
@@ -16,15 +17,22 @@ async def add_markdown(request, obj_id_and_data):
     ) 
 
 
-async def update_markdown(request, obj_id_and_data):
-    object_data = {"object_id": obj_id_and_data["object_id"], "raw_text": obj_id_and_data["object_data"]["raw_text"]}
-
+async def update_markdown(request, obj_ids_and_data):
     markdown = request.app["tables"]["markdown"]
-    await request["conn"].execute(
-        markdown.update()
-        .where(markdown.c.object_id == obj_id_and_data["object_id"])
-        .values(object_data)
-    )
+
+    for o in obj_ids_and_data:
+        object_data = {"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]}
+
+        result = await request["conn"].execute(
+            markdown.update()
+            .where(markdown.c.object_id == o["object_id"])
+            .values(object_data)
+            .returning(markdown.c.object_id)
+        )
+
+        # Raise an error if object data does not exist
+        if not await result.fetchone():
+            raise web.HTTPBadRequest(text=error_json(f"object_id '{o['object_id']}' does not belong to a Markdown object."), content_type="application/json")
 
 
 async def view_markdown(request, object_ids):
@@ -37,11 +45,3 @@ async def view_markdown(request, object_ids):
     for row in await records.fetchall():
         result.append(markdown_data_row_proxy_to_dict(row))
     return result
-
-
-async def delete_markdown(request, object_ids):
-    markdown = request.app["tables"]["markdown"]
-    await request["conn"].execute(
-        markdown.delete()
-        .where(markdown.c.object_id.in_(object_ids))
-    )

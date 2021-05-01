@@ -11,10 +11,10 @@ from backend_main.schemas.objects import object_types_enum
 from backend_main.util.json import error_json
 
 
-async def add_object(request, object_attributes):
+async def add_objects(request, objects_attributes):
     """
-        Insert a new row into "objects" table with provided object_attributes.
-        Returns a RowProxy object with the inserted data.
+        Insert new rows into "objects" table with provided `objects_attributes` list of attributes values.
+        Returns a list of RowProxy objects with the inserted data.
     """
     objects = request.app["tables"]["objects"]
 
@@ -22,31 +22,37 @@ async def add_object(request, object_attributes):
         objects.insert()
         .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
                 objects.c.object_name, objects.c.object_description)
-        .values(object_attributes)
+        .values(objects_attributes)
         )
-    return await result.fetchone()
+
+    return list(await result.fetchall())
 
 
-async def update_object(request, object_attributes):
+async def update_objects(request, objects_attributes):
     """
-        Updates the object attributes with provided object_attributes.
-        Returns a RowProxy object with the inserted data.
-        Raises a 404 error if object does not exist.
+        Updates the objects attributes with provided `objects_attributes` list of attribute values.
+        Returns a list of RowProxy objects with the inserted data.
+        Raises a 400 error if at least one object does not exist.
     """
     objects = request.app["tables"]["objects"]
-    object_id = object_attributes["object_id"]
+    records = []
+
+    for oa in objects_attributes:
+        object_id = oa["object_id"]
     
-    result = await request["conn"].execute(
-        objects.update()
-        .where(objects.c.object_id == object_id)
-        .values(object_attributes)
-        .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                objects.c.object_name, objects.c.object_description)
-        )
-    record = await result.fetchone()
-    if not record:
-        raise web.HTTPNotFound(text = error_json(f"object_id '{object_id}' not found."), content_type = "application/json")
-    return record
+        result = await request["conn"].execute(
+            objects.update()
+            .where(objects.c.object_id == object_id)
+            .values(oa)
+            .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
+                    objects.c.object_name, objects.c.object_description)
+            )
+        record = await result.fetchone()
+        if not record:
+            raise web.HTTPBadRequest(text = error_json(f"object_id '{object_id}' does not exist."), content_type = "application/json")
+        records.append(record)
+    
+    return records
 
 
 async def view_objects(request, object_ids):
@@ -61,7 +67,6 @@ async def view_objects(request, object_ids):
         .where(objects.c.object_id.in_(object_ids))
     )
     return await result.fetchall()
-    
 
 
 async def view_objects_types(request, object_ids):

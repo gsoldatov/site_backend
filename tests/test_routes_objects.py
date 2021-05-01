@@ -154,7 +154,7 @@ async def test_update(cli, db_cursor, config):
     obj = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
     obj["object_id"] = 100
     resp = await cli.put("/objects/update", json = {"object": obj})
-    assert resp.status == 404
+    assert resp.status == 400
 
     # Duplicate object_name
     obj = get_test_object(2, pop_keys = ["created_at", "modified_at", "object_type"])

@@ -1,35 +1,39 @@
 """
     Database operations with to-do lists object data.
 """
+from aiohttp import web
 from sqlalchemy import select
 
-from backend_main.util.json import row_proxy_to_dict
+from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.util.validation import validate_to_do_list
 
-
-async def add_to_do_list(request, obj_id_and_data):
-    # Validate & prepare data for queries
-    object_data = obj_id_and_data["object_data"]
-    validate_to_do_list(object_data["items"])
-
+async def add_to_do_lists(request, obj_ids_and_data):
     to_do_lists = request.app["tables"]["to_do_lists"]
     to_do_list_items = request.app["tables"]["to_do_list_items"]
 
-    new_to_do_list = {"object_id": obj_id_and_data["object_id"], "sort_type": object_data["sort_type"]}
-    new_to_do_list_items = [{
-        "object_id": obj_id_and_data["object_id"],
-        "item_number": item["item_number"],
-        "item_state": item["item_state"],
-        "item_text": item["item_text"],
-        "commentary": item["commentary"],
-        "indent": item["indent"],
-        "is_expanded": item["is_expanded"]
-    } for item in object_data["items"]]
+    new_to_do_lists = []
+    new_to_do_list_items = []
+
+    # Validate & prepare data for queries
+    for o in obj_ids_and_data:
+        object_data = o["object_data"]
+        validate_to_do_list(object_data["items"])
+
+        new_to_do_lists.append({"object_id": o["object_id"], "sort_type": object_data["sort_type"]})
+        new_to_do_list_items.extend(({
+            "object_id": o["object_id"],
+            "item_number": item["item_number"],
+            "item_state": item["item_state"],
+            "item_text": item["item_text"],
+            "commentary": item["commentary"],
+            "indent": item["indent"],
+            "is_expanded": item["is_expanded"]
+        } for item in object_data["items"]))
 
     # Insert to-do list general object data
     await request["conn"].execute(
         to_do_lists.insert()
-        .values(new_to_do_list)
+        .values(new_to_do_lists)
     )
 
     # Insert to-do list items
@@ -39,45 +43,51 @@ async def add_to_do_list(request, obj_id_and_data):
     )
 
 
-async def update_to_do_list(request, obj_id_and_data):
-    # Validate & prepare data for queries
-    object_data = obj_id_and_data["object_data"]
-    validate_to_do_list(object_data["items"])
+async def update_to_do_lists(request, obj_ids_and_data):
+    for o in obj_ids_and_data:
+        # Validate & prepare data for queries
+        object_data = o["object_data"]
+        validate_to_do_list(object_data["items"])
 
-    to_do_lists = request.app["tables"]["to_do_lists"]
-    to_do_list_items = request.app["tables"]["to_do_list_items"]
+        to_do_lists = request.app["tables"]["to_do_lists"]
+        to_do_list_items = request.app["tables"]["to_do_list_items"]
 
-    new_to_do_list = {"object_id": obj_id_and_data["object_id"], "sort_type": object_data["sort_type"]}
-    new_to_do_list_items = [{
-        "object_id": obj_id_and_data["object_id"],
-        "item_number": item["item_number"],
-        "item_state": item["item_state"],
-        "item_text": item["item_text"],
-        "commentary": item["commentary"],
-        "indent": item["indent"],
-        "is_expanded": item["is_expanded"]
-    } for item in object_data["items"]]
+        new_to_do_list = {"object_id": o["object_id"], "sort_type": object_data["sort_type"]}
+        new_to_do_list_items = [{
+            "object_id": o["object_id"],
+            "item_number": item["item_number"],
+            "item_state": item["item_state"],
+            "item_text": item["item_text"],
+            "commentary": item["commentary"],
+            "indent": item["indent"],
+            "is_expanded": item["is_expanded"]
+        } for item in object_data["items"]]
 
-    # Update to-do list general object data
-    await request["conn"].execute(
-        to_do_lists.update()
-        .where(to_do_lists.c.object_id == obj_id_and_data["object_id"])
-        .values(new_to_do_list)
-    )
+        # Update to-do list general object data
+        result = await request["conn"].execute(
+            to_do_lists.update()
+            .where(to_do_lists.c.object_id == o["object_id"])
+            .values(new_to_do_list)
+            .returning(to_do_lists.c.object_id)
+        )
 
-    # Update to-do list items
-    await request["conn"].execute(
-        to_do_list_items.delete()
-        .where(to_do_list_items.c.object_id == obj_id_and_data["object_id"])
-    )
+        # Raise an error if object data does not exist
+        if not await result.fetchone():
+            raise web.HTTPBadRequest(text=error_json(f"object_id '{o['object_id']}' does not belong to a to-do list."), content_type="application/json")
 
-    await request["conn"].execute(
-        to_do_list_items.insert()
-        .values(new_to_do_list_items)
-    )
+        # Update to-do list items
+        await request["conn"].execute(
+            to_do_list_items.delete()
+            .where(to_do_list_items.c.object_id == o["object_id"])
+        )
+
+        await request["conn"].execute(
+            to_do_list_items.insert()
+            .values(new_to_do_list_items)
+        )
 
 
-async def view_to_do_list(request, object_ids):
+async def view_to_do_lists(request, object_ids):
     to_do_lists = request.app["tables"]["to_do_lists"]
     to_do_list_items = request.app["tables"]["to_do_list_items"]
 
