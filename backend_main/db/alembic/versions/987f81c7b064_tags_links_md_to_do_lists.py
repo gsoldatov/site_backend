@@ -1,4 +1,4 @@
-""" "Tags, links, md, todos"
+""" "Tags, links, md, to-do lists"
 
 Revision ID: 987f81c7b064
 Revises: 
