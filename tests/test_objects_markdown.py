@@ -3,7 +3,6 @@ Tests for markdown-specific operations.
 """
 import os
 import json
-from copy import deepcopy
 
 import pytest
 from psycopg2.extensions import AsIs
@@ -74,8 +73,8 @@ async def test_update(cli, db_cursor, config):
 
 async def test_view(cli, db_cursor, config):
     # Insert mock values
-    insert_objects(get_object_list(11, 20), db_cursor, config)
-    insert_markdown(markdown_list, db_cursor, config)
+    insert_objects(get_objects_attributes_list(11, 20), db_cursor, config)
+    insert_markdown(markdown_data_list, db_cursor, config)
 
     # Correct request (object_data_ids only, links), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]

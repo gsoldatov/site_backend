@@ -1,9 +1,7 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, object_types_enum
 from backend_main.schemas.object_data import object_type_and_data_options
 from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
-
-object_types_enum = ["link", "markdown", "to_do_list"]
 
 objects_add_schema = {
     "type": "object",
@@ -12,20 +10,17 @@ objects_add_schema = {
     "properties": {
         "object": {
             "type": "object",
-            "required": ["object_type", "object_name", "object_description", "object_data"],
-            "additionalProperties": False,
-            "properties": {
-                "object_type": {
-                    "type": "string"
-                },
-                "object_name": name,
-                "object_description": description,
-                "object_data": {
-                    "type": "object"
-                },
-                "added_tags": added_tags
-            },
-            "oneOf": object_type_and_data_options
+            "oneOf": [{
+                "required": ["object_type", "object_name", "object_description", "object_data"],
+                "additionalProperties": False,
+                "properties": {
+                    "object_type": { "const": object_type },
+                    "object_name": name,
+                    "object_description": description,
+                    "object_data": object_type_and_data_options[object_type],
+                    "added_tags": added_tags
+                } 
+            } for object_type in object_type_and_data_options]
         }
     }
 }

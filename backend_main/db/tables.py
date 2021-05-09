@@ -71,6 +71,16 @@ def get_tables(config):
             Column("commentary", Text),
             Column("indent", Integer, nullable=False),
             Column("is_expanded", Boolean, nullable=False)
+        ),
+
+        "composite": Table(
+            "composite",
+            meta,
+            Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
+            Column("subobject_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
+            Column("row", Integer, nullable=False),
+            Column("column", Integer, nullable=False),
+            Column("selected_tab", Integer, nullable=False)
         )
     } \
     , meta

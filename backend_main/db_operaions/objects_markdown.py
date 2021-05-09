@@ -32,7 +32,7 @@ async def update_markdown(request, obj_ids_and_data):
 
         # Raise an error if object data does not exist
         if not await result.fetchone():
-            raise web.HTTPBadRequest(text=error_json(f"object_id '{o['object_id']}' does not belong to a Markdown object."), content_type="application/json")
+            raise web.HTTPBadRequest(text=error_json(f"Failed to update data of object with object_id '{o['object_id']}': object_id does not belong to a Markdown object."), content_type="application/json")
 
 
 async def view_markdown(request, object_ids):

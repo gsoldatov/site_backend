@@ -8,16 +8,14 @@ from jsonschema import validate
 
 from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
     objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema
-from backend_main.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data
+from backend_main.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operaions.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at
 from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
-from backend_main.db_operaions.objects_links import add_links, update_links, view_links
-from backend_main.db_operaions.objects_markdown import add_markdown, update_markdown, view_markdown
-from backend_main.db_operaions.objects_to_do_lists import add_to_do_lists, update_to_do_lists, view_to_do_lists
 
 from backend_main.util.json import row_proxy_to_dict, error_json, serialize_datetime_to_str
+from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 
 async def add(request):
@@ -27,6 +25,7 @@ async def add(request):
 
     # Get and set attribute values
     current_time = datetime.utcnow()
+    request["current_time"] = current_time
     data["object"]["created_at"] = current_time
     data["object"]["modified_at"] = current_time
     added_tags = data["object"].pop("added_tags", [])
@@ -39,8 +38,10 @@ async def add(request):
 
     # Call handler to add object-specific data
     specific_data = [{"object_id": object_id, "object_data": object_data}]
-    handler = get_func_name("add", data["object"]["object_type"])
-    await handler(request, specific_data)
+    handler = get_object_type_route_handler("add", data["object"]["object_type"])
+    returned_object_data = await handler(request, specific_data)
+    if returned_object_data != None:
+        response_data["object_data"] = returned_object_data
 
     # Set tags of the new object
     response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
@@ -55,7 +56,9 @@ async def update(request):
     validate(instance = data, schema = objects_update_schema)
 
     # Get and set attribute values
-    data["object"]["modified_at"] = datetime.utcnow()
+    current_time = datetime.utcnow()
+    request["current_time"] = current_time
+    data["object"]["modified_at"] = current_time
     added_tags = data["object"].pop("added_tags", [])
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
@@ -67,8 +70,10 @@ async def update(request):
     # Validate object_data property and call handler to update object-specific data
     validate(instance = object_data, schema = get_object_data_update_schema(response_data["object_type"]))
     specific_data = [{"object_id": response_data["object_id"], "object_data": object_data}]
-    handler = get_func_name("update", response_data["object_type"])
-    await handler(request, specific_data)
+    handler = get_object_type_route_handler("update", response_data["object_type"])
+    returned_object_data = await handler(request, specific_data)
+    if returned_object_data != None:
+        response_data["object_data"] = returned_object_data
     
     # Update object's tags
     response_data["tag_updates"] = await update_objects_tags(request, 
@@ -109,7 +114,7 @@ async def view(request):
         
         # Run handlers for each of the object types
         for object_type in object_types:
-            handler = get_func_name("view", object_type)
+            handler = get_object_type_route_handler("view", object_type)
 
             # handler function must return a list of dict objects with "object_id" and "object_data" keys
             object_type_data = await handler(request, object_data_ids)
@@ -169,12 +174,6 @@ async def update_tags(request):
     response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
 
     return web.json_response(response_data)
-
-
-def get_func_name(route, object_type):
-    _object_type_func_name_mapping = {"link": "links", "to_do_list": "to_do_lists"}
-    ot = _object_type_func_name_mapping.get(object_type, object_type)
-    return globals()[f"{route}_{ot}"]
 
 
 def get_object_data_update_schema(object_type):

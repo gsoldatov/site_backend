@@ -69,8 +69,8 @@ async def test_add(cli, db_cursor, config):
 
 async def test_view(cli, db_cursor, config):
     # Insert mock values
-    insert_objects(get_object_list(1, 10), db_cursor, config)
-    insert_links(links_list, db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
+    insert_links(links_data_list, db_cursor, config)
 
     # Incorrect request body
     resp = await cli.post("/objects/view", data = "not a JSON document.")
@@ -213,8 +213,8 @@ async def test_delete(cli, db_cursor, config):
 
 async def test_get_page_object_ids(cli, db_cursor, config):
     pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}
-    obj_list = get_object_list(1, 10)   # links
-    obj_list.extend(get_object_list(11, 18)) # markdown
+    obj_list = get_objects_attributes_list(1, 10)   # links
+    obj_list.extend(get_objects_attributes_list(11, 18)) # markdown
     obj_count = len(obj_list)
     links_count = sum((1 for obj in obj_list if obj["object_type"] == "link"))
     markdown_count = sum((1 for obj in obj_list if obj["object_type"] == "markdown"))
@@ -297,8 +297,11 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     assert data["object_ids"] == [1, 3] # a0, c0
 
     # Correct request - filter by text + check if filter_text case is ignored (links only)
-    insert_objects([get_test_object(100, "aa", pop_keys = ["object_data"]), get_test_object(101, "AaA", pop_keys = ["object_data"])
-        , get_test_object(102, "AAaa", pop_keys = ["object_data"]), get_test_object(103, "aaaAa", pop_keys = ["object_data"])], db_cursor, config)
+    insert_objects([get_test_object(100, object_type="link", object_name="aa", pop_keys=["object_data"]), 
+                    get_test_object(101, object_type="link", object_name="AaA", pop_keys=["object_data"]),
+                    get_test_object(102, object_type="link", object_name="AAaa", pop_keys=["object_data"]), 
+                    get_test_object(103, object_type="link", object_name="aaaAa", pop_keys=["object_data"])]
+    , db_cursor, config)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "aA"
     resp = await cli.post("/objects/get_page_object_ids", json = pi)
@@ -347,7 +350,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
 
 async def test_search(cli, db_cursor, config):
     # Insert mock values
-    obj_list = get_object_list(1, 10)
+    obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor, config)
 
     # Incorrect request

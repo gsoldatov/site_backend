@@ -48,8 +48,9 @@ async def update_objects(request, objects_attributes):
                     objects.c.object_name, objects.c.object_description)
             )
         record = await result.fetchone()
+
         if not record:
-            raise web.HTTPBadRequest(text = error_json(f"object_id '{object_id}' does not exist."), content_type = "application/json")
+            raise web.HTTPBadRequest(text=error_json(f"Failed to update object with object_id '{object_id}': object_id does not exist."), content_type="application/json")
         records.append(record)
     
     return records
@@ -203,7 +204,6 @@ async def search_objects(request, query):
     if len(object_ids) == 0:
         raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
     return object_ids
-
 
 
 async def set_modified_at(request, object_ids, modified_at = None):

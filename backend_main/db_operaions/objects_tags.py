@@ -7,7 +7,7 @@ from jsonschema import validate
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
-from backend_main.util.validation import ObjectsTagsUpdateException
+from backend_main.util.validation import RequestValidationException
 
 
 async def view_objects_tags(request, object_ids = None, tag_ids = None):
@@ -71,7 +71,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         existing_tag_ids = {row["tag_id"] for row in await result.fetchall()}
         non_existing_tag_ids = tag_ids.difference(existing_tag_ids)
         if len(non_existing_tag_ids) > 0:
-            raise ObjectsTagsUpdateException(f"Tag IDs {non_existing_tag_ids} do not exist.")
+            raise RequestValidationException(f"Tag IDs {non_existing_tag_ids} do not exist.")
     
     ## Handle tag_names passed in "added_tags"
     tag_names = [name for name in objects_tags_data["added_tags"] if type(name) == str]
@@ -229,4 +229,4 @@ async def _check_object_ids(request, checked_object_ids):
     existing_object_ids = {row["object_id"] for row in await result.fetchall()}
     non_existing_object_ids = checked_object_ids.difference(existing_object_ids)
     if len(non_existing_object_ids) > 0:
-        raise ObjectsTagsUpdateException(f"Object IDs {non_existing_object_ids} do not exist.")
+        raise RequestValidationException(f"Object IDs {non_existing_object_ids} do not exist.")

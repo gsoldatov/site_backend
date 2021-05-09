@@ -23,9 +23,9 @@ def error_json(e):
     """
     Returns a JSON string with the exception message.
     """
-    msg = e
-    if isinstance(e, Exception):
-        msg = e.message
+    msg = str(e)
+    # if isinstance(e, Exception):
+    #     msg = e.message
     return json.dumps({"_error": msg})
 
 

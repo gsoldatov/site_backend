@@ -196,7 +196,7 @@ async def test_tags_add(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
     
     # Insert mock data
-    insert_objects(get_object_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
     
     # Incorrect tag's objects
     for added_object_ids in ["not a list", 1, {}]:
@@ -227,7 +227,7 @@ async def test_tags_update(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock data
-    insert_objects(get_object_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
     insert_tags([get_test_tag(1)], db_cursor, config)
     insert_objects_tags([1, 2, 3, 4, 5], [1], db_cursor, config)
 
@@ -289,7 +289,7 @@ async def test_tags_view(cli, db_cursor, config):
     # Insert mock data
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
     insert_tags(tags, db_cursor, config)
-    insert_objects(get_object_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags(tags_objects[1], [1], db_cursor, config)
     insert_objects_tags(tags_objects[2], [2], db_cursor, config)
@@ -320,7 +320,7 @@ async def test_tags_delete(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock values
-    insert_objects(get_object_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
     insert_tags(tags, db_cursor, config)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
@@ -341,7 +341,7 @@ async def test_tags_delete(cli, db_cursor, config):
 
 async def test_objects_update_tags(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
-    obj_list = get_object_list(1, 10)
+    obj_list = get_objects_attributes_list(1, 10)
 
     # Insert mock values
     insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
