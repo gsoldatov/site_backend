@@ -104,8 +104,8 @@ async def view(request):
         for row in await view_objects_tags(request, object_ids = object_ids):
             object_attrs[row["object_id"]]["current_tag_ids"].append(row["tag_id"])
         
-        # Convert object_attrs to list
-        object_attrs = [object_attrs[k] for k in object_attrs]
+    # Convert object_attrs to list
+    object_attrs = [object_attrs[k] for k in object_attrs]
     
     # Query object data for provided object_data_ids
     if len(object_data_ids) > 0:
