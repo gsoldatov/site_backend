@@ -404,7 +404,7 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor, con
             assert subobjects[object_id]["object_data"]["items"][0]["item_text"] == result[0][0]
 
 
-# Other update tests are not implemented, since object data is updated exactly the same as it does in add handler
+# Update handler uses the same logic as add handler, so tests are not duplicated
 async def test_update_correct_object_without_subobject_updates(cli, db_cursor, config):
     # Update composite subobject without updating its subobjects data
     schema = config["db"]["db_schema"]
@@ -438,7 +438,47 @@ async def test_update_correct_object_without_subobject_updates(cli, db_cursor, c
     assert sorted([r[0] for r in db_cursor.fetchall()]) == sorted([o["object_id"] for o in composite["object_data"]["subobjects"]])
 
 
-async def test_update_correct_object_without_subobject_updates(cli, db_cursor, config):
+async def test_update_correct_object_with_subobject_full_and_not_full_delete(cli, db_cursor, config):
+    schema = config["db"]["db_schema"]
+
+    # Insert objects
+    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 4 subobjects
+    obj_list.extend([get_test_object(10 + i, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    insert_objects(obj_list, db_cursor, config)
+
+    # Insert composite data (10: 100, 101, 102, 103; 11: 103)
+    composite_data = get_test_object_data(10, object_type="composite")
+    composite_data["object_data"]["subobjects"] = []
+    for i in range(4):
+        add_composite_subobject(composite_data, object_id=100 + i)
+    insert_composite([composite_data], db_cursor, config)
+
+    composite_data = get_test_object_data(11, object_type="composite")
+    composite_data["object_data"]["subobjects"] = []
+    add_composite_subobject(composite_data, object_id=103)
+    insert_composite([composite_data], db_cursor, config)
+
+    # Update first composite object (1 subobject remain & 2 subobjects are marked as fully deleted (one is present in the second object))
+    composite = get_test_object(10, object_type="composite", pop_keys=["object_type", "created_at", "modified_at"])
+    composite["object_data"]["subobjects"] = []
+    add_composite_subobject(composite, object_id=100)
+    composite["object_data"]["deleted_subobjects"] = [{ "object_id": 102, "is_full_delete": True }, { "object_id": 103, "is_full_delete": True }]
+
+    resp = await cli.put("/objects/update", json = {"object": composite})
+    assert resp.status == 200
+
+    # Check database
+    db_cursor.execute(f"SELECT object_id FROM {schema}.objects")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [10, 11, 100, 101, 103]  # 102 and 103 were marked for full deletion; 103 was not deleted, because it's still a subobject of 11;
+                                                                                    # 101 was deleted without full deletion and, thus, remains in the database
+    db_cursor.execute(f"SELECT subobject_id FROM {schema}.composite WHERE object_id = 10")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [100]    # 101 was deleted; 102 and 103 were fully deleted
+
+    db_cursor.execute(f"SELECT subobject_id FROM {schema}.composite WHERE object_id = 11")
+    assert sorted([r[0] for r in db_cursor.fetchall()]) == [103]    # subobjects of 11 are not changed
+
+
+async def test_view_correct_object_without_subobject_updates(cli, db_cursor, config):
     # Insert mock values
     insert_objects(get_objects_attributes_list(1, 40), db_cursor, config)
     insert_composite(composite_data_list, db_cursor, config)

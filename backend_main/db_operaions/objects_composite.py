@@ -50,6 +50,7 @@ async def _add_update_composite(request, obj_ids_and_data):
     await _update_existing_subobjects(request, obj_ids_and_data)
     await _update_composite_object_data(request, obj_ids_and_data, id_mapping)
     await _update_existing_subobjects(request, obj_ids_and_data)
+    await _delete_subobjects(request, obj_ids_and_data)
     return {"id_mapping": id_mapping}
 
 
@@ -187,13 +188,15 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
 
 
 async def _delete_subobjects(request, obj_ids_and_data):
+    composite = request.app["tables"]["composite"]
+
     # Delete marked for full deletion subobjects
     marked_for_full_deletion = set()
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
         for so in data["deleted_subobjects"]:
             if so["is_full_delete"]:
-                marked_for_full_deletion.set(so["object_id"])
+                marked_for_full_deletion.add(so["object_id"])
     
     if len(marked_for_full_deletion) > 0:
         # Check which subobjects marked for full deletion are not referenced by other composite objects
@@ -204,7 +207,7 @@ async def _delete_subobjects(request, obj_ids_and_data):
         )
         
         non_deletable_ids = set((r[0] for r in await result.fetchall()))
-        deletable_ids = marked_for_full_deletion.difference(non_deletable_ids)
+        deletable_ids = list(marked_for_full_deletion.difference(non_deletable_ids))
         
         # Delete subobjects not present in other composite subobjects
         if len(deletable_ids) > 0:
