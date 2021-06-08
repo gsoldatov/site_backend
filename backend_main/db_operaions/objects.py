@@ -2,6 +2,7 @@
     Common operations with objects table.
 """
 from datetime import datetime
+from itertools import chain
 
 from aiohttp import web
 from sqlalchemy import select, func
@@ -87,14 +88,42 @@ async def view_objects_types(request, object_ids):
     return object_types
 
 
-async def delete_objects(request, object_ids):
+async def delete_objects(request, object_ids, delete_subobjects = False):
     """
         Deletes object attributes for provided object_ids.
     """
     objects = request.app["tables"]["objects"]
+    composite = request.app["tables"]["composite"]
+
+    # Get IDs of subobjects which should be deleted (not present in any non-deleted composite objects)
+    subobject_ids_to_delete = []
+    if delete_subobjects:
+        # Get all subobject IDs of deleted subobjects
+        result = await request["conn"].execute(
+            select([composite.c.subobject_id])
+            .distinct()
+            .where(composite.c.object_id.in_(object_ids))
+        )
+        subobjects_of_deleted_objects = set((row["subobject_id"] for row in await result.fetchall()))
+
+        # Get subobject IDs which are present in other composite objects
+        result = await request["conn"].execute(
+            select([composite.c.subobject_id])
+            .distinct()
+            .where(and_(
+                composite.c.subobject_id.in_(subobjects_of_deleted_objects),
+                composite.c.object_id.notin_(object_ids)
+            ))
+        )
+        subobjects_present_in_other_objects = set((row["subobject_id"] for row in await result.fetchall()))
+        
+        # Get subobject IDs which are present only in deleted composite objects
+        subobject_ids_to_delete = subobjects_of_deleted_objects.difference(subobjects_present_in_other_objects)
+
+    # Run delete query & return result
     result = await request["conn"].execute(
         objects.delete()
-        .where(objects.c.object_id.in_(object_ids))
+        .where(objects.c.object_id.in_(chain(object_ids, subobject_ids_to_delete)))
         .returning(objects.c.object_id)
     )
 

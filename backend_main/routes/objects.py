@@ -133,9 +133,10 @@ async def delete(request):
     data = await request.json()
     validate(instance = data, schema = objects_delete_schema)
     object_ids = data["object_ids"]
+    delete_subobjects = data.get("delete_subobjects", False)
 
     # Cascade delete objects and related data
-    await delete_objects(request, object_ids)
+    await delete_objects(request, object_ids, delete_subobjects)
 
     # Send response
     return web.json_response({"object_ids": object_ids})
