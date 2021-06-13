@@ -506,6 +506,36 @@ async def test_view_correct_object_without_subobject_updates(cli, db_cursor, con
         assert attr in data["object_data"][0]["object_data"]["subobjects"][0]
 
 
+async def test_view_composite_objects_without_subobjects(cli, db_cursor, config):
+    # Insert 2 objects (link & composite) + link data
+    obj_list = [get_test_object(10, object_type="link", pop_keys=["object_data"]),
+                get_test_object(11, object_type="composite", pop_keys=["object_data"])]
+    insert_objects(obj_list, db_cursor, config)
+
+    link_data = [get_test_object_data(10, object_type="link")]
+    insert_links(link_data, db_cursor, config)
+
+    # Query data of both objects
+    object_data_ids = [10, 11]
+    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+
+    assert resp.status == 200
+    data = await resp.json()
+    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, composite objects without subobjects")
+    for object_data in data["object_data"]:
+        object_id = object_data["object_id"]
+        assert object_id in object_data_ids
+        object_data_ids.remove(object_id)
+
+        if object_id == 10:
+            assert object_data["object_type"] == "link"
+        else: # 11
+            assert object_data["object_type"] == "composite"
+            assert "subobjects" in object_data["object_data"]
+            assert object_data["object_data"]["subobjects"] == []
+
+
 async def test_delete_composite(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 

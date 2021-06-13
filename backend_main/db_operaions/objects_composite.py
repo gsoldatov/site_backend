@@ -3,6 +3,7 @@
 """
 from aiohttp import web
 from sqlalchemy import select
+from sqlalchemy.sql import and_
 from psycopg2.errors import ForeignKeyViolation
 
 from backend_main.db_operaions.objects import add_objects, update_objects, delete_objects
@@ -21,23 +22,28 @@ async def update_composite(request, obj_ids_and_data):
 
 
 async def view_composite(request, object_ids):
+    objects = request.app["tables"]["objects"]
     composite = request.app["tables"]["composite"]
-    records = await request["conn"].execute(
-        select([composite.c.object_id, composite.c.subobject_id, 
+    records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
+        select([objects.c.object_id, composite.c.subobject_id, 
                 composite.c.row, composite.c.column, composite.c.selected_tab])
-        .where(composite.c.object_id.in_(object_ids))
+        .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
+        .where(and_(
+            objects.c.object_id.in_(object_ids),
+            objects.c.object_type == "composite"))
     )
 
     data = {}
     for row in await records.fetchall():
         object_id = row["object_id"]
         subobjects = data.get(object_id, [])
-        subobjects.append({
-            "object_id": row["subobject_id"],
-            "row": row["row"],
-            "column": row["column"],
-            "selected_tab": row["selected_tab"]
-        })
+        if row["subobject_id"] != None: # don't add lines without subobject data
+            subobjects.append({
+                "object_id": row["subobject_id"],
+                "row": row["row"],
+                "column": row["column"],
+                "selected_tab": row["selected_tab"]
+            })
         data[object_id] = subobjects
     
     return [{ "object_id": object_id, "object_data": { "subobjects": data[object_id] }} for object_id in data]
