@@ -36,7 +36,7 @@ async def test_add_incorrect_top_level_data(cli, db_cursor, config):
 
 async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
     # Missing attributes (no subobject update)
-    for attr in ["object_id", "row", "column", "selected_tab"]:
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded"]:
         composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
         composite["object_data"]["subobjects"][0].pop(attr)
         resp = await cli.post("/objects/add", json = {"object": composite})
@@ -50,8 +50,9 @@ async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
 
     # Incorrect values (no subobject update)
     _inc_val_default = ["str", False, -1, 3.14]
-    incorrect_values = {"object_id": ["str", False, 3.14], "row": _inc_val_default, "column": _inc_val_default, "selected_tab": _inc_val_default}
-    for attr in ["object_id", "row", "column", "selected_tab"]:
+    incorrect_values = {"object_id": ["str", False, 3.14], "row": _inc_val_default, "column": _inc_val_default, 
+        "selected_tab": _inc_val_default, "is_expanded": ["str", 1]}
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded"]:
         for value in incorrect_values[attr]:
             composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
             composite["object_data"]["subobjects"][0][attr] = value
@@ -59,7 +60,7 @@ async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
             assert resp.status == 400
     
     # Missing attributes (with subobject update)
-    for attr in ["object_id", "row", "column", "selected_tab", "object_name", "object_description", "object_type", "object_data"]:
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "object_name", "object_description", "object_type", "object_data"]:
         composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
         composite["object_data"]["subobjects"][0].pop(attr)
         resp = await cli.post("/objects/add", json = {"object": composite})
@@ -67,10 +68,10 @@ async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
     
     # Incorrect values (with subobject update)
     incorrect_values = {
-        "object_id": ["str", False, 3.14], "row": _inc_val_default, "column": _inc_val_default, "selected_tab": _inc_val_default,
+        "object_id": ["str", False, 3.14], "row": _inc_val_default, "column": _inc_val_default, "selected_tab": _inc_val_default, "is_expanded": ["str", 1],
         "object_name": [False, 1, "", "a"*256], "object_description": [False, 1], "object_type": [1, False, "unallowed"], "object_data": [1, False, "unallowed"]
     }
-    for attr in ["object_id", "row", "column", "selected_tab", "object_name", "object_description", "object_type", "object_data"]:
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "object_name", "object_description", "object_type", "object_data"]:
         for value in incorrect_values[attr]:
             composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
             composite["object_data"]["subobjects"][0][attr] = value
@@ -287,11 +288,11 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor, config):
     # Send request with new subobjects
     composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
-    add_composite_subobject(composite, object_id=-1, object_name="new link 1", object_description="new descr 1", object_type="link",
+    add_composite_subobject(composite, object_id=-1, is_expanded=False, object_name="new link 1", object_description="new descr 1", object_type="link",
                             object_data=get_composite_subobject_object_data(1))
-    add_composite_subobject(composite, object_id=-2, object_name="new markdown 1", object_description="new descr 2", object_type="markdown",
+    add_composite_subobject(composite, object_id=-2, is_expanded=False, object_name="new markdown 1", object_description="new descr 2", object_type="markdown",
                             object_data=get_composite_subobject_object_data(4))
-    add_composite_subobject(composite, object_id=-3, object_name="new to-do list 1", object_description="new descr 3", object_type="to_do_list",
+    add_composite_subobject(composite, object_id=-3, is_expanded=False, object_name="new to-do list 1", object_description="new descr 3", object_type="to_do_list",
                             object_data=get_composite_subobject_object_data(7))
     add_composite_subobject(composite, object_id=-4, column=1, object_name="new link 2", object_description="new descr 4", object_type="link",
                             object_data=get_composite_subobject_object_data(2))
@@ -340,7 +341,7 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor, config):
             
     
     # Check composite object's subobjects in the database
-    db_cursor.execute(f"SELECT subobject_id, row, \"column\", selected_tab FROM {schema}.composite WHERE object_id = {resp_json['object']['object_id']}")
+    db_cursor.execute(f"SELECT subobject_id, row, \"column\", selected_tab, is_expanded FROM {schema}.composite WHERE object_id = {resp_json['object']['object_id']}")
     result = db_cursor.fetchall()
     assert len(result) == len(id_mapping)
     for row in result:
@@ -348,6 +349,7 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor, config):
         assert subobjects[subobject_id]["row"] == row[1]
         assert subobjects[subobject_id]["column"] == row[2]
         assert subobjects[subobject_id]["selected_tab"] == row[3]
+        assert subobjects[subobject_id]["is_expanded"] == row[4]
 
 
 async def test_add_correct_object_update_existing_subobjects(cli, db_cursor, config):
@@ -502,7 +504,7 @@ async def test_view_correct_object_without_subobject_updates(cli, db_cursor, con
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, composite object_data_ids only")
     
-    for attr in ["object_id", "row", "column", "selected_tab"]:
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded"]:
         assert attr in data["object_data"][0]["object_data"]["subobjects"][0]
 
 

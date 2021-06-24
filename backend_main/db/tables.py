@@ -80,7 +80,8 @@ def get_tables(config):
             Column("subobject_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
             Column("row", Integer, nullable=False),
             Column("column", Integer, nullable=False),
-            Column("selected_tab", Integer, nullable=False)
+            Column("selected_tab", Integer, nullable=False),
+            Column("is_expanded", Boolean, nullable=False)
         )
     } \
     , meta

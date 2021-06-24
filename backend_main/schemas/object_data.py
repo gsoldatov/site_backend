@@ -89,20 +89,21 @@ object_type_and_data_options_without_composite = {
 composite_subobject_item_options = [{ 
     # Existing subobjects without data update
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab"],
+    "required": ["object_id", "row", "column", "selected_tab", "is_expanded"],
     "additionalProperties": False,
     "properties": {
         "object_id": object_id,
         "row": { "type": "integer", "minimum": 0 },
         "column": { "type": "integer", "minimum": 0 },
-        "selected_tab": { "type": "integer", "minimum": 0 }
+        "selected_tab": { "type": "integer", "minimum": 0 },
+        "is_expanded": { "type": "boolean" }
     }
 }]
 
 composite_subobject_item_options.extend([{
     # New subobjects and existing subobjects with data updates (custom object_data for each object_type, composite subobjects are not allowed)
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab", 
+    "required": ["object_id", "row", "column", "selected_tab", "is_expanded",
                     "object_name", "object_description", "object_type", "object_data"],
     "additionalProperties": False,    # added_tags and removed_tag_ids are optional (but currently not added => False)
     "properties": {                            
@@ -110,6 +111,7 @@ composite_subobject_item_options.extend([{
         "row": { "type": "integer", "minimum": 0 },
         "column": { "type": "integer", "minimum": 0 },
         "selected_tab": { "type": "integer", "minimum": 0 },
+        "is_expanded": { "type": "boolean" },
         
         "object_name": name,
         "object_description": description,

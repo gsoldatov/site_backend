@@ -98,7 +98,7 @@ def _get_to_do_list_object_data(id):
     }
 
 def _get_composite_object_data(id, composite_object_with_subobject_data = False):
-    so = {"object_id": 1, "row": 0, "column": 0, "selected_tab": 0}
+    so = {"object_id": 1, "row": 0, "column": 0, "selected_tab": 0, "is_expanded": True}
     if composite_object_with_subobject_data:
         so["object_name"] = "subobject name"
         so["object_description"] = "subobject description"
@@ -142,7 +142,7 @@ def get_objects_attributes_list(min_id, max_id):
 
 
 # Composite subobject modification
-def add_composite_subobject(composite, object_id, row = None, column = None, selected_tab = 0, \
+def add_composite_subobject(composite, object_id, row = None, column = None, selected_tab = 0, is_expanded = True, \
     object_name = None, object_description = None, object_type = None, addedTags = None, removed_tag_ids = None, object_data = None):
     """
     Accepts a `composite` (dict respesenting `object_data` property of a composite object)
@@ -168,7 +168,7 @@ def add_composite_subobject(composite, object_id, row = None, column = None, sel
                 row = so["row"] + 1
 
     # Add new subobject
-    new_so = {"object_id": object_id, "row": row, "column": column, "selected_tab": selected_tab}
+    new_so = {"object_id": object_id, "row": row, "column": column, "selected_tab": selected_tab, "is_expanded": is_expanded}
     if object_name != None:
         new_so["object_name"] = object_name
         new_so["object_description"] = object_description
@@ -303,7 +303,7 @@ def insert_composite(composite, db_cursor, config):
     {"object_id": ..., "object_data: {...}}
     """
     num_of_lines = sum((len(c["object_data"]["subobjects"]) for c in composite))
-    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
+    query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
     table = config["db"]["db_schema"] + ".composite"
     params = [AsIs(table)]
     for c in composite:
