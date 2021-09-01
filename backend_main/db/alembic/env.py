@@ -9,6 +9,8 @@ import os, sys
 root_folder = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir))
 sys.path.insert(0, root_folder)
 
+import urllib.parse
+
 from backend_main.config import get_config
 from backend_main.db.tables import get_tables
 
@@ -24,8 +26,14 @@ if type(app_config_path) == str:
 app_config = get_config(app_config_path)
 
 # Set connection string
-config.set_main_option("sqlalchemy.url", f"postgresql://{app_config['db']['db_username']}:{app_config['db']['db_password']}"
+# Init user is used, because superuser privilege is required to run "CREATE EXTENSION COMMAND"
+username = urllib.parse.quote(app_config['db']['db_init_username']).replace("%", "%%") # encode special characters in username and password;
+password = urllib.parse.quote(app_config['db']['db_init_password']).replace("%", "%%") # after quoting, '%' chars must also be escaped to avoid "ValueError: invalid interpolation syntax" exception
+
+config.set_main_option("sqlalchemy.url", f"postgresql://{username}:{password}"
                         f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database']}")
+# config.set_main_option("sqlalchemy.url", f"postgresql://{app_config['db']['db_username']}:{app_config['db']['db_password']}"
+#                         f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database']}")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
