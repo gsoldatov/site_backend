@@ -18,6 +18,26 @@ config_schema = {
             }
         },
 
+        "default_user": {
+            "type": "object",
+            "required": ["login", "password", "username"],
+            "properties": {
+                "login": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 72
+                },
+                "username": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+
         "cors_urls": {
             "type": "array",
             "minItems": 1,
