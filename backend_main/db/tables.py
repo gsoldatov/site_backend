@@ -41,7 +41,7 @@ def get_tables(config):
             "sessions",
             meta,
             Column("user_id", Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False),
-            Column("access_token", Text, nullable=False),
+            Column("access_token", Text, primary_key=True, nullable=False),
             Column("expiration_time", DateTime, nullable=False)
         ),
 

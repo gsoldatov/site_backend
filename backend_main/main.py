@@ -7,6 +7,7 @@ from aiopg.sa import create_engine
 
 from backend_main.config import get_config
 from backend_main.cors import setup_cors
+from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
 from backend_main.middlewares.connection import connection_middleware
 from backend_main.db.cleanup import close_engine
@@ -16,7 +17,7 @@ from backend_main.routes import setup_routes
 
 
 async def create_app(config_file = None, config = None):
-    app = web.Application(middlewares = [error_middleware, connection_middleware])
+    app = web.Application(middlewares = [error_middleware, connection_middleware, auth_middleware])
     app["config"] = config if config and type(config) == dict else get_config(config_file)
 
     db_config = app["config"]["db"]

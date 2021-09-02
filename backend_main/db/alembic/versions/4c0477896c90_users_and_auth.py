@@ -54,6 +54,7 @@ def upgrade():
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('access_token', sa.Text(), nullable=False),
     sa.Column('expiration_time', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('access_token', name=op.f('pk_sessions')),
     sa.ForeignKeyConstraint(['user_id'], ['public.users.user_id'], name=op.f('fk_sessions_user_id_users'), ondelete='CASCADE'),
     schema='public'
     )
@@ -72,9 +73,9 @@ def upgrade():
     op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
 
     # Add default user
-    login = app_config["default_user"]["login"]
-    password = app_config["default_user"]["password"]
-    username = app_config["default_user"]["username"]
+    login = app_config["app"]["default_user"]["login"]
+    password = app_config["app"]["default_user"]["password"]
+    username = app_config["app"]["default_user"]["username"]
     op.execute(f"""INSERT INTO users (login, password, username, user_level, can_edit_objects)
                    VALUES ('{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE)""")
 

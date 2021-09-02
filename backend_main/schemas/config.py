@@ -4,36 +4,43 @@ config_schema = {
     "properties": {
         "app": {
             "type": "object",
-            "required": ["host", "port"],
+            "required": ["host", "port", "default_user", "token_lifetime"],
             "properties":{
                 "host": {
                     "type": "string",
                     "minLength": 1
                 },
+
                 "port": {
                     "type": "integer",
                     "minimum": 1025,
                     "maximum": 65535
-                }
-            }
-        },
+                },
 
-        "default_user": {
-            "type": "object",
-            "required": ["login", "password", "username"],
-            "properties": {
-                "login": {
-                    "type": "string",
-                    "minLength": 1
+                "default_user": {
+                    "type": "object",
+                    "required": ["login", "password", "username"],
+                    "properties": {
+                        "login": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "password": {
+                            "type": "string",
+                            "minLength": 8,
+                            "maxLength": 72
+                        },
+                        "username": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    }
                 },
-                "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 72
-                },
-                "username": {
-                    "type": "string",
-                    "minLength": 1
+
+                "token_lifetime": {
+                    "type": "integer",
+                    "minimum": 1 * 1 * 1 * 60,      # 1 min
+                    "maximum": 90 * 24 * 60 * 60    # 90 days
                 }
             }
         },
