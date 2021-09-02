@@ -11,13 +11,9 @@ sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.config import _validate_and_set_values
 
 
-setting_groups = ["app", "cors_urls", "db"]
-required_app_settings = ["host", "port"]
-required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
-                        "db_init_password", "db_database", "db_schema"]
-
-
 def test_setting_groups(base_config):
+    setting_groups = ["app", "cors_urls", "db"]
+
      # Check empty config
     with pytest.raises(ValueError):
         _validate_and_set_values({})
@@ -32,6 +28,9 @@ def test_setting_groups(base_config):
 
 
 def test_app_config(base_config):
+    required_app_settings = ["host", "port", "default_user", "token_lifetime"]
+    required_default_user_settings = ["login", "password", "username"]
+
     # Check lack of required app setting
     for setting in required_app_settings:
         config = deepcopy(base_config)
@@ -39,10 +38,27 @@ def test_app_config(base_config):
         with pytest.raises(ValidationError):
             _validate_and_set_values(config)
     
-    # Check incorrect setting values
-    for setting in required_app_settings:
+    # Check incorrect app setting values
+    for k, v in [("host", ""), ("host", 0), ("port", 1024), ("port", 65536), ("default_user", 0), ("default_user", ""), 
+        ("token_lifetime", 0), ("token_lifetime", 90 * 24 * 60 * 60 + 1), ("token_lifetime", "str")]:
         config = deepcopy(base_config)
-        config["app"][setting] = "" if setting == "host" else 0
+        config["app"][k] = v
+        with pytest.raises(ValidationError):
+            _validate_and_set_values(config)
+            
+    
+    # Check lack of required default user settings
+    for setting in required_default_user_settings:
+        config = deepcopy(base_config)
+        config["app"]["default_user"].pop(setting)
+        with pytest.raises(ValidationError):
+            _validate_and_set_values(config)
+        
+    # Check incorrect default user setting values
+    for k, v in [("login", ""), ("login", 0), ("password", "a" * 7), ("password", "a" * 73), ("password", 0),
+        ("username", ""), ("username", 0)]:
+        config = deepcopy(base_config)
+        config["app"]["default_user"][k] = v
         with pytest.raises(ValidationError):
             _validate_and_set_values(config)
 
@@ -57,6 +73,9 @@ def test_cors_urls(base_config):
 
 
 def test_db_config(base_config):
+    required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
+                        "db_init_password", "db_database", "db_schema"]
+    
     # Check lack of required db settings
     for setting in required_db_settings:
         config = deepcopy(base_config)
@@ -65,12 +84,18 @@ def test_db_config(base_config):
             _validate_and_set_values(config)
     
     # Check incorrect setting values
-    for setting in required_db_settings:
+    for k, v in [("db_host", ""), ("db_host", 0), ("db_port", 1024), ("db_port", 65536), ("db_port", "str"),
+        ("db_init_database", ""), ("db_init_database", 0), ("db_init_username", ""), ("db_init_username", 0), 
+        ("db_init_password", ""), ("db_init_password", 0), ("db_database", ""), ("db_database", 0),
+        ("db_schema", ""), ("db_schema", 0)]:
         config = deepcopy(base_config)
-        config["db"][setting] = "" if setting != "db_port" else 0
+        print(f"k = '{k}', v = '{v}'")
+        config["db"][k] = v
         with pytest.raises(ValidationError):
             _validate_and_set_values(config)
-    
+
+
+def test_correct_configs(base_config):
     # Check correct settings without db_username and db_password
     config = deepcopy(base_config)
     config["db"].pop("db_username")

@@ -28,7 +28,7 @@ config_schema = {
                         "password": {
                             "type": "string",
                             "minLength": 8,
-                            "maxLength": 72
+                            "maxLength": 72     # Postgres password hashing algorithm limitation
                         },
                         "username": {
                             "type": "string",

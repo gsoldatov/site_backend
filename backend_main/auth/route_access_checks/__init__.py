@@ -11,5 +11,5 @@ def check_route_access(request):
     # TODO replace with route-specific checks
     if request.user_info.is_anonymous:
         raise web.HTTPUnauthorized(text=error_json("Login required."), content_type="application/json")
-    if request.user_info.user_level !== "admin":
+    if request.user_info.user_level != "admin":
         raise web.HTTPForbidden(text=error_json("Access forbidden."), content_type="application/json")

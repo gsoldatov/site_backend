@@ -23,14 +23,15 @@ async def get_user_info(request):
     # Update expiration time and return user information corresponding to the updated token 
     # in a single query using CTE.
     # NOTE: values updated in CTE can't be fetched with select in the same query.
-    update_cte = sessions.update()
+    update_cte = (
+        sessions.update()
         .where(and_(
             sessions.c.access_token == request.user_info.access_token,
             sessions.c.expiration_time > current_time
         ))
         .values({"expiration_time": expiration_time})
         .returning(sessions.c.user_id.label("user_id"))
-    .cte("update_cte")
+    ).cte("update_cte")
 
     result = await request["conn"].execute(
         select([users.c.user_id, users.c.user_level, users.c.can_edit_objects])

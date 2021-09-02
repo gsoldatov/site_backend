@@ -17,7 +17,13 @@ def base_config():
     return {
         "app": {
             "host": "localhost",
-            "port": 55555
+            "port": 55555,
+            "default_user": {
+                "login": "admin",
+                "password": "password",
+                "username": "Admin"
+            },
+            "token_lifetime": 10 * 60
         },
         "cors_urls": ["http://localhost:8080"],
         "db": {
