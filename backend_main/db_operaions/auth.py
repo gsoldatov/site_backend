@@ -1,11 +1,15 @@
+"""
+Auth-related database operations.
+"""
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.sql import and_ 
 
+from backend_main.auth.route_access_checks.util import debounce_anonymous
 
 
-async def get_user_info(request):
+async def prolong_token_and_get_user_info(request):
     """
     Gets user information for the provided access token and adds it to `request.user_info`.
     Raises 401 if token is not found or expired.
@@ -46,3 +50,104 @@ async def get_user_info(request):
     
     ui = request.user_info
     ui.user_id, ui.user_level, ui.can_edit_objects = info
+
+
+async def check_if_user_owns_objects(request, object_ids):
+    """
+    Checks is `request.user_info.user_id` is admin or user owning all objects with the provided `object_ids`.
+    Raises 401 for anonymous.
+    Raises 403 if user is not admin and does not own at least one object. Non-existing objects do not trigger the exception.
+    """
+    if len(object_ids) == 0:
+        return
+    
+    debounce_anonymous(request)
+
+    if request.user_info.user_level != "admin":
+        objects = request.app["tables"]["objects"]
+        user_id = request.user_info.user_id
+
+        result = await request["conn"].execute(
+            select([objects.c.object_id, objects.c.owner_id])
+            .where(objects.c.object_id.in_(object_ids))
+        )
+
+        not_owned_objects = [o[0] for o in await result.fetchall() if o[1] != user_id]
+
+        if len(not_owned_objects) > 0:
+            raise web.HTTPForbidden(text=error_json(f"User ID '{user_id} does not own object_ids {not_owned_objects}."), content_type="application/json")
+
+
+async def check_if_user_owns_all_tagged_objects(request, tag_ids):
+    """
+    Checks is `request.user_info.user_id` is admin or user owning all objects tagged with the provided `tag_ids`.
+    Raises 401 for anonymous.
+    Raises 403 if user is not admin and does not own at least one object.
+    """
+    if len(tag_ids) == 0:
+        return
+
+    debounce_anonymous(request)
+
+    if request.user_info.user_level != "admin":
+        objects = request.app["tables"]["objects"]
+        objects_tags = request.app["tables"]["objects_tags"]
+        user_id = request.user_info.user_id
+
+        result = await request["conn"].execute(
+            select([objects.c.object_id, objects.c.owner_id])
+            .where(objects.c.object_id.in_(
+                select([objects_tags.c.object_id])
+                .distinct()
+                .where(objects_tags.c.tag_id.in_(tag_ids))
+            ))
+        )
+
+        not_owned_objects = [o[0] for o in await result.fetchall() if o[1] != user_id]
+
+        if len(not_owned_objects) > 0:
+            raise web.HTTPForbidden(text=error_json(f"User ID '{user_id} does not own object_ids {not_owned_objects}."), content_type="application/json")
+
+
+def get_objects_auth_filter_clause(request):
+    """
+    Returns an SQLAlchemy where clause, which:
+    - filters non-published objects is user is anonymous;
+    - filters non-published objects of other users if user has 'user' level;
+    - 1 = 1 for 'admin' user level.
+    """
+    objects = request.app["tables"]["objects"]
+    ui = request.user_info
+
+    if ui.is_anonymous:
+        return objects.c.is_published == True
+    
+    if ui.user_level == "admin":
+        return literal("1 = 1")
+    
+    # user
+    return or_(objects.c.owner_id == ui.user_id, objects.c.is_published == True)
+
+
+def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
+    """
+    Returns and SQL Alchemy where clause with a subquery for a specified `object_data_table`, which:
+    - filters objects with provided `object_ids` if user has `admin` level;
+    - filters objects with provided `object_ids`, which are non-published and belong to other users if user has 'user' level;
+    - filters objects with provided `object_ids`, which are non-published if user is anonymous.
+    """
+    objects = request.app["tables"]["objects"]
+    ui = request.user_info
+
+    if ui.user_level == "admin":
+        return object_id_column.in_(object_ids)
+    
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+
+    return object_id_column.in_(
+        select([objects.c.object_id])
+        .where(and(
+            auth_filter_clause,
+            objects.c.object_id.in_(object_ids)
+        ))
+    )

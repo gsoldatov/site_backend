@@ -2,10 +2,15 @@
     Common operations with objects_tags table.
 """
 from datetime import datetime
+from itertools import chain
 
+from aiohttp import web
 from jsonschema import validate
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
+
+from backend_main.db_operations.auth import check_if_user_owns_objects, \
+    check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause
 
 from backend_main.util.validation import RequestValidationException
 
@@ -19,13 +24,25 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
     if object_ids is not None and tag_ids is not None:
         raise TypeError("view_objects_tags can't receive object and tag IDs at the same time.")
 
+    objects = request.app["tables"]["objects"]
     objects_tags = request.app["tables"]["objects_tags"]
+
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
 
     result = await request["conn"].execute(
         select([objects_tags.c.object_id, objects_tags.c.tag_id])
+        .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply auth filters
+        .where(auth_filter_clause)
         .where(objects_tags.c.object_id.in_(object_ids) if object_ids is not None else 1 == 1)
         .where(objects_tags.c.tag_id.in_(tag_ids) if tag_ids is not None else 1 == 1)
     )
+
+    # result = await request["conn"].execute(
+    #     select([objects_tags.c.object_id, objects_tags.c.tag_id])
+    #     .where(objects_tags.c.object_id.in_(object_ids) if object_ids is not None else 1 == 1)
+    #     .where(objects_tags.c.tag_id.in_(tag_ids) if tag_ids is not None else 1 == 1)
+    # )
 
     return await result.fetchall()
 
@@ -37,17 +54,27 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
     If check_ids == True, IDs in object_ids list will be checked for existance in the database.
     IDs from added_tags are always checked.
     This functionality is not implemented for tag update case (when tag_ids is provided instead of object_ids).
+
+    NOTE: tag update case is also not properly tested for correctness of auth checks & updates made.
     """
     # Update tags for objects
     if "object_ids" in objects_tags_data:
+        # Check if user can update objects
+        await check_if_user_owns_objects(request, objects_tags_data["object_ids"])
+
+        # Check if objects exist
         if check_ids:
             await _check_object_ids(request, objects_tags_data["object_ids"])
         tag_updates = {}
+
         tag_updates["removed_tag_ids"] = await _remove_tags_for_objects(request, objects_tags_data)
         tag_updates["added_tag_ids"] = await _add_tags_for_objects(request, objects_tags_data)
         return tag_updates
     # Update objects for tags
     else:
+        # Check if user can update objects
+        await auth_check_for_tags_update(request, objects_tags_data)
+
         object_updates = {}
         object_updates["removed_object_ids"] = await _remove_objects_for_tags(request, objects_tags_data)
         object_updates["added_object_ids"] = await _add_objects_for_tags(request, objects_tags_data)
@@ -99,6 +126,10 @@ async def _add_tags_for_objects(request, objects_tags_data):
     
     # Create new tags for non-existing tag_names
     if len(tag_names) > 0:
+        # Raise 403 if not an admin and trying to add new tags
+        if request.user_info.user_level != "admin":
+            raise web.HTTPForbidden(text=error_json("Users are not allowed to add new tags."), content_type="application/json")
+
         current_time = datetime.utcnow()
 
         result = await request["conn"].execute(
@@ -230,3 +261,15 @@ async def _check_object_ids(request, checked_object_ids):
     non_existing_object_ids = checked_object_ids.difference(existing_object_ids)
     if len(non_existing_object_ids) > 0:
         raise RequestValidationException(f"Object IDs {non_existing_object_ids} do not exist.")
+
+
+async def auth_check_for_tags_update(request, objects_tags_data):
+    """
+    Checks if user owns the updated objects. 
+    If `remove_all_objects` flag is passed in `objects_tags_data`, checks all objects to be untagged.
+    """
+    if "remove_all_objects" in objects_tags_data:
+        await check_if_user_owns_all_tagged_objects(request, objects_tags_tags["tag_ids"])
+    else:
+        object_ids = chain(objects_tags_data.get("added_object_ids", []), objects_tags_data.get("removed_object_ids", []))
+        await check_if_user_owns_objects(request, object_ids)

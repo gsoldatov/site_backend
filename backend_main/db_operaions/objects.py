@@ -1,12 +1,15 @@
 """
-    Common operations with objects table.
+Common operations with objects table.
 """
 from datetime import datetime
 from itertools import chain
 
 from aiohttp import web
-from sqlalchemy import select, func
-from sqlalchemy.sql import and_
+from sqlalchemy import select, func, literal
+from sqlalchemy.sql import and_, or_
+
+from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
+from backend_main.db_operaions.users import check_if_user_id_exists
 
 from backend_main.schemas.objects import object_types_enum
 from backend_main.util.json import error_json
@@ -14,15 +17,19 @@ from backend_main.util.json import error_json
 
 async def add_objects(request, objects_attributes):
     """
-        Insert new rows into "objects" table with provided `objects_attributes` list of attributes values.
-        Returns a list of RowProxy objects with the inserted data.
+    Insert new rows into "objects" table with provided `objects_attributes` list of attributes values.
+    Returns a list of RowProxy objects with the inserted data.
     """
+    # Check if assigned object owners exist
+    user_ids = list({o["user_id"] for o in objects_attributes})
+    await check_if_user_ids_exists(request, user_ids)
+
     objects = request.app["tables"]["objects"]
 
     result = await request["conn"].execute(
         objects.insert()
         .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                objects.c.object_name, objects.c.object_description)
+                objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.owner_id)
         .values(objects_attributes)
         )
 
@@ -31,10 +38,18 @@ async def add_objects(request, objects_attributes):
 
 async def update_objects(request, objects_attributes):
     """
-        Updates the objects attributes with provided `objects_attributes` list of attribute values.
-        Returns a list of RowProxy objects with the inserted data.
-        Raises a 400 error if at least one object does not exist.
+    Updates the objects attributes with provided `objects_attributes` list of attribute values.
+    Returns a list of RowProxy objects with the inserted data.
+    Raises a 400 error if at least one object does not exist.
     """
+    # Check if assigned object owners exist
+    user_ids = list({o["user_id"] for o in objects_attributes})
+    await check_if_user_ids_exists(request, user_ids)
+
+    # Check if user can update objects
+    object_ids = [o["object_id"] for o in objects_attributes]
+    await check_if_user_owns_objects(request, object_ids)
+
     objects = request.app["tables"]["objects"]
     records = []
 
@@ -46,7 +61,7 @@ async def update_objects(request, objects_attributes):
             .where(objects.c.object_id == object_id)
             .values(oa)
             .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                    objects.c.object_name, objects.c.object_description)
+                    objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.owner_id)
             )
         record = await result.fetchone()
 
@@ -59,27 +74,40 @@ async def update_objects(request, objects_attributes):
 
 async def view_objects(request, object_ids):
     """
-        Returns a collection of RowProxy objects with object attributes for provided object_ids.
+    Returns a collection of RowProxy objects with object attributes for provided object_ids.
     """
     objects = request.app["tables"]["objects"]
 
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+
     result = await request["conn"].execute(
         select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
-            objects.c.modified_at, objects.c.object_name, objects.c.object_description])
-        .where(objects.c.object_id.in_(object_ids))
+            objects.c.modified_at, objects.c.object_name, objects.c.object_description,
+            objects.c.is_published, objects.c.owner_id])
+        .where(and_(
+            auth_filter_clause,
+            objects.c.object_id.in_(object_ids)
+        ))
     )
     return await result.fetchall()
 
 
 async def view_objects_types(request, object_ids):
     """
-        Returns a list of object types for the provided object_ids.
+    Returns a list of object types for the provided object_ids.
     """
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+
     objects = request.app["tables"]["objects"]
     result = await request["conn"].execute(
         select([objects.c.object_type])
         .distinct()
-        .where(objects.c.object_id.in_(object_ids))
+        .where(and_(
+            auth_filter_clause,
+            objects.c.object_id.in_(object_ids)
+        ))
     )
 
     object_types = []
@@ -90,7 +118,7 @@ async def view_objects_types(request, object_ids):
 
 async def delete_objects(request, object_ids, delete_subobjects = False):
     """
-        Deletes object attributes for provided object_ids.
+    Deletes object attributes for provided object_ids.
     """
     objects = request.app["tables"]["objects"]
     composite = request.app["tables"]["composite"]
@@ -119,6 +147,9 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
         
         # Get subobject IDs which are present only in deleted composite objects
         subobject_ids_to_delete = subobjects_of_deleted_objects.difference(subobjects_present_in_other_objects)
+    
+    # Check if user can delete objects and subobjects
+    await check_if_user_owns_objects(request, chain(object_ids, subobject_ids_to_delete))
 
     # Run delete query & return result
     result = await request["conn"].execute(
@@ -133,13 +164,16 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
 
 async def get_page_object_ids_data(request, pagination_info):
     """
-        Get IDs of objects which correspond to the provided pagination_info
-        and a total number of matching objects.
-        Returns a dict object to be used as a response body.
-        Raises a 404 error if no objects match the pagination info.
+    Get IDs of objects which correspond to the provided pagination_info
+    and a total number of matching objects.
+    Returns a dict object to be used as a response body.
+    Raises a 404 error if no objects match the pagination info.
     """
     objects = request.app["tables"]["objects"]
     objects_tags = request.app["tables"]["objects_tags"]
+
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
 
     # Set query params
     order_by = objects.c.modified_at if pagination_info["order_by"] == "modified_at" else objects.c.object_name
@@ -165,6 +199,7 @@ async def get_page_object_ids_data(request, pagination_info):
     # return where clause statements for a select statement `s`.
     def with_where_clause(s):
         return s\
+            .where(auth_filter_clause)
             .where(func.lower(objects.c.object_name).like(filter_text))\
             .where(objects.c.object_type.in_(object_types))\
             .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
@@ -209,18 +244,22 @@ async def get_page_object_ids_data(request, pagination_info):
 
 async def search_objects(request, query):
     """
-        Returns a list of object IDs matching the provided query.
-        Raises a 404 error if no objects match the query.
+    Returns a list of object IDs matching the provided query.
+    Raises a 404 error if no objects match the query.
     """
     objects = request.app["tables"]["objects"]
     query_text = "%" + query["query_text"] + "%"
     maximum_values = query.get("maximum_values", 10)
     existing_ids = query.get("existing_ids", [])
 
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+
     # Get object ids
     result = await request["conn"].execute(
         select([objects.c.object_id])
         .where(and_(
+            auth_filter_clause,
             func.lower(objects.c.object_name).like(func.lower(query_text)),
             objects.c.object_id.notin_(existing_ids)
         ))
@@ -237,8 +276,8 @@ async def search_objects(request, query):
 
 async def set_modified_at(request, object_ids, modified_at = None):
     """
-        Updates modified_at attribute for the objects with provided object_ids.
-        Returns the updated modified_at value.
+    Updates modified_at attribute for the objects with provided object_ids.
+    Returns the updated modified_at value.
     """
     # Check parameter values
     object_ids = object_ids or None

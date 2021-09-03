@@ -89,7 +89,6 @@ def test_db_config(base_config):
         ("db_init_password", ""), ("db_init_password", 0), ("db_database", ""), ("db_database", 0),
         ("db_schema", ""), ("db_schema", 0)]:
         config = deepcopy(base_config)
-        print(f"k = '{k}', v = '{v}'")
         config["db"][k] = v
         with pytest.raises(ValidationError):
             _validate_and_set_values(config)

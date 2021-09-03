@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
+
 from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 
 
@@ -37,9 +39,14 @@ async def update_markdown(request, obj_ids_and_data):
 
 async def view_markdown(request, object_ids):
     markdown = request.app["tables"]["markdown"]
+
+    # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
+    auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, markdown.c.object_id)
+
     records = await request["conn"].execute(
         select([markdown.c.object_id, markdown.c.raw_text])
-        .where(markdown.c.object_id.in_(object_ids))
+        .where(auth_filter_clause)
+        # .where(markdown.c.object_id.in_(object_ids))
     )
     result = []
     for row in await records.fetchall():

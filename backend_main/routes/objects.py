@@ -30,6 +30,12 @@ async def add(request):
     data["object"]["modified_at"] = current_time
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
+
+    # Set owner_id of the object
+    if request.user_info.user_level != "admin" and data["object"].get("owner_id") is not None:
+        raise web.HTTPForbidden(text=error_json("Users can't set object owner."), content_type="application/json")
+    if data["object"].get("owner_id") is None:
+        data["object"]["owner_id"] = request.user_info.user_id
     
     # Insert general object data
     record = (await add_objects(request, [data["object"]]))[0]
@@ -62,6 +68,12 @@ async def update(request):
     added_tags = data["object"].pop("added_tags", [])
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
+
+    # Set owner_id of the object
+    if request.user_info.user_level != "admin" and data["object"].get("owner_id") is not None:
+        raise web.HTTPForbidden(text=error_json("Users can't set object owner."), content_type="application/json")
+    if data["object"].get("owner_id") is None:
+        data["object"]["owner_id"] = request.user_info.user_id
 
     # Update general object data
     object_id = data["object"]["object_id"]

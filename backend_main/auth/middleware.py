@@ -3,7 +3,7 @@
 """
 from aiohttp import web
 
-from backend_main.db_operaions.auth import get_user_info
+from backend_main.db_operaions.auth import prolong_token_and_get_user_info
 from backend_main.auth.route_access_checks import check_route_access
 from backend_main.util.json import error_json
 
@@ -17,7 +17,7 @@ async def auth_middleware(request, handler):
     parse_access_token(request)
 
     # Validate and prolong token, add user info to the request
-    await get_user_info(request)
+    await prolong_token_and_get_user_info(request)
 
     # Check route access
     check_route_access(request)
@@ -51,3 +51,7 @@ class UserInfo:
     def __init__(self, access_token = None):
         self.access_token = access_token
         self.is_anonymous = access_token is None
+        
+        self.user_id = None
+        self.user_level = None
+        self.can_edit_objects = None

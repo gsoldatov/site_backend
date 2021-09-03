@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import and_
 from psycopg2.errors import ForeignKeyViolation
 
+from backend_main.db_operations.auth import get_objects_auth_filter_clause
 from backend_main.db_operaions.objects import add_objects, update_objects, delete_objects
 
 from backend_main.util.json import error_json
@@ -24,11 +25,16 @@ async def update_composite(request, obj_ids_and_data):
 async def view_composite(request, object_ids):
     objects = request.app["tables"]["objects"]
     composite = request.app["tables"]["composite"]
+
+    # Objects filter for non 'admin` user level
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+
     records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
         select([objects.c.object_id, composite.c.subobject_id, 
                 composite.c.row, composite.c.column, composite.c.selected_tab, composite.c.is_expanded])
         .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
         .where(and_(
+            auth_filter_clause,
             objects.c.object_id.in_(object_ids),
             objects.c.object_type == "composite"))
     )

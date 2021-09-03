@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
+
 from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.util.validation import validate_to_do_list
 
@@ -91,10 +93,15 @@ async def view_to_do_lists(request, object_ids):
     to_do_lists = request.app["tables"]["to_do_lists"]
     to_do_list_items = request.app["tables"]["to_do_list_items"]
 
+    # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
+    auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, to_do_lists.c.object_id)
+    auth_filter_clause_items = get_objects_data_auth_filter_clause(request, object_ids, to_do_list_items.c.object_id)
+
     # Query to-do list general object data
     records = await request["conn"].execute(
         select([to_do_lists.c.object_id, to_do_lists.c.sort_type])
-        .where(to_do_lists.c.object_id.in_(object_ids))
+        .where(auth_filter_clause)
+        # .where(to_do_lists.c.object_id.in_(object_ids))
     )
 
     data = {}
@@ -105,7 +112,8 @@ async def view_to_do_lists(request, object_ids):
     items = await request["conn"].execute(
         select([to_do_list_items.c.object_id, to_do_list_items.c.item_number, to_do_list_items.c.item_state, to_do_list_items.c.item_text,
                 to_do_list_items.c.commentary, to_do_list_items.c.indent, to_do_list_items.c.is_expanded])
-        .where(to_do_list_items.c.object_id.in_(object_ids))
+        .where(auth_filter_clause_items)
+        # .where(to_do_list_items.c.object_id.in_(object_ids))
         .order_by(to_do_list_items.c.object_id, to_do_list_items.c.item_number)
     )
     

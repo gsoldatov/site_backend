@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
+
 from backend_main.util.json import link_data_row_proxy_to_dict, error_json
 from backend_main.util.validation import validate_link
 
@@ -40,9 +42,14 @@ async def update_links(request, obj_ids_and_data):
 
 async def view_links(request, object_ids):
     links = request.app["tables"]["links"]
+
+    # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
+    auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, links.c.object_id)
+
     records = await request["conn"].execute(
         select([links.c.object_id, links.c.link])
-        .where(links.c.object_id.in_(object_ids))
+        .where(auth_filter_clause)
+        # .where(links.c.object_id.in_(object_ids))
     )
     result = []
     for row in await records.fetchall():

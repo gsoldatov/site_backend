@@ -1,15 +1,16 @@
 """
 Auth middleware checks for specific app routes.
 """
-from aiohttp import web
+from backend_main.auth.route_access_checks.objects import objects_checks
+from backend_main.auth.route_access_checks.tags import tags_checks
 
 
 def check_route_access(request):
     """
     Checks if the requested route can be accessed with provided access token.
     """
-    # TODO replace with route-specific checks
-    if request.user_info.is_anonymous:
-        raise web.HTTPUnauthorized(text=error_json("Login required."), content_type="application/json")
-    if request.user_info.user_level != "admin":
-        raise web.HTTPForbidden(text=error_json("Access forbidden."), content_type="application/json")
+    for checks in (objects_checks, tags_checks):
+        check = objects_checks.get(request.path)
+        if check:
+            check(request)
+            break
