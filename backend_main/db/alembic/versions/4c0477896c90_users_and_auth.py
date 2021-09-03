@@ -92,15 +92,8 @@ def upgrade():
 
     op.create_foreign_key(op.f('fk_objects_owner_id_users'), 'objects', 'users', ['owner_id'], ['user_id'], source_schema='public', referent_schema='public', onupdate='CASCADE', ondelete='SET NULL')
 
-    # Tags table
-    op.add_column('tags', sa.Column('is_published', sa.Boolean()))
-    op.execute('UPDATE tags SET is_published=TRUE')
-    op.alter_column('tags', 'is_published', nullable=False)
-
 
 def downgrade():
-    op.drop_column('tags', 'is_published')
-
     op.drop_constraint(op.f('fk_objects_owner_id_users'), 'objects', schema='public', type_='foreignkey')
     op.drop_column('objects', 'owner_id')
     op.drop_column('objects', 'is_published')

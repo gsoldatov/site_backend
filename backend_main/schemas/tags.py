@@ -1,4 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, is_published
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
 from backend_main.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
@@ -14,7 +14,6 @@ tags_add_schema = {
             "properties": {
                 "tag_name": name,
                 "tag_description": description,
-                "is_published": is_published,
                 "added_object_ids": added_object_ids
             }
         }
@@ -34,7 +33,6 @@ tags_update_schema = {
                 "tag_id": object_id,
                 "tag_name": name,
                 "tag_description": description,
-                "is_published": is_published,
                 "added_object_ids": added_object_ids,
                 "removed_object_ids": removed_object_ids
             }

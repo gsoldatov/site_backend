@@ -62,9 +62,7 @@ def get_tables(config):
             Column("modified_at", DateTime, nullable=False),
             Column("tag_name", String(255), nullable=False),
             Column("tag_description", Text),
-            Index("ix_tag_name_lowered", text("lower(tag_name)"), unique=True),
-
-            Column("is_published", Boolean, nullable=False)
+            Index("ix_tag_name_lowered", text("lower(tag_name)"), unique=True)
         ),
     
         "objects": Table(
