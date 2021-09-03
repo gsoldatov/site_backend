@@ -69,11 +69,11 @@ async def update(request):
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
 
-    # Set owner_id of the object
+    # Check if user can set owner_id of the object
     if request.user_info.user_level != "admin" and data["object"].get("owner_id") is not None:
         raise web.HTTPForbidden(text=error_json("Users can't set object owner."), content_type="application/json")
-    if data["object"].get("owner_id") is None:
-        data["object"]["owner_id"] = request.user_info.user_id
+    # if data["object"].get("owner_id") is None:    # don't update owner if it was not passed
+    #     data["object"]["owner_id"] = request.user_info.user_id
 
     # Update general object data
     object_id = data["object"]["object_id"]
