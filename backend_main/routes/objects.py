@@ -31,11 +31,11 @@ async def add(request):
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
 
-    # Set owner_id of the object
-    if request.user_info.user_level != "admin" and data["object"].get("owner_id") is not None:
-        raise web.HTTPForbidden(text=error_json("Users can't set object owner."), content_type="application/json")
-    if data["object"].get("owner_id") is None:
+    # Set owner_id of the object if it's missing
+    data["object"]["owner_id_is_autoset"] = False
+    if "owner_id" not in data["object"]:
         data["object"]["owner_id"] = request.user_info.user_id
+        data["object"]["owner_id_is_autoset"] = True
     
     # Insert general object data
     record = (await add_objects(request, [data["object"]]))[0]
@@ -70,10 +70,10 @@ async def update(request):
     object_data = data["object"].pop("object_data")
 
     # Check if user can set owner_id of the object
-    if request.user_info.user_level != "admin" and data["object"].get("owner_id") is not None:
-        raise web.HTTPForbidden(text=error_json("Users can't set object owner."), content_type="application/json")
-    # if data["object"].get("owner_id") is None:    # don't update owner if it was not passed
-    #     data["object"]["owner_id"] = request.user_info.user_id
+    data["object"]["owner_id_is_autoset"] = False
+    if "owner_id" not in data["object"]:
+        data["object"]["owner_id"] = request.user_info.user_id
+        data["object"]["owner_id_is_autoset"] = True
 
     # Update general object data
     object_id = data["object"]["object_id"]

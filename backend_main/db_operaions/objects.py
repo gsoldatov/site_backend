@@ -8,6 +8,7 @@ from aiohttp import web
 from sqlalchemy import select, func, literal
 from sqlalchemy.sql import and_, or_
 
+from backend_main.auth.route_access_checks.util import check_if_non_admin_changes_object_owner
 from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
 from backend_main.db_operaions.users import check_if_user_id_exists
 
@@ -20,10 +21,16 @@ async def add_objects(request, objects_attributes):
     Insert new rows into "objects" table with provided `objects_attributes` list of attributes values.
     Returns a list of RowProxy objects with the inserted data.
     """
+    # Forbid to change object owner for non-admins
+    check_if_non_admin_changes_object_owner(request, objects_attributes)
+    for o in objects_attributes:
+        o.pop(owner_id_is_autoset, None)
+    
     # Check if assigned object owners exist
     user_ids = list({o["user_id"] for o in objects_attributes})
     await check_if_user_ids_exists(request, user_ids)
 
+    # Insert and return new objects
     objects = request.app["tables"]["objects"]
 
     result = await request["conn"].execute(
@@ -42,6 +49,11 @@ async def update_objects(request, objects_attributes):
     Returns a list of RowProxy objects with the inserted data.
     Raises a 400 error if at least one object does not exist.
     """
+    # Forbid to change object owner for non-admins
+    check_if_non_admin_changes_object_owner(request, objects_attributes)
+    for o in objects_attributes:
+        o.pop(owner_id_is_autoset, None)
+    
     # Check if assigned object owners exist
     user_ids = list({o["user_id"] for o in objects_attributes})
     await check_if_user_ids_exists(request, user_ids)
