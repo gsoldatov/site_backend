@@ -30,11 +30,24 @@ def debounce_authenticated_non_admins_who_cant_edit(request):
         raise web.HTTPForbidden(text=error_json("Operation forbidden."), content_type="application/json")
 
 
-def check_if_non_admin_changes_object_owner(request, objects_attributes):
+def debounce_non_admin_changing_object_owner(request, objects_attributes, is_objects_update = False):
     """
     Raises 403 if 'user_level' != admin and one or more of the added/updated objects in `objects_attributes` have their `owner_id` explicitly set.
+    
+    If `is_objects_update` is true, allows `owner_id` to be not present in the objects' attributes.
+    Otherwise, `owner_id_is_autoset` and `owner_id` attributes are expected in every object.
     """
     if request.user_info.user_level != "admin":
-        for o in objects_attributes:
-            if not o["owner_id_is_autoset"] and o["owner_id"] != request.user_info.user_id:
-                raise web.HTTPForbidden(text=error_json("Users are not allowed to change object owners."), content_type="application/json")
+        # Check for `add_objects` operation
+        if not is_objects_update:
+            for o in objects_attributes:
+                if not o["owner_id_is_autoset"] and o["owner_id"] != request.user_info.user_id:
+                    raise web.HTTPForbidden(text=error_json("Users are not allowed to change object owners."), content_type="application/json")
+        
+        # Check for `update_objects` operation
+        else:
+            for o in objects_attributes:
+                if "owner_id" in o:
+                    if o["owner_id"] != request.user_info.user_id:
+                        raise web.HTTPForbidden(text=error_json("Users are not allowed to change object owners."), content_type="application/json")
+

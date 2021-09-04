@@ -69,12 +69,6 @@ async def update(request):
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
 
-    # Check if user can set owner_id of the object
-    data["object"]["owner_id_is_autoset"] = False
-    if "owner_id" not in data["object"]:
-        data["object"]["owner_id"] = request.user_info.user_id
-        data["object"]["owner_id_is_autoset"] = True
-
     # Update general object data
     object_id = data["object"]["object_id"]
     response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])

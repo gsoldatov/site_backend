@@ -146,7 +146,7 @@ def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
 
     return object_id_column.in_(
         select([objects.c.object_id])
-        .where(and(
+        .where(and_(
             auth_filter_clause,
             objects.c.object_id.in_(object_ids)
         ))

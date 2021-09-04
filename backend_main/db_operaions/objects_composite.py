@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import and_
 from psycopg2.errors import ForeignKeyViolation
 
-from backend_main.db_operations.auth import get_objects_auth_filter_clause
+from backend_main.db_operaions.auth import get_objects_auth_filter_clause
 from backend_main.db_operaions.objects import add_objects, update_objects, delete_objects
 
 from backend_main.util.json import error_json
@@ -62,7 +62,7 @@ async def _add_update_composite(request, obj_ids_and_data):
     id_mapping = await _add_new_subobjects(request, obj_ids_and_data)
     await _update_existing_subobjects(request, obj_ids_and_data)
     await _update_composite_object_data(request, obj_ids_and_data, id_mapping)
-    await _update_existing_subobjects(request, obj_ids_and_data)
+    await _update_existing_subobjects(request, obj_ids_and_data)    # TODO check if double update is needed
     await _delete_subobjects(request, obj_ids_and_data)
     return {"id_mapping": id_mapping}
 
@@ -82,13 +82,18 @@ async def _add_new_subobjects(request, obj_ids_and_data):
         data = obj_id_and_data["object_data"]
         for so in data["subobjects"]:
             subobject_id, object_type = so.get("object_id"), so.get("object_type")
+
             if subobject_id < 0:
                 new_objects_attributes[subobject_id] = {
                     "object_type": object_type,
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
+                    "is_published": so["is_published"],
                     "created_at": request["current_time"],
-                    "modified_at": request["current_time"]
+                    "modified_at": request["current_time"],
+
+                    "owner_id": so.get("owner_id", request.user_info.user_id),
+                    "owner_id_is_autoset": not ("owner_id" in so)
                 }
 
                 new_data[object_type][subobject_id] = so["object_data"]
@@ -134,13 +139,18 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
         for so in data["subobjects"]:
-            if so["object_id"] > 0 and so.get("object_type"):   # object_type is present only when subobject must be updated
-                updated_objects_attributes.append({
+            if so["object_id"] > 0 and "object_type" in so:   # object_type is present only when subobject must be updated
+                updated_so_attributes = {
                     "object_id": so["object_id"],
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
+                    "is_published": so["is_published"],
                     "modified_at": request["current_time"]
-                })
+                }
+                if "owner_id" in updated_so_attributes:     # don't update owner_id if it was not explicitly passed
+                    updated_so_attributes["owner_id"] = so["owner_id"]
+                
+                updated_objects_attributes.append(updated_so_attributes)
 
                 updated_ids_and_data[so["object_type"]].append({
                     "object_id": so["object_id"],

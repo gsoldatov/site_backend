@@ -33,5 +33,5 @@ description = {
 object_types_enum = ["link", "markdown", "to_do_list", "composite"]
 
 is_published = {
-    "type": Boolean
+    "type": "boolean"
 }

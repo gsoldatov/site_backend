@@ -8,8 +8,8 @@ from aiohttp import web
 from sqlalchemy import select, func, literal
 from sqlalchemy.sql import and_, or_
 
-from backend_main.auth.route_access_checks.util import check_if_non_admin_changes_object_owner
-from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
+from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
+from backend_main.db_operaions.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
 from backend_main.db_operaions.users import check_if_user_id_exists
 
 from backend_main.schemas.objects import object_types_enum
@@ -22,7 +22,7 @@ async def add_objects(request, objects_attributes):
     Returns a list of RowProxy objects with the inserted data.
     """
     # Forbid to change object owner for non-admins
-    check_if_non_admin_changes_object_owner(request, objects_attributes)
+    debounce_non_admin_changing_object_owner(request, objects_attributes)
     for o in objects_attributes:
         o.pop(owner_id_is_autoset, None)
     
@@ -50,7 +50,7 @@ async def update_objects(request, objects_attributes):
     Raises a 400 error if at least one object does not exist.
     """
     # Forbid to change object owner for non-admins
-    check_if_non_admin_changes_object_owner(request, objects_attributes)
+    debounce_non_admin_changing_object_owner(request, objects_attributes, is_objects_update=True)
     for o in objects_attributes:
         o.pop(owner_id_is_autoset, None)
     
@@ -211,7 +211,7 @@ async def get_page_object_ids_data(request, pagination_info):
     # return where clause statements for a select statement `s`.
     def with_where_clause(s):
         return s\
-            .where(auth_filter_clause)
+            .where(auth_filter_clause)\
             .where(func.lower(objects.c.object_name).like(filter_text))\
             .where(objects.c.object_type.in_(object_types))\
             .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)

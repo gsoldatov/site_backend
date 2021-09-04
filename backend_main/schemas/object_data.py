@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from backend_main.schemas.common import object_id, name, description
+from backend_main.schemas.common import object_id, name, description, is_published
 # from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
 
@@ -104,7 +104,7 @@ composite_subobject_item_options.extend([{
     # New subobjects and existing subobjects with data updates (custom object_data for each object_type, composite subobjects are not allowed)
     "type": "object",
     "required": ["object_id", "row", "column", "selected_tab", "is_expanded",
-                    "object_name", "object_description", "object_type", "object_data"],
+                    "object_name", "object_description", "object_type", "is_published", "object_data"],
     "additionalProperties": False,    # added_tags and removed_tag_ids are optional (but currently not added => False)
     "properties": {                            
         "object_id": { "type": "integer" }, # can be negative for new objects
@@ -118,6 +118,8 @@ composite_subobject_item_options.extend([{
         "object_type": {
             "const": object_type
         },
+        "is_published": is_published,
+        "owner_id": object_id,
         
         "object_data": object_type_and_data_options_without_composite[object_type]
         # "added_tags": added_tags,
