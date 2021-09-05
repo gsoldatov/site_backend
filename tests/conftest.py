@@ -130,7 +130,7 @@ def db_cursor(config, migrate):
     cursor.connection.close()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def insert_data(config, db_cursor):
     """Insert mock data into the migrated database."""
     for table in ("settings", "users", "sessions"):

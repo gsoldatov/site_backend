@@ -3,6 +3,7 @@ Auth-related database operations.
 """
 from datetime import datetime, timedelta
 
+from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.sql import and_ 
 
@@ -49,7 +50,7 @@ async def prolong_token_and_get_user_info(request):
         raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
     
     ui = request.user_info
-    ui.user_id, ui.user_level, ui.can_edit_objects = info
+    ui.user_id, ui.user_level, ui.can_edit_objects = info[0], info[1], info[2]
 
 
 async def check_if_user_owns_objects(request, object_ids):
