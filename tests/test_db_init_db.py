@@ -9,7 +9,7 @@ import psycopg2
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.db.init_db import (connect, disconnect, create_user, create_db,
-                        migrate)
+                        migrate_as_superuser, migrate)
 
 
 def test_connect_disconnect(config):
@@ -53,6 +53,7 @@ def test_create_db(config, init_db_cursor):
 
 def test_migrate(config_path, config, db_and_user):
     db_config = config["db"]
+    migrate_as_superuser(db_config)
     migrate(config_file=config_path)
 
     connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
