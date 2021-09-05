@@ -2,7 +2,6 @@
     Common operations with objects_tags table.
 """
 from datetime import datetime
-from itertools import chain
 
 from aiohttp import web
 from jsonschema import validate
@@ -271,5 +270,6 @@ async def auth_check_for_tags_update(request, objects_tags_data):
     if "remove_all_objects" in objects_tags_data:
         await check_if_user_owns_all_tagged_objects(request, objects_tags_tags["tag_ids"])
     else:
-        object_ids = chain(objects_tags_data.get("added_object_ids", []), objects_tags_data.get("removed_object_ids", []))
+        object_ids = [o for o in objects_tags_data["added_object_ids"]] if "added_object_ids" in objects_tags_data else []
+        object_ids.extend(objects_tags_data.get("removed_object_ids", []))
         await check_if_user_owns_objects(request, object_ids)

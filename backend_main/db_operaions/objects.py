@@ -2,7 +2,6 @@
 Common operations with objects table.
 """
 from datetime import datetime
-from itertools import chain
 
 from aiohttp import web
 from sqlalchemy import select, func, literal
@@ -161,12 +160,14 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
         subobject_ids_to_delete = subobjects_of_deleted_objects.difference(subobjects_present_in_other_objects)
     
     # Check if user can delete objects and subobjects
-    await check_if_user_owns_objects(request, chain(object_ids, subobject_ids_to_delete))
+    object_and_subobject_ids = [o for o in object_ids]
+    object_and_subobject_ids.extend(subobject_ids_to_delete)
+    await check_if_user_owns_objects(request, object_and_subobject_ids)
 
     # Run delete query & return result
     result = await request["conn"].execute(
         objects.delete()
-        .where(objects.c.object_id.in_(chain(object_ids, subobject_ids_to_delete)))
+        .where(objects.c.object_id.in_(object_and_subobject_ids))
         .returning(objects.c.object_id)
     )
 
