@@ -51,7 +51,7 @@ def main():
             
             # Create user and database
             if db_config["create_user_required"]:
-                create_user(cursor=cursor, user=db_config["db_username"], password=db_config["db_password"])
+                create_user(cursor=cursor, user=db_config["db_username"], password=db_config["db_password"], force=args.force)
             create_db(cursor=cursor, db_name=db_config["db_database"], db_owner=db_config["db_username"], force=args.force)
             
             # Apply migrations

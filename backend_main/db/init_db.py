@@ -23,19 +23,28 @@ def disconnect(cursor):
             cursor.connection.close()
 
 
-def create_user(cursor, user, password):
-    cursor.execute(f"""DO $$
-                        BEGIN
-                            CREATE ROLE {user} PASSWORD '{password}' LOGIN;
-                            EXCEPTION WHEN DUPLICATE_OBJECT THEN
-                            RAISE NOTICE 'Not creating {user} role, because it already exists.';
-                        END
-                    $$;""")
-    if len(cursor.connection.notices) > 0:
-        while cursor.connection.notices:
-            print(cursor.connection.notices.pop().rstrip())
-    else:
-        print("Finished creating the user.")
+
+
+def create_user(cursor, user, password, force):
+    # Check if user exists
+    cursor.execute(f"SELECT usesysid FROM pg_catalog.pg_user WHERE usename = '{user}'")
+    user_id = cursor.fetchone()
+    if user_id is not None:
+        if not force:
+            raise DBExistsException(f"Username '{user}'' already exists, exiting without recreating and applying migrations.")
+        else:
+            # Close user connections and delete him if --force flag is provided
+            cursor.execute(f"""
+                            SELECT pg_terminate_backend(pg_stat_activity.pid)
+                            FROM pg_stat_activity
+                            WHERE pg_stat_activity.usesysid = '{user_id}';
+            """)
+            cursor.execute(f"DROP ROLE {user};")
+            print(f"Deleted existing user '{user}'.")
+    
+    # Create user
+    cursor.execute(f"CREATE ROLE {user} PASSWORD '{password}' LOGIN;")
+    print("Finished creating the user.")
 
 
 def create_db(cursor, db_name, db_owner, force):
