@@ -9,6 +9,7 @@ import alembic.config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
+from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
 
 
 @pytest.fixture
@@ -90,8 +91,14 @@ def db_and_user(config, init_db_cursor):
 
 
 @pytest.fixture(scope="module")
-def migrate(config_path, db_and_user):
-    """ Run migrations against the test database. """
+def migrate_as_superuser(config, db_and_user):
+    """ Migration commands which require superuser privilege. """
+    migrate_as_superuser_(config["db"])
+
+
+@pytest.fixture(scope="module")
+def migrate(config_path, db_and_user, migrate_as_superuser):
+    """ Run migrations against the test database. `migrate_as_superuser` is called first. """
     # Set current working directory
     cwd = os.getcwd()
     alembic_dir = os.path.join(os.path.dirname(__file__), "..", "backend_main/db")

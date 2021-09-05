@@ -69,9 +69,6 @@ def upgrade():
     # Add app setting
     op.execute("INSERT INTO settings VALUES ('registration_allowed', 'FALSE')")
 
-    # Create extension for password storing
-    op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
-
     # Add default user
     login = app_config["app"]["default_user"]["login"]
     password = app_config["app"]["default_user"]["password"]

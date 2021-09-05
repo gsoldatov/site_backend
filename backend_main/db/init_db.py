@@ -1,11 +1,13 @@
 import os
 
 import psycopg2
+from psycopg2.extensions import cursor as CursorClass
 import alembic.config
 
 
 class DBExistsException(Exception):
     pass
+
 
 def connect(host, port, database, user, password):
     connection = psycopg2.connect(host=host, port=port, database=database, \
@@ -75,6 +77,18 @@ def revision(message = ""):
     print("Finished database revision.")
 
 
+def migrate_as_superuser(db_config):
+    """Additional migration commands which require as superuser privilege."""
+    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
+                                user=db_config["db_init_username"], password=db_config["db_init_password"])
+    try:
+        # Create extension for password storing
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+    finally:
+        if type(cursor) == CursorClass:
+            disconnect(cursor)
+
+
 def migrate(config_file = None):
     # Set current working directory
     cwd = os.getcwd()
@@ -89,18 +103,3 @@ def migrate(config_file = None):
     # Restore current working directory
     os.chdir(cwd)
     print("Finished migrating the database.")
-
-
-# def migrate():
-#     # Set current working directory
-#     cwd = os.getcwd()
-#     alembic_dir = os.path.dirname(__file__)
-#     os.chdir(alembic_dir)
-
-#     # Run revision command
-#     alembic_args = ["upgrade", "head"]
-#     alembic.config.main(argv=alembic_args)
-
-#     # Restore current working directory
-#     os.chdir(cwd)
-#     print("Finished migrating the database.")

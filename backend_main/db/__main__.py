@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     from backend_main.config import get_config
     from backend_main.db.init_db import DBExistsException, connect, disconnect, \
-        create_user, create_db, revision, migrate
+        create_user, create_db, revision, migrate_as_superuser, migrate
 
 
 def parse_args():
@@ -36,6 +36,8 @@ def main():
     
     # Migrations only
     elif args.migrate:
+        db_config  = get_config()["db"]
+        migrate_as_superuser(db_config)
         migrate()
     
     # Create user and database, then apply migrations
@@ -53,6 +55,7 @@ def main():
             create_db(cursor=cursor, db_name=db_config["db_database"], db_owner=db_config["db_username"], force=args.force)
             
             # Apply migrations
+            migrate_as_superuser(db_config)
             migrate()
         except DBExistsException as e:
             print(e)
