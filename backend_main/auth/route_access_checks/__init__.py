@@ -10,7 +10,7 @@ def check_route_access(request):
     Checks if the requested route can be accessed with provided access token.
     """
     for checks in (objects_checks, tags_checks):
-        check = objects_checks.get(request.path)
+        check = checks.get(request.path)
         if check:
             check(request)
             break
