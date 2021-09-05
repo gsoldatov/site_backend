@@ -1,5 +1,6 @@
 import os, sys
 import json
+from datetime import datetime, timedelta
 import psycopg2
 
 import pytest
@@ -10,6 +11,8 @@ import alembic.config
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
+
+from tests.fixtures.users import admin_token
 
 
 @pytest.fixture
@@ -127,8 +130,31 @@ def db_cursor(config, migrate):
     cursor.connection.close()
 
 
+@pytest.fixture(scope="module")
+def insert_data(config, db_cursor):
+    """Insert mock data into the migrated database."""
+    for table in ("settings", "users", "sessions"):
+        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
+    
+    # Insert app settings
+    db_cursor.execute("INSERT INTO settings VALUES ('registration_allowed', 'FALSE')")
+
+    # Insert admin
+    login = config["app"]["default_user"]["login"]
+    password = config["app"]["default_user"]["password"]
+    username = config["app"]["default_user"]["username"]
+    db_cursor.execute(f"""INSERT INTO users (login, password, username, user_level, can_edit_objects)
+                   VALUES ('{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE)""")
+    
+    # Insert admin session
+    db_cursor.execute("SELECT user_id FROM users")
+    default_user_id = db_cursor.fetchone()[0]
+    expiration_time = datetime.utcnow() + timedelta(minutes=15)
+    db_cursor.execute(f"""INSERT INTO sessions (user_id, access_token, expiration_time)
+                        VALUES ({default_user_id}, '{admin_token}', '{expiration_time}')""")
+
 @pytest.fixture
-async def app(loop, config, db_cursor):
+async def app(loop, config, db_cursor, insert_data):
     """
     aiohttp web.Application object with its own configured test database.
     """
