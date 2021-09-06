@@ -1,13 +1,16 @@
 """
 User-related database operations.
 """
+from sqlalchemy import select
 
 
-async def check_if_user_id_exists(request, user_ids):
+async def check_if_user_ids_exist(request, user_ids):
     """
     Checks if provided `user_id` exists in the database.
     Raises 400 if not.
     """
+    if len(user_ids) == 0:
+        return
     users = request.app["tables"]["users"]
 
     result = await request["conn"].execute(

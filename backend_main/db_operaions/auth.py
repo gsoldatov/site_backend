@@ -4,7 +4,7 @@ Auth-related database operations.
 from datetime import datetime, timedelta
 
 from aiohttp import web
-from sqlalchemy import select
+from sqlalchemy import select, true
 from sqlalchemy.sql import and_ 
 
 from backend_main.auth.route_access_checks.util import debounce_anonymous
@@ -124,7 +124,7 @@ def get_objects_auth_filter_clause(request):
         return objects.c.is_published == True
     
     if ui.user_level == "admin":
-        return literal("1 = 1")
+        return true()
     
     # user
     return or_(objects.c.owner_id == ui.user_id, objects.c.is_published == True)

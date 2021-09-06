@@ -4,12 +4,12 @@ Common operations with objects table.
 from datetime import datetime
 
 from aiohttp import web
-from sqlalchemy import select, func, literal
+from sqlalchemy import select, func
 from sqlalchemy.sql import and_, or_
 
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.db_operaions.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
-from backend_main.db_operaions.users import check_if_user_id_exists
+from backend_main.db_operaions.users import check_if_user_ids_exist
 
 from backend_main.schemas.objects import object_types_enum
 from backend_main.util.json import error_json
@@ -23,11 +23,11 @@ async def add_objects(request, objects_attributes):
     # Forbid to change object owner for non-admins
     debounce_non_admin_changing_object_owner(request, objects_attributes)
     for o in objects_attributes:
-        o.pop(owner_id_is_autoset, None)
+        o.pop("owner_id_is_autoset", None)
     
     # Check if assigned object owners exist
-    user_ids = list({o["user_id"] for o in objects_attributes})
-    await check_if_user_ids_exists(request, user_ids)
+    user_ids = list({o["owner_id"] for o in objects_attributes})
+    await check_if_user_ids_exist(request, user_ids)
 
     # Insert and return new objects
     objects = request.app["tables"]["objects"]
@@ -51,11 +51,11 @@ async def update_objects(request, objects_attributes):
     # Forbid to change object owner for non-admins
     debounce_non_admin_changing_object_owner(request, objects_attributes, is_objects_update=True)
     for o in objects_attributes:
-        o.pop(owner_id_is_autoset, None)
+        o.pop("owner_id_is_autoset", None)
     
     # Check if assigned object owners exist
-    user_ids = list({o["user_id"] for o in objects_attributes})
-    await check_if_user_ids_exists(request, user_ids)
+    user_ids = list({o["owner_id"] for o in objects_attributes if "owner_id" in o})
+    await check_if_user_ids_exist(request, user_ids)
 
     # Check if user can update objects
     object_ids = [o["object_id"] for o in objects_attributes]

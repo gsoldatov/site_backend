@@ -14,39 +14,40 @@ from util import check_ids
 from fixtures.objects import *
 from fixtures.tags import insert_tags, tag_list
 from fixtures.objects_tags import insert_objects_tags
+from fixtures.users import headers_admin_token
 
 
 async def test_add(cli, db_cursor, config):
     schema = config["db"]["db_schema"] 
 
     # Incorrect request body
-    resp = await cli.post("/objects/add", data = "not a JSON document.")
+    resp = await cli.post("/objects/add", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
     
     # Required attributes missing
     for attr in ("object_type", "object_name", "object_description"):
-        link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
+        link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
         link.pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": link})
+        resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
         assert resp.status == 400
 
     # Unallowed attributes
-    link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
     link["unallowed"] = "unallowed"
-    resp = await cli.post("/objects/add", json = {"object": link})
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values for general attributes
     for k, v in incorrect_object_values:
         if k != "object_id":
-            link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
+            link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
             link[k] = v
-            resp = await cli.post("/objects/add", json = {"object": link})
+            resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
             assert resp.status == 400
 
     # Add a correct object
-    link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
-    resp = await cli.post("/objects/add", json = {"object": link})
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
     assert "object" in resp_json
@@ -61,9 +62,9 @@ async def test_add(cli, db_cursor, config):
     assert db_cursor.fetchone() == (link["object_name"],)
 
     # Check if an object with existing name is added
-    link = get_test_object(1, pop_keys = ["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
     link["object_name"] = link["object_name"].upper()
-    resp = await cli.post("/objects/add", json = {"object": link})
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 200
 
 
@@ -73,23 +74,23 @@ async def test_view(cli, db_cursor, config):
     insert_links(links_data_list, db_cursor, config)
 
     # Incorrect request body
-    resp = await cli.post("/objects/view", data = "not a JSON document.")
+    resp = await cli.post("/objects/view", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
     for payload in [{}, {"object_ids": []}, {"object_ids": [1, -1]}, {"object_ids": [1, "abc"]},
                         {"object_data_ids": []}, {"object_data_ids": [1, -1]}, {"object_data_ids": [1, "abc"]},
                         {"object_ids": [1], "object_data_ids": [-1]}, {"object_ids": [-1], "object_data_ids": [1]}]:
-        resp = await cli.post("/objects/view", json = payload)
+        resp = await cli.post("/objects/view", json=payload, headers=headers_admin_token)
         assert resp.status == 400
 
     # Non-existing ids
     for key in {"object_ids", "object_data_ids"}:
-        resp = await cli.post("/objects/view", json = {key: [999, 1000]})
+        resp = await cli.post("/objects/view", json={key: [999, 1000]}, headers=headers_admin_token)
         assert resp.status == 404
 
     # Correct request (object_ids only)
     object_ids = [_ for _ in range(1, 11)]
-    resp = await cli.post("/objects/view", json = {"object_ids": object_ids})
+    resp = await cli.post("/objects/view", json={"object_ids": object_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "objects" in data
@@ -105,7 +106,7 @@ async def test_view(cli, db_cursor, config):
     # Correct request (both types of data request)
     object_ids = [_ for _ in range(1, 6)]
     object_data_ids = [_ for _ in range(6, 11)]
-    resp = await cli.post("/objects/view", json = {"object_ids": object_ids, "object_data_ids": object_data_ids})
+    resp = await cli.post("/objects/view", json={"object_ids": object_ids, "object_data_ids": object_data_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     for attr in ("objects", "object_data"):
@@ -122,57 +123,57 @@ async def test_update(cli, db_cursor, config):
     links = config["db"]["db_schema"] + ".links"
 
     # Insert mock values
-    obj_list = [get_test_object(1, pop_keys = ["object_data"]), get_test_object(2, pop_keys = ["object_data"])]
+    obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"])]
     l_list = [get_test_object_data(1), get_test_object_data(2)]
     insert_objects(obj_list, db_cursor, config)
     insert_links(l_list, db_cursor, config)
     
     # Incorrect request body
-    resp = await cli.put("/objects/update", data = "not a JSON document.")
+    resp = await cli.put("/objects/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
     for payload in ({}, {"test": "wrong attribute"}, {"object": "wrong value type"}):
-        resp = await cli.put("/objects/update", json = payload)
+        resp = await cli.put("/objects/update", json=payload, headers=headers_admin_token)
         assert resp.status == 400
     
     # Missing attributes
     for attr in ("object_id", "object_name", "object_description"):
-        obj = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
+        obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
         obj.pop(attr)
-        resp = await cli.put("/objects/update", json = {"object": obj})
+        resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute types and lengths:
     for k, v in incorrect_object_values:
         if k != "object_type":
-            obj = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
+            obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
             obj[k] = v
-            resp = await cli.put("/objects/update", json = {"object": obj})
+            resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
             assert resp.status == 400
     
     # Non-existing object_id
-    obj = get_test_object(1, pop_keys = ["created_at", "modified_at", "object_type"])
+    obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 100
-    resp = await cli.put("/objects/update", json = {"object": obj})
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Duplicate object_name
-    obj = get_test_object(2, pop_keys = ["created_at", "modified_at", "object_type"])
+    obj = get_test_object(2, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
-    resp = await cli.put("/objects/update", json = {"object": obj})
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Lowercase duplicate object_name
-    obj = get_test_object(2, pop_keys = ["created_at", "modified_at", "object_type"])
+    obj = get_test_object(2, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     obj["object_name"] = obj["object_name"].upper()
-    resp = await cli.put("/objects/update", json = {"object": obj})
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Correct update (general attributes)
-    obj = get_test_object(3, pop_keys = ["created_at", "modified_at", "object_type"])
+    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
-    resp = await cli.put("/objects/update", json = {"object": obj})
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
     assert db_cursor.fetchone() == (obj["object_name"],)
@@ -182,7 +183,8 @@ async def test_delete(cli, db_cursor, config):
     objects = config["db"]["db_schema"] + ".objects"
     
     # Insert mock values
-    obj_list = [get_test_object(1, pop_keys = ["object_data"]), get_test_object(2, pop_keys = ["object_data"]), get_test_object(3, pop_keys = ["object_data"])]
+    obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"]),
+        get_test_object(3, owner_id=1, pop_keys=["object_data"])]
     l_list = [get_test_object_data(1), get_test_object_data(2), get_test_object_data(3)]
     insert_objects(obj_list, db_cursor, config)
     insert_links(l_list, db_cursor, config)
@@ -190,22 +192,22 @@ async def test_delete(cli, db_cursor, config):
     # Incorrect attributes and values
     for value in ["123", {"incorrect_key": "incorrect_value"}, {"object_ids": "incorrect_value"}, {"object_ids": []}]:
         body = value if type(value) == str else json.dumps(value)
-        resp = await cli.delete("/objects/delete", data = body)
+        resp = await cli.delete("/objects/delete", data=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Non-existing object ids
-    resp = await cli.delete("/objects/delete", json = {"object_ids": [1000, 2000]})
+    resp = await cli.delete("/objects/delete", json={"object_ids": [1000, 2000]}, headers=headers_admin_token)
     assert resp.status == 404
 
     # Correct deletes (general data + link)
-    resp = await cli.delete("/objects/delete", json = {"object_ids": [1]})
+    resp = await cli.delete("/objects/delete", json={"object_ids": [1]}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_id FROM {objects}")
     assert db_cursor.fetchone() == (2,)
     assert db_cursor.fetchone() == (3,)
     assert not db_cursor.fetchone()
 
-    resp = await cli.delete("/objects/delete", json = {"object_ids": [2, 3]})
+    resp = await cli.delete("/objects/delete", json={"object_ids": [2, 3]}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_id FROM {objects}")
     assert not db_cursor.fetchone()
@@ -222,20 +224,20 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Insert mock values
     insert_objects(obj_list, db_cursor, config)
 
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids = True)
+    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
     insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor, config)
     insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor, config)
     insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor, config)
     insert_objects_tags([11, 12], [1, 2, 3], db_cursor, config)
 
     # Incorrect request body (not a json, missing attributes, wrong attributes)
-    resp = await cli.post("/objects/get_page_object_ids", data = "not a JSON document.")
+    resp = await cli.post("/objects/get_page_object_ids", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
     for attr in pagination_info["pagination_info"]:
         pi = deepcopy(pagination_info)
         pi["pagination_info"].pop(attr)
-        resp = await cli.post("/objects/get_page_object_ids", json = pi)
+        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
         assert resp.status == 400
 
     # Incorrect param values
@@ -244,12 +246,12 @@ async def test_get_page_object_ids(cli, db_cursor, config):
                  ("tags_filter", 1), ("tags_filter", "string"), ("tags_filter", [1, 2, -1]), ("tags_filter", [1, 2, "not a number"])]:
         pi = deepcopy(pagination_info)
         pi["pagination_info"][k] = v
-        resp = await cli.post("/objects/get_page_object_ids", json = pi)
+        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
         assert resp.status == 400
     
     # Correct request - sort by object_name asc + check response body (links only)
     pi = deepcopy(pagination_info)
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     for attr in ["page", "items_per_page","total_items", "order_by", "sort_order", "filter_text", "object_types", "object_ids"]:
@@ -261,7 +263,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Correct request - sort by object_name desc (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["sort_order"] = "desc"
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count
@@ -270,7 +272,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Correct request - sort by modified_at asc (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["order_by"] = "modified_at"
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count
@@ -281,7 +283,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     pi["pagination_info"]["page"] = 2
     pi["pagination_info"]["order_by"] = "modified_at"
     pi["pagination_info"]["sort_order"] = "desc"
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count
@@ -290,21 +292,21 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Correct request - filter by text (links only)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "0"
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count // 2
     assert data["object_ids"] == [1, 3] # a0, c0
 
     # Correct request - filter by text + check if filter_text case is ignored (links only)
-    insert_objects([get_test_object(100, object_type="link", object_name="aa", pop_keys=["object_data"]), 
-                    get_test_object(101, object_type="link", object_name="AaA", pop_keys=["object_data"]),
-                    get_test_object(102, object_type="link", object_name="AAaa", pop_keys=["object_data"]), 
-                    get_test_object(103, object_type="link", object_name="aaaAa", pop_keys=["object_data"])]
+    insert_objects([get_test_object(100, owner_id=1, object_type="link", object_name="aa", pop_keys=["object_data"]), 
+                    get_test_object(101, owner_id=1, object_type="link", object_name="AaA", pop_keys=["object_data"]),
+                    get_test_object(102, owner_id=1, object_type="link", object_name="AAaa", pop_keys=["object_data"]), 
+                    get_test_object(103, owner_id=1, object_type="link", object_name="aaaAa", pop_keys=["object_data"])]
     , db_cursor, config)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "aA"
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == 4 # id = [100, 101, 102, 103]
@@ -314,7 +316,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Correct request - sort by object_name with no object names provided (query all object types)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["object_types"] = []
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == obj_count
@@ -322,7 +324,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
 
     # Correct request - sort by object_name and filter "link" object_type
     pi = deepcopy(pagination_info)
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == links_count
@@ -331,7 +333,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     # Correct request - sort by object_name and filter "markdown" object_type
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["object_types"] = ["markdown"]
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["total_items"] == markdown_count
@@ -341,7 +343,7 @@ async def test_get_page_object_ids(cli, db_cursor, config):
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["object_types"] = []
     pi["pagination_info"]["tags_filter"] = [1, 2, 3]
-    resp = await cli.post("/objects/get_page_object_ids", json = pi)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert sorted(data["object_ids"]) == [5, 7]
@@ -357,24 +359,24 @@ async def test_search(cli, db_cursor, config):
     for req_body in ["not an object", 1, {"incorrect attribute": {}}, {"query": "not an object"}, {"query": 1},
         {"query": {"query_text": "123"}, "incorrect attribute": {}}, {"query": {"incorrect attribute": "123"}},
         {"query": {"query_text": "123", "incorrect_attribute": 1}}]:
-        resp = await cli.post("/objects/search", json = req_body)
+        resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute values
     for req_body in [{"query": {"query_text": ""}}, {"query": {"query_text": 1}}, {"query": {"query_text": "a"*256}},
         {"query": {"query_text": "123", "maximum_values": "1"}}, {"query": {"query_text": "123", "maximum_values": -1}},
         {"query": {"query_text": "123", "maximum_values": 101}}]:
-        resp = await cli.post("/objects/search", json = req_body)
+        resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Correct request - non-existing objects
     req_body = {"query": {"query_text": "non-existing object"}}
-    resp = await cli.post("/objects/search", json = req_body)
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 404
 
     # Correct request - check response and maximum_values limit
     req_body = {"query": {"query_text": "0", "maximum_values": 2}}
-    resp = await cli.post("/objects/search", json = req_body)
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "object_ids" in data
@@ -383,23 +385,23 @@ async def test_search(cli, db_cursor, config):
 
     # Correct request - check if query case is ignored
     insert_objects([{"object_id": 11, "object_type": "link", "created_at": obj_list[0]["created_at"], "modified_at": obj_list[0]["modified_at"], 
-                    "object_name": "A", "object_description": ""}]
+                    "object_name": "A", "object_description": "", "is_published": False, "owner_id": 1}]
                     , db_cursor, config)
     req_body = {"query": {"query_text": "A"}}
-    resp = await cli.post("/objects/search", json = req_body)
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [1, 11]    #a0, A
 
     req_body = {"query": {"query_text": "a"}}
-    resp = await cli.post("/objects/search", json = req_body)
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [1, 11]    #a0, A
 
     # Correct request - check if existing_ids are excluded from result
     req_body = {"query": {"query_text": "0", "maximum_values": 2, "existing_ids": [1, 3, 9]}}
-    resp = await cli.post("/objects/search", json = req_body)
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [5, 7]    #e0, g0
