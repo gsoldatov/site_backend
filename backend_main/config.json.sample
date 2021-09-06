@@ -1,11 +1,17 @@
 {
     "app": {
         "host": "localhost",
-        "port": 42002
+        "port": 42002,
+        "default_user": {
+            "login": "admin",
+            "password": "password",
+            "username": "Admin"
+        },
+        "token_lifetime": 604800
     },
 
     "cors_urls": ["http://localhost:8080"],
-    
+
     "db": {
         "db_host": "localhost",
         "db_port": 5432,
