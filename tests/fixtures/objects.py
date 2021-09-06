@@ -109,6 +109,7 @@ def _get_composite_object_data(id, composite_object_with_subobject_data = False)
     if composite_object_with_subobject_data:
         so["object_name"] = "subobject name"
         so["object_description"] = "subobject description"
+        so["is_published"] = False,
         so["object_type"] = "link"
         so["object_data"] = get_composite_subobject_object_data(1)
 

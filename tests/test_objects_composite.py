@@ -8,44 +8,45 @@ import pytest
 
 from util import check_ids
 from fixtures.objects import *
+from fixtures.users import headers_admin_token
 
 
 async def test_add_incorrect_top_level_data(cli, db_cursor, config):
     # Missing attributes
     for attr in ["subobjects", "deleted_subobjects"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
         composite["object_data"].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed attributes
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["unallowed"] = 123
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect attribute values
     incorrect_value = {"subobjects": [1, False, "str", []], "deleted_subobjects": [1, False, "str"]}
     for attr in ["subobjects", "deleted_subobjects"]:
         for value in incorrect_value[attr]:
-            composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+            composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
             composite["object_data"][attr] = value
-            resp = await cli.post("/objects/add", json = {"object": composite})
+            resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
             assert resp.status == 400
 
 
 async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
     # Missing attributes (no subobject update)
     for attr in ["object_id", "row", "column", "selected_tab", "is_expanded"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
         composite["object_data"]["subobjects"][0].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed attributes (no subobject update)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"][0]["unallowed"] = 123
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values (no subobject update)
@@ -54,16 +55,16 @@ async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
         "selected_tab": _inc_val_default, "is_expanded": ["str", 1]}
     for attr in ["object_id", "row", "column", "selected_tab", "is_expanded"]:
         for value in incorrect_values[attr]:
-            composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+            composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
             composite["object_data"]["subobjects"][0][attr] = value
-            resp = await cli.post("/objects/add", json = {"object": composite})
+            resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
             assert resp.status == 400
     
     # Missing attributes (with subobject update)
     for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "object_name", "object_description", "object_type", "object_data"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
         composite["object_data"]["subobjects"][0].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect values (with subobject update)
@@ -73,122 +74,122 @@ async def test_add_incorrect_subobjects_data(cli, db_cursor, config):
     }
     for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "object_name", "object_description", "object_type", "object_data"]:
         for value in incorrect_values[attr]:
-            composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+            composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
             composite["object_data"]["subobjects"][0][attr] = value
-            resp = await cli.post("/objects/add", json = {"object": composite})
+            resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
             assert resp.status == 400
             
     
     # Missing subobject object_data attributes (link)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
     composite["object_data"]["subobjects"][0]["object_data"].pop("link")
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Unallowed subobject object_data attributes (link)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
     composite["object_data"]["subobjects"][0]["object_data"]["unallowed"] = "str"
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Missing subobject object_data attributes (markdown)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
     composite["object_data"]["subobjects"][0]["object_type"] = "markdown"
     composite["object_data"]["subobjects"][0]["object_data"] = get_composite_subobject_object_data(4)
     composite["object_data"]["subobjects"][0]["object_data"].pop("raw_text")
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Unallowed subobject object_data attributes (markdown)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
     composite["object_data"]["subobjects"][0]["object_type"] = "markdown"
     composite["object_data"]["subobjects"][0]["object_data"] = get_composite_subobject_object_data(4)
     composite["object_data"]["subobjects"][0]["object_data"]["unallowed"] = "str"
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Missing subobject object_data attributes (to-do list)
     for attr in ["sort_type", "items"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
         composite["object_data"]["subobjects"][0]["object_type"] = "to_do_list"
         composite["object_data"]["subobjects"][0]["object_data"] = get_composite_subobject_object_data(7)
         composite["object_data"]["subobjects"][0]["object_data"].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed subobject object_data attributes (to-do list)
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"], composite_object_with_subobject_data=True)
     composite["object_data"]["subobjects"][0]["object_type"] = "to_do_list"
     composite["object_data"]["subobjects"][0]["object_data"] = get_composite_subobject_object_data(7)
     composite["object_data"]["subobjects"][0]["object_data"]["unallowed"] = "str"
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_incorrect_deleted_subobjects_data(cli, db_cursor, config):
     # Missing attributes
     for attr in ["object_id", "is_full_delete"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
         composite["object_data"]["deleted_subobjects"] = [{"object_id": 1, "is_full_delete": True}]
         composite["object_data"]["deleted_subobjects"][0].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed attributes
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["deleted_subobjects"] = [{"object_id": 1, "is_full_delete": True, "unallowed": "str"}]
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values
     incorrect_values = {"object_id": ["str", True, 0], "is_full_delete": ["str", 0]}
     for attr in incorrect_values:
         for value in incorrect_values[attr]:
-            composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+            composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
             composite["object_data"]["deleted_subobjects"] = [{"object_id": 1, "is_full_delete": True}]
             composite["object_data"]["deleted_subobjects"][0][attr] = value
-            resp = await cli.post("/objects/add", json = {"object": composite})
+            resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
             assert resp.status == 400
 
 
 async def test_add_validation_non_unique_subobject_ids(cli, db_cursor, config):
     # Non-unique subobject ids
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, 1)
     add_composite_subobject(composite, 1)
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_validation_missing_new_subobjects_attributes(cli, db_cursor, config):
     # New subobject without attributes/data
     for attr in ["object_name", "object_description", "object_type", "object_data"]:
-        composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+        composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
         composite["object_data"]["subobjects"] = []
         add_composite_subobject(composite, object_id=-1, object_name="name", object_description="descr", 
-            object_type="link", object_data=get_composite_subobject_object_data(1))
+            is_published=False, object_type="link", object_data=get_composite_subobject_object_data(1))
         composite["object_data"]["subobjects"][0].pop(attr)
-        resp = await cli.post("/objects/add", json = {"object": composite})
+        resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
         assert resp.status == 400
 
 
 async def test_add_validation_not_existing_subobject(cli, db_cursor, config):
     # Positive subobject id, which does not exist in the database
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=999)
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_validation_not_existing_updated_subobject(cli, db_cursor, config):
     # Positive subobject id with updated attributes/data, which does not exist in the database
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=999, object_name="name", object_description="descr", 
-        object_type="link", object_data=get_composite_subobject_object_data(1))
-    resp = await cli.post("/objects/add", json = {"object": composite})
+        is_published=False, object_type="link", object_data=get_composite_subobject_object_data(1))
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Check if composite object was not added
@@ -201,37 +202,37 @@ async def test_add_validation_incorrect_updated_subobject_type(cli, db_cursor, c
     objects = config["db"]["db_schema"] + ".objects"
 
     # Insert objects
-    obj_list = [get_test_object(100, object_type="link", pop_keys=["object_data"]),
-                get_test_object(101, object_type="markdown", pop_keys = ["object_data"]),
-                get_test_object(102, object_type="to_do_list", pop_keys = ["object_data"])]
+    obj_list = [get_test_object(100, owner_id=1, object_type="link", pop_keys=["object_data"]),
+                get_test_object(101, owner_id=1, object_type="markdown", pop_keys=["object_data"]),
+                get_test_object(102, owner_id=1, object_type="to_do_list", pop_keys=["object_data"])]
     insert_objects(obj_list, db_cursor, config)
 
     # Try updating a non-existing link subobject data
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=101, object_name="name", object_description="descr", 
-        object_type="link", object_data=get_composite_subobject_object_data(1))
-    resp = await cli.post("/objects/add", json = {"object": composite})
+        is_published=False, object_type="link", object_data=get_composite_subobject_object_data(1))
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
     db_cursor.execute(f"SELECT object_id FROM {objects} WHERE object_type = 'composite'")
     assert not db_cursor.fetchone()
 
     # Try updating a non-existing Markdown subobject data
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=100, object_name="name", object_description="descr", 
-        object_type="markdown", object_data=get_composite_subobject_object_data(6))
-    resp = await cli.post("/objects/add", json = {"object": composite})
+        is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(6))
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
     db_cursor.execute(f"SELECT object_id FROM {objects} WHERE object_type = 'composite'")
     assert not db_cursor.fetchone()
 
     # Try updating a non-existing to-do list subobject data
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=100, object_name="name", object_description="descr", 
-        object_type="to_do_list", object_data=get_composite_subobject_object_data(9))
-    resp = await cli.post("/objects/add", json = {"object": composite})
+        is_published=False, object_type="to_do_list", object_data=get_composite_subobject_object_data(9))
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
     db_cursor.execute(f"SELECT object_id FROM {objects} WHERE object_type = 'composite'")
     assert not db_cursor.fetchone()
@@ -239,32 +240,32 @@ async def test_add_validation_incorrect_updated_subobject_type(cli, db_cursor, c
 
 async def test_add_validation_non_unique_subobject_row_column_combinaiton(cli, db_cursor, config):
     # Non unique row + column combination
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=1, row=0, column=0)
     add_composite_subobject(composite, object_id=2, row=0, column=0)
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_validation_same_id_in_subobjects_and_deleted_subobjects(cli, db_cursor, config):
     # object id present both in subobjects and deleted_subobjects
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=1)
     add_composite_deleted_subobject(composite, 999, True)
     add_composite_deleted_subobject(composite, 1, True)
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 400
     
 
 async def test_add_correct_object_without_subobject_updates(cli, db_cursor, config):
     # Insert objects
-    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(5)]
+    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(5)]
     insert_objects(obj_list, db_cursor, config)
 
     # Add a composite object without subobjects update
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=100)
     add_composite_subobject(composite, object_id=101)
@@ -272,7 +273,7 @@ async def test_add_correct_object_without_subobject_updates(cli, db_cursor, conf
     add_composite_subobject(composite, object_id=103, column=1)
     add_composite_subobject(composite, object_id=104, column=1)
     
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database state
@@ -286,21 +287,21 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
     
     # Send request with new subobjects
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
-    add_composite_subobject(composite, object_id=-1, is_expanded=False, object_name="new link 1", object_description="new descr 1", object_type="link",
-                            object_data=get_composite_subobject_object_data(1))
-    add_composite_subobject(composite, object_id=-2, is_expanded=False, object_name="new markdown 1", object_description="new descr 2", object_type="markdown",
-                            object_data=get_composite_subobject_object_data(4))
-    add_composite_subobject(composite, object_id=-3, is_expanded=False, object_name="new to-do list 1", object_description="new descr 3", object_type="to_do_list",
-                            object_data=get_composite_subobject_object_data(7))
-    add_composite_subobject(composite, object_id=-4, column=1, object_name="new link 2", object_description="new descr 4", object_type="link",
-                            object_data=get_composite_subobject_object_data(2))
-    add_composite_subobject(composite, object_id=-5, column=1, object_name="new markdown 2", object_description="new descr 5", object_type="markdown",
-                            object_data=get_composite_subobject_object_data(5))
-    add_composite_subobject(composite, object_id=-6, column=1, object_name="new to-do list 2", object_description="new descr 6", object_type="to_do_list",
-                            object_data=get_composite_subobject_object_data(8))
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    add_composite_subobject(composite, object_id=-1, is_expanded=False, object_name="new link 1", object_description="new descr 1", 
+                            is_published=False, object_type="link", object_data=get_composite_subobject_object_data(1))
+    add_composite_subobject(composite, object_id=-2, is_expanded=False, object_name="new markdown 1", object_description="new descr 2", 
+                            is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(4))
+    add_composite_subobject(composite, object_id=-3, is_expanded=False, object_name="new to-do list 1", object_description="new descr 3", 
+                            is_published=False, object_type="to_do_list", object_data=get_composite_subobject_object_data(7))
+    add_composite_subobject(composite, object_id=-4, column=1, object_name="new link 2", object_description="new descr 4", 
+                            is_published=False, object_type="link", object_data=get_composite_subobject_object_data(2))
+    add_composite_subobject(composite, object_id=-5, column=1, object_name="new markdown 2", object_description="new descr 5", 
+                            is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(5))
+    add_composite_subobject(composite, object_id=-6, column=1, object_name="new to-do list 2", object_description="new descr 6", 
+                            is_published=False, object_type="to_do_list", object_data=get_composite_subobject_object_data(8))
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check response data and new subobjects' attributes in the database
@@ -356,9 +357,9 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor, con
     schema = config["db"]["db_schema"]
 
     # Insert objects' attributes and data
-    obj_list = [get_test_object(100, object_type="link", pop_keys=["object_data"]), 
-                get_test_object(101, object_type="markdown", pop_keys = ["object_data"]),
-                get_test_object(102, object_type="to_do_list", pop_keys = ["object_data"])]
+    obj_list = [get_test_object(100, owner_id=1, object_type="link", pop_keys=["object_data"]), 
+                get_test_object(101, owner_id=1, object_type="markdown", pop_keys=["object_data"]),
+                get_test_object(102, owner_id=1, object_type="to_do_list", pop_keys=["object_data"])]
     insert_objects(obj_list, db_cursor, config)
     link_data = [get_test_object_data(100, object_type="link")]
     markdown_data = [get_test_object_data(101, object_type="markdown")]
@@ -369,16 +370,16 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor, con
     insert_to_do_lists(to_do_list_data, db_cursor, config)
 
     # Send request with updates for existing subobjects
-    composite = get_test_object(10, pop_keys = ["object_id", "created_at", "modified_at"])
+    composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
-    add_composite_subobject(composite, object_id=100, object_name="updated link name", object_description="updated link descr", object_type="link",
-                            object_data=get_composite_subobject_object_data(1))
-    add_composite_subobject(composite, object_id=101, object_name="updated markdown name", object_description="updated mardkown descr", object_type="markdown",
-                            object_data=get_composite_subobject_object_data(4))
-    add_composite_subobject(composite, object_id=102, object_name="updated to-do list name", object_description="updated to-do list descr", object_type="to_do_list",
-                            object_data=get_composite_subobject_object_data(7))
+    add_composite_subobject(composite, object_id=100, object_name="updated link name", object_description="updated link descr", 
+                            is_published=False, object_type="link", object_data=get_composite_subobject_object_data(1))
+    add_composite_subobject(composite, object_id=101, object_name="updated markdown name", object_description="updated mardkown descr", 
+                            is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(4))
+    add_composite_subobject(composite, object_id=102, object_name="updated to-do list name", object_description="updated to-do list descr", 
+                            is_published=False, object_type="to_do_list", object_data=get_composite_subobject_object_data(7))
     
-    resp = await cli.post("/objects/add", json = {"object": composite})
+    resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check if subobjects' attributes are updated
@@ -412,8 +413,8 @@ async def test_update_correct_object_without_subobject_updates(cli, db_cursor, c
     schema = config["db"]["db_schema"]
 
     # Insert objects
-    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(5)]
-    obj_list.append(get_test_object(10, object_type="composite", pop_keys=["object_data"]))
+    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(5)]
+    obj_list.append(get_test_object(10, owner_id=1, object_type="composite", pop_keys=["object_data"]))
     insert_objects(obj_list, db_cursor, config)
 
     # Insert existing composite object data
@@ -430,7 +431,7 @@ async def test_update_correct_object_without_subobject_updates(cli, db_cursor, c
     add_composite_subobject(composite, object_id=103, column=1)
     add_composite_subobject(composite, object_id=104, column=1)
 
-    resp = await cli.put("/objects/update", json = {"object": composite})
+    resp = await cli.put("/objects/update", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database state
@@ -444,8 +445,8 @@ async def test_update_correct_object_with_subobject_full_and_not_full_delete(cli
     schema = config["db"]["db_schema"]
 
     # Insert objects
-    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 4 subobjects
-    obj_list.extend([get_test_object(10 + i, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 4 subobjects
+    obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
     insert_objects(obj_list, db_cursor, config)
 
     # Insert composite data (10: 100, 101, 102, 103; 11: 103)
@@ -466,7 +467,7 @@ async def test_update_correct_object_with_subobject_full_and_not_full_delete(cli
     add_composite_subobject(composite, object_id=100)
     composite["object_data"]["deleted_subobjects"] = [{ "object_id": 102, "is_full_delete": True }, { "object_id": 103, "is_full_delete": True }]
 
-    resp = await cli.put("/objects/update", json = {"object": composite})
+    resp = await cli.put("/objects/update", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database
@@ -487,12 +488,12 @@ async def test_view_correct_object_without_subobject_updates(cli, db_cursor, con
 
     # Correct request (object_data_ids only, composite), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]
-    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
     assert resp.status == 404
 
     # Correct request (object_data_ids only, composite)
     object_data_ids = [_ for _ in range(31, 41)]
-    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "object_data" in data
@@ -510,8 +511,8 @@ async def test_view_correct_object_without_subobject_updates(cli, db_cursor, con
 
 async def test_view_composite_objects_without_subobjects(cli, db_cursor, config):
     # Insert 2 objects (link & composite) + link data
-    obj_list = [get_test_object(10, object_type="link", pop_keys=["object_data"]),
-                get_test_object(11, object_type="composite", pop_keys=["object_data"])]
+    obj_list = [get_test_object(10, owner_id=1, object_type="link", pop_keys=["object_data"]),
+                get_test_object(11, owner_id=1, object_type="composite", pop_keys=["object_data"])]
     insert_objects(obj_list, db_cursor, config)
 
     link_data = [get_test_object_data(10, object_type="link")]
@@ -519,7 +520,7 @@ async def test_view_composite_objects_without_subobjects(cli, db_cursor, config)
 
     # Query data of both objects
     object_data_ids = [10, 11]
-    resp = await cli.post("/objects/view", json = {"object_data_ids": object_data_ids})
+    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
 
     assert resp.status == 200
     data = await resp.json()
@@ -542,8 +543,8 @@ async def test_delete_composite(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock objects (composite: 10, 11; links: 101, 102, 103)
-    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(1, 4)]   # 3 subobjects
-    obj_list.extend([get_test_object(10 + i, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(1, 4)]   # 3 subobjects
+    obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
     insert_objects(obj_list, db_cursor, config)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)
@@ -559,7 +560,7 @@ async def test_delete_composite(cli, db_cursor, config):
     insert_composite([composite_data], db_cursor, config)
 
     # Delete composite
-    resp = await cli.delete("/objects/delete", json = {"object_ids": [10] })
+    resp = await cli.delete("/objects/delete", json={"object_ids": [10] }, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database
@@ -577,8 +578,8 @@ async def test_delete_with_subobjects(cli, db_cursor, config):
     schema = config["db"]["db_schema"]
 
     # Insert mock objects (composite: 10, 11; links: 100, 101, 102, 103)
-    obj_list = [get_test_object(100 + i, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 1 non-subobject + 3 subobjects
-    obj_list.extend([get_test_object(10 + i, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 1 non-subobject + 3 subobjects
+    obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
     insert_objects(obj_list, db_cursor, config)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)
@@ -594,7 +595,7 @@ async def test_delete_with_subobjects(cli, db_cursor, config):
     insert_composite([composite_data], db_cursor, config)
 
     # Delete with subobjects: first composite (10), 1 non-subobject link (100) and 1 of its exclusive subobjects (101)
-    resp = await cli.delete("/objects/delete", json = {"object_ids": [10, 100, 101], "delete_subobjects": True })
+    resp = await cli.delete("/objects/delete", json={"object_ids": [10, 100, 101], "delete_subobjects": True }, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database
