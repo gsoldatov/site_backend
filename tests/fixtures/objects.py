@@ -346,17 +346,20 @@ def delete_objects(object_ids, db_cursor, config):
 
 
 # Sets of mock data insertions in the database
-def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, config):
+def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, config, object_type = "link"):
     """
     Inserts another user and a set of likn objects in the database.
     Objects belong to different users and are partially published.
+    If `object_type` is provided, inserted objects have it as their object type (defaults to "link").
     """
     insert_users([get_test_user(2)], db_cursor, config) # add a regular user
-    object_attributes = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
+    object_attributes = [get_test_object(i, object_type=object_type, owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
     # object_attributes = get_objects_attributes_list(1, 10)
     for i in range(5, 10):
         object_attributes[i]["owner_id"] = 2
     for i in range(1, 10, 2):
         object_attributes[i]["is_published"] = True
     insert_objects(object_attributes, db_cursor, config)
-    insert_links([get_test_object_data(i, object_type="link") for i in range(1, 11)], db_cursor, config)
+    data_insert_func = insert_links if object_type == "link" else insert_markdown if object_type == "markdown" else \
+        insert_to_do_lists if object_type == "to_do_list" else insert_composite
+    data_insert_func([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor, config)

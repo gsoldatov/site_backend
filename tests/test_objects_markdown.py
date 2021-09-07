@@ -1,18 +1,18 @@
 """
 Tests for markdown-specific operations.
 """
-import os
-import json
+if __name__ == "__main__":
+    import os, sys
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
 
-import pytest
-from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures.objects import *
+from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
+    markdown_data_list, insert_objects, insert_markdown, insert_data_for_view_objects_as_anonymous
 from fixtures.users import headers_admin_token
 
 
-async def test_add(cli, db_cursor, config):
+async def test_add_as_admin(cli, db_cursor, config):
     schema = config["db"]["db_schema"] 
     
     # Incorrect markdown attributes
@@ -45,7 +45,7 @@ async def test_add(cli, db_cursor, config):
     assert db_cursor.fetchone() == (md["object_data"]["raw_text"],)
 
 
-async def test_update(cli, db_cursor, config):
+async def test_update_as_admin(cli, db_cursor, config):
     objects = config["db"]["db_schema"] + ".objects"
     markdown = config["db"]["db_schema"] + ".markdown"
 
@@ -56,7 +56,7 @@ async def test_update(cli, db_cursor, config):
     insert_markdown(md_list, db_cursor, config)
 
     # Incorrect attributes in object_data for markdown
-    for object_data in [{}, {"raw_text": "Some text", "incorrect_attr": 1}, {"link": ""}, {"link": 123}]:
+    for object_data in [{}, {"raw_text": "Some text", "incorrect_attr": 1}, {"raw_text": ""}, {"raw_text": 123}]:
         obj = get_test_object(6, pop_keys=["created_at", "modified_at", "object_type"])
         obj["object_id"] = 4
         obj["object_data"] = object_data
@@ -72,12 +72,12 @@ async def test_update(cli, db_cursor, config):
     assert db_cursor.fetchone() == (obj["object_data"]["raw_text"],)
 
 
-async def test_view(cli, db_cursor, config):
+async def test_view_as_admin(cli, db_cursor, config):
     # Insert mock values
     insert_objects(get_objects_attributes_list(11, 20), db_cursor, config)
     insert_markdown(markdown_data_list, db_cursor, config)
 
-    # Correct request (object_data_ids only, links), non-existing ids
+    # Correct request (object_data_ids only, markdown), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]
     resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
     assert resp.status == 404
@@ -94,10 +94,24 @@ async def test_view(cli, db_cursor, config):
     assert "raw_text" in data["object_data"][0]["object_data"]
 
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request, markdown object_data_ids only")
+        "Objects view, correct request as admin, markdown object_data_ids only")
 
 
-async def test_delete(cli, db_cursor, config):
+async def test_view_as_anonymous(cli, db_cursor, config):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config, object_type="markdown")
+
+    # Correct request (object_data_ids only, markdown, request all existing objects, receive only published)
+    requested_object_ids = [i for i in range(1, 11)]
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
+    assert resp.status == 200
+    data = await resp.json()
+
+    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request as anonymous, markdown object_data_ids only")
+
+
+async def test_delete_as_admin(cli, db_cursor, config):
     markdown = config["db"]["db_schema"] + ".markdown"
     
     # Insert mock values
@@ -107,7 +121,7 @@ async def test_delete(cli, db_cursor, config):
     insert_objects(obj_list, db_cursor, config)
     insert_markdown(md_list, db_cursor, config)
 
-    # Correct deletes (general data + link)
+    # Correct deletes (general data + markdown)
     resp = await cli.delete("/objects/delete", json={"object_ids": [4]}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_id FROM {markdown}")

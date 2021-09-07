@@ -24,7 +24,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_search_non_existing_tags_as_admin(cli):
+async def test_search_non_existing_tags_as_admin(cli, db_cursor, config):
     # Insert data
     insert_tags(tag_list, db_cursor, config)
     

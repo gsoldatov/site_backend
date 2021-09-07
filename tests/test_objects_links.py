@@ -1,18 +1,18 @@
 """
 Tests for link-specific operations.
 """
-import os
-import json
+if __name__ == "__main__":
+    import os, sys
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
 
-import pytest
-from psycopg2.extensions import AsIs
 
 from util import check_ids
-from fixtures.objects import *
+from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
+    links_data_list, insert_objects, insert_links, insert_data_for_view_objects_as_anonymous
 from fixtures.users import headers_admin_token
 
 
-async def test_add(cli, db_cursor, config):
+async def test_add_as_admin(cli, db_cursor, config):
     schema = config["db"]["db_schema"] 
     
     # Incorrect link attributes
@@ -45,7 +45,7 @@ async def test_add(cli, db_cursor, config):
     assert db_cursor.fetchone() == (link["object_data"]["link"],)
 
 
-async def test_update(cli, db_cursor, config):
+async def test_update_as_admin(cli, db_cursor, config):
     objects = config["db"]["db_schema"] + ".objects"
     links = config["db"]["db_schema"] + ".links"
 
@@ -73,7 +73,7 @@ async def test_update(cli, db_cursor, config):
     assert db_cursor.fetchone() == (obj["object_data"]["link"],)
 
 
-async def test_view(cli, db_cursor, config):
+async def test_view_as_admin(cli, db_cursor, config):
     # Insert mock values
     insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
     insert_links(links_data_list, db_cursor, config)
@@ -95,10 +95,24 @@ async def test_view(cli, db_cursor, config):
     assert "link" in data["object_data"][0]["object_data"]
 
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request, link object_data_ids only")
+        "Objects view, correct request as admin, link object_data_ids only")
 
 
-async def test_delete(cli, db_cursor, config):
+async def test_view_as_anonymous(cli, db_cursor, config):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config, object_type="link")
+
+    # Correct request (object_data_ids only, links, request all existing objects, receive only published)
+    requested_object_ids = [i for i in range(1, 11)]
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
+    assert resp.status == 200
+    data = await resp.json()
+
+    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request as anonymous, link object_data_ids only")
+
+
+async def test_delete_as_admin(cli, db_cursor, config):
     links = config["db"]["db_schema"] + ".links"
     
     # Insert mock values
