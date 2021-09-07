@@ -20,6 +20,9 @@ async def test_incorrect_request_body_as_admin(cli):
 
 
 async def test_view_non_existing_tags_as_admin(cli):
+    # Insert data
+    insert_tags(tag_list, db_cursor, config)
+    
     resp = await cli.post("/tags/view", json={"tag_ids": [999, 1000]}, headers=headers_admin_token)
     assert resp.status == 404
 

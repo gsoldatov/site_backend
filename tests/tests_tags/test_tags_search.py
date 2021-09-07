@@ -25,6 +25,9 @@ async def test_incorrect_request_body_as_admin(cli):
 
 
 async def test_search_non_existing_tags_as_admin(cli):
+    # Insert data
+    insert_tags(tag_list, db_cursor, config)
+    
     req_body = {"query": {"query_text": "non-existing tag"}}
     resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 404

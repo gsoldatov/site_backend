@@ -26,6 +26,7 @@ async def test_delete_non_existing_tags_as_admin(cli, db_cursor, config):
     resp = await cli.delete("/tags/delete", json={"tag_ids": [1000, 2000]}, headers=headers_admin_token)
     assert resp.status == 404
 
+
 async def test_delete_tags_as_admin(cli, db_cursor, config):
     # Insert mock values
     table = config["db"]["db_schema"] + ".tags"
