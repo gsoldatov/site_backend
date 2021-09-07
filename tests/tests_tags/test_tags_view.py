@@ -1,9 +1,7 @@
-import os
-import json
 import pytest
 
 if __name__ == "__main__":
-    import sys
+    import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.util import check_ids

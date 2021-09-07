@@ -1,8 +1,7 @@
-import os
 import pytest
 
 if __name__ == "__main__":
-    import sys
+    import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.tags import tag_list, insert_tags
@@ -33,7 +32,7 @@ async def test_search_non_existing_tags_as_admin(cli):
 
 # Run the test twice for unauthorized & admin privilege levels
 @pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_search_requests_as_admin(cli, db_cursor, config, headers):
+async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, config, headers):
     # Insert data
     insert_tags(tag_list, db_cursor, config)
 
