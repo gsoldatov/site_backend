@@ -3,7 +3,8 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.util import check_ids
-from tests.fixtures.objects import insert_objects, insert_links, get_objects_attributes_list, links_data_list
+from tests.fixtures.objects import get_objects_attributes_list,\
+    links_data_list, insert_objects, insert_links, insert_data_for_view_objects_as_anonymous
 from tests.fixtures.users import headers_admin_token
 
 
@@ -41,7 +42,7 @@ async def test_view_existing_objects_as_admin(cli, db_cursor, config):
         assert field in data["objects"][0]
 
     check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
-        "Objects view, correct request, object_ids only")
+        "Objects view, correct request as admin, object_ids only")
     
     # Correct request (object_data_ids only) is checked type-specific tests
 
@@ -55,9 +56,38 @@ async def test_view_existing_objects_as_admin(cli, db_cursor, config):
         assert attr in data
     
     check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
-        "Objects view, correct request for both object attributes and data, object_ids")
+        "Objects view, correct request for both object attributes and data as admin, object_ids")
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request for both object attributes and data, object_data_ids")
+        "Objects view, correct request for both object attributes and data as admin, object_data_ids")
+
+
+async def test_view_existing_objects_as_anonymous(cli, db_cursor, config):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+    
+    # Correct request (object_ids only, published objects only are returned)
+    requested_object_ids = [i for i in range(1, 11)]
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+    resp = await cli.post("/objects/view", json={"object_ids": requested_object_ids})
+    assert resp.status == 200
+    data = await resp.json()
+    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request as anonymous, object_ids only")
+    
+    # Correct request (object_data_ids only) is checked type-specific tests
+
+    # Correct request (both types of data request, published objects only are returned)
+    requested_object_ids = [i for i in range(1, 11)]
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+    requested_object_data_ids = [i for i in range(3, 9)]
+    expected_object_data_ids = [i for i in range(3, 9) if i % 2 == 0]
+    resp = await cli.post("/objects/view", json={"object_ids": requested_object_ids, "object_data_ids": requested_object_data_ids})
+    assert resp.status == 200
+    data = await resp.json()
+    
+    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request for both object attributes and data as anonymous, object_ids")
+    check_ids(expected_object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request for both object attributes and data as anonymous, object_data_ids")
 
 
 if __name__ == "__main__":

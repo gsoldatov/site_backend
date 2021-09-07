@@ -2,7 +2,7 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-from tests.fixtures.objects import get_objects_attributes_list, insert_objects
+from tests.fixtures.objects import get_objects_attributes_list, insert_objects, insert_data_for_view_objects_as_anonymous
 from tests.fixtures.users import headers_admin_token
 
 
@@ -69,6 +69,18 @@ async def test_correct_search_requests_as_admin(cli, db_cursor, config):
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [5, 7]    #e0, g0
+
+
+async def test_correct_search_requests_as_anonymous(cli, db_cursor, config):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+
+    # Search a pattern matching all existing objects (and receive only published in the response)
+    req_body = {"query": {"query_text": "object", "maximum_values": 10}}
+    resp = await cli.post("/objects/search", json=req_body)
+    assert resp.status == 200
+    data = await resp.json()
+    assert sorted(data["object_ids"]) == expected_object_ids
 
 
 if __name__ == "__main__":

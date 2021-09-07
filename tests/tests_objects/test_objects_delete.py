@@ -41,6 +41,17 @@ async def test_delete_objects_as_admin(cli, db_cursor, config):
     assert not db_cursor.fetchone()
 
 
+async def test_delete_objects_as_anonymous(cli, db_cursor, config):
+    _insert_mock_data_for_delete_tests(cli, db_cursor, config)
+    objects = config["db"]["db_schema"] + ".objects"
+
+    # Correct deletes (general data + link)
+    resp = await cli.delete("/objects/delete", json={"object_ids": [2, 3]})
+    assert resp.status == 401
+    db_cursor.execute(f"SELECT count(*) FROM {objects}")
+    assert db_cursor.fetchone()[0] == 3
+
+
 def _insert_mock_data_for_delete_tests(cli, db_cursor, config):
     objects = config["db"]["db_schema"] + ".objects"
     obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"]),

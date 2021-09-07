@@ -4,7 +4,8 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-from tests.fixtures.objects import get_test_object, get_objects_attributes_list, insert_objects, delete_objects
+from tests.fixtures.objects import get_test_object, get_objects_attributes_list, insert_objects, delete_objects, \
+    insert_data_for_view_objects_as_anonymous
 from tests.fixtures.objects_tags import insert_objects_tags
 from tests.fixtures.tags import tag_list, insert_tags
 from tests.fixtures.users import headers_admin_token
@@ -150,6 +151,20 @@ async def test_correct_requests_as_admin(cli, db_cursor, config):
     assert sorted(data["object_ids"]) == [5, 7]
     assert data["total_items"] == 4     # object_ids = [5, 7, 11, 12]
 
+
+async def test_correct_requests_as_anonymous(cli, db_cursor, config):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
+
+    # Get all objects on one page (and receive only published)
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["items_per_page"] = 10
+    resp = await cli.post("/objects/get_page_object_ids", json=pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["total_items"] == len(expected_object_ids)
+    assert sorted(data["object_ids"]) == expected_object_ids
+    
 
 if __name__ == "__main__":
     os.system(f'pytest "{os.path.abspath(__file__)}" -v')

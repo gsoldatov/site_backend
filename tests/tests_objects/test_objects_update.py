@@ -75,6 +75,21 @@ async def test_correct_update_as_admin(cli, db_cursor, config):
     assert db_cursor.fetchone() == (obj["object_name"],)
 
 
+async def test_correct_update_as_anonymous(cli, db_cursor, config):
+    objects = config["db"]["db_schema"] + ".objects"
+
+    # Insert mock values
+    _insert_mock_data_for_update_tests(cli, db_cursor, config)
+
+    # Correct update (general attributes)
+    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
+    obj["object_id"] = 1
+    resp = await cli.put("/objects/update", json={"object": obj})
+    assert resp.status == 401
+    db_cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
+    assert db_cursor.fetchone() != (obj["object_name"],)
+
+
 def _insert_mock_data_for_update_tests(cli, db_cursor, config):
     objects = config["db"]["db_schema"] + ".objects"
     links = config["db"]["db_schema"] + ".links"

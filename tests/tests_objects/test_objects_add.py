@@ -59,5 +59,15 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
     assert resp.status == 200
 
 
+async def test_add_a_correct_object_as_anonymous(cli, db_cursor, config):
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+    resp = await cli.post("/objects/add", json={"object": link})
+    assert resp.status == 401
+
+    schema = config["db"]["db_schema"]
+    db_cursor.execute(f"SELECT object_name FROM {schema}.objects")
+    assert not db_cursor.fetchone()
+
+
 if __name__ == "__main__":
     os.system(f'pytest "{os.path.abspath(__file__)}" -v')

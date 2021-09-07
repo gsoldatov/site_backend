@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 
 from psycopg2.extensions import AsIs
 
+from tests.fixtures.users import get_test_user, insert_users
+
 
 __all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_objects_attributes_list", 
             "links_data_list", "markdown_data_list", "to_do_lists_data_list", "composite_data_list",
@@ -341,3 +343,20 @@ def delete_objects(object_ids, db_cursor, config):
     params = [AsIs(table)]
     params.extend(object_ids)
     db_cursor.execute(query, params)
+
+
+# Sets of mock data insertions in the database
+def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, config):
+    """
+    Inserts another user and a set of likn objects in the database.
+    Objects belong to different users and are partially published.
+    """
+    insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+    object_attributes = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
+    # object_attributes = get_objects_attributes_list(1, 10)
+    for i in range(5, 10):
+        object_attributes[i]["owner_id"] = 2
+    for i in range(1, 10, 2):
+        object_attributes[i]["is_published"] = True
+    insert_objects(object_attributes, db_cursor, config)
+    insert_links([get_test_object_data(i, object_type="link") for i in range(1, 11)], db_cursor, config)
