@@ -1,9 +1,11 @@
+import pytest
+
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.objects import get_test_object, incorrect_object_values
-from tests.fixtures.users import headers_admin_token
+from tests.fixtures.users import headers_admin_token, get_test_user, insert_users
 
 
 async def test_incorrect_request_body_as_admin(cli):
@@ -12,7 +14,7 @@ async def test_incorrect_request_body_as_admin(cli):
     assert resp.status == 400
 
     # Required attributes missing
-    for attr in ("object_type", "object_name", "object_description"):
+    for attr in ("object_type", "object_name", "object_description", "is_published"):
         link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
         link.pop(attr)
         resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
@@ -31,13 +33,20 @@ async def test_incorrect_request_body_as_admin(cli):
             link[k] = v
             resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
             assert resp.status == 400
-    
+
+
+async def test_add_object_with_incorrect_data_as_admin(cli):
+    # Non-existing owner_id
+    link = get_test_object(1, owner_id=1000, pop_keys=["object_id", "created_at", "modified_at"])
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+    assert resp.status == 400
+
 
 async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, config):
     schema = config["db"]["db_schema"] 
 
     # Add a correct object
-    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, is_published=True, pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -48,6 +57,7 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
         assert attr in resp_object
     assert link["object_name"] == resp_object["object_name"]
     assert link["object_description"] == resp_object["object_description"]
+    assert link["is_published"] == resp_object["is_published"]
 
     db_cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (link["object_name"],)
@@ -57,6 +67,23 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
     link["object_name"] = link["object_name"].upper()
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 200
+
+
+@pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
+async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, config, owner_id):
+    # Add a second user
+    insert_users([get_test_user(2)], db_cursor, config)
+    schema = config["db"]["db_schema"] 
+
+    # Add a correct object with set owner_id
+    link = get_test_object(1, owner_id=owner_id, pop_keys=["object_id", "created_at", "modified_at"])
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+    assert resp.status == 200
+    resp_object = (await resp.json())["object"]
+    assert link["owner_id"] == resp_object["owner_id"]
+
+    db_cursor.execute(f"SELECT owner_id FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
+    assert db_cursor.fetchone() == (owner_id,)
 
 
 async def test_add_a_correct_object_as_anonymous(cli, db_cursor, config):

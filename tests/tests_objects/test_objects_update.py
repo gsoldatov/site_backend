@@ -1,9 +1,11 @@
+import pytest
+
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.objects import get_test_object, get_test_object_data, incorrect_object_values, insert_objects, insert_links
-from tests.fixtures.users import headers_admin_token
+from tests.fixtures.users import headers_admin_token, get_test_user, insert_users
 
 
 async def test_incorrect_request_body_as_admin(cli):
@@ -16,7 +18,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
     
     # Missing attributes
-    for attr in ("object_id", "object_name", "object_description"):
+    for attr in ("object_id", "object_name", "object_description", "is_published"):
         obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
         obj.pop(attr)
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
@@ -38,6 +40,11 @@ async def test_update_with_incorrect_data_as_admin(cli, db_cursor, config):
     # Non-existing object_id
     obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 100
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Non-existing owner_id
+    obj = get_test_object(1, owner_id=1000, pop_keys=["created_at", "modified_at", "object_type"])
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 400
 
@@ -67,12 +74,30 @@ async def test_correct_update_as_admin(cli, db_cursor, config):
     _insert_mock_data_for_update_tests(cli, db_cursor, config)
 
     # Correct update (general attributes)
-    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
+    obj = get_test_object(3, is_published=True, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT object_name FROM {objects} WHERE object_id = 1")
-    assert db_cursor.fetchone() == (obj["object_name"],)
+    db_cursor.execute(f"SELECT object_name, is_published FROM {objects} WHERE object_id = 1")
+    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"])
+
+
+@pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
+async def test_correct_update_with_set_owner_id_as_admin(cli, db_cursor, config, owner_id):
+    objects = config["db"]["db_schema"] + ".objects"
+
+    # Insert mock values
+    _insert_mock_data_for_update_tests(cli, db_cursor, config)
+    insert_users([get_test_user(2)], db_cursor, config)
+
+    # Correct update with set owner_id
+    updated_name = "updated name"
+    obj = get_test_object(3, owner_id=owner_id, object_name=updated_name, pop_keys=["created_at", "modified_at", "object_type"])
+    obj["object_id"] = 1
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+    assert resp.status == 200
+    db_cursor.execute(f"SELECT object_name, owner_id FROM {objects} WHERE object_id = 1")
+    assert db_cursor.fetchone() == (updated_name, owner_id)
 
 
 async def test_correct_update_as_anonymous(cli, db_cursor, config):
