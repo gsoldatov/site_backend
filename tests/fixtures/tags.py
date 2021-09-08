@@ -10,7 +10,7 @@ def get_test_tag(i, name = None, pop_keys = []):
     Returns a new dictionary for tags table with attributes specified in pop_keys popped from it.
     If name is not provided, uses one of the default values (which are bound to specific IDs).
     """
-    name = name or _tag_names[i]
+    name = name or _tag_names.get(i, f"tag name {i}")
     curr_time = datetime.utcnow()
     tag = {"tag_id": i, "created_at": curr_time, "modified_at": curr_time, "tag_name": name, "tag_description": f"Everything Related to {name}"}
     for k in pop_keys:
