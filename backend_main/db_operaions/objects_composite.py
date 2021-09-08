@@ -62,7 +62,7 @@ async def _add_update_composite(request, obj_ids_and_data):
     id_mapping = await _add_new_subobjects(request, obj_ids_and_data)
     await _update_existing_subobjects(request, obj_ids_and_data)
     await _update_composite_object_data(request, obj_ids_and_data, id_mapping)
-    await _update_existing_subobjects(request, obj_ids_and_data)    # TODO check if double update is needed
+    # await _update_existing_subobjects(request, obj_ids_and_data)    # was called a second time for unknown reasons
     await _delete_subobjects(request, obj_ids_and_data)
     return {"id_mapping": id_mapping}
 
@@ -147,7 +147,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                     "is_published": so["is_published"],
                     "modified_at": request["current_time"]
                 }
-                if "owner_id" in updated_so_attributes:     # don't update owner_id if it was not explicitly passed
+                if "owner_id" in so:     # don't update owner_id if it was not explicitly passed
                     updated_so_attributes["owner_id"] = so["owner_id"]
                 
                 updated_objects_attributes.append(updated_so_attributes)
