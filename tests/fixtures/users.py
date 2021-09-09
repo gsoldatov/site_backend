@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from psycopg2.extensions import AsIs
 
 
@@ -6,18 +8,22 @@ admin_token = "admin token"
 headers_admin_token = {"Authorization": f"Bearer {admin_token}"}
 
 
-def get_test_user(user_id, login = None, password = None, username = None, user_level = None, can_edit_objects = None, pop_keys = []):
+def get_test_user(user_id, registeted_at = None, login = None, password = None, username = None,
+    user_level = None, can_login = None, can_edit_objects = None, pop_keys = []):
     """
     Returns a new dictionary for users table with attributes specified in `pop_keys` popped from it.
     `user_id` value is provided as the first argument, other user attributes can be optionally provided to override default values.
     """
+    registeted_at = registeted_at if registeted_at is not None else datetime.utcnow()
     login = login if login is not None else f"login {user_id}"
     password = password if password is not None else f"password {user_id}"
     username = username if username is not None else f"username {user_id}"
     user_level = user_level if user_level is not None else "user"
+    can_login = can_login if can_login is not None else True
     can_edit_objects = can_edit_objects if can_edit_objects is not None else True
 
-    user = {"user_id": user_id, "login": login, "password": password, "username": username, "user_level": user_level, "can_edit_objects": can_edit_objects}
+    user = {"user_id": user_id, "registeted_at": registeted_at, "login": login, "password": password, "username": username, 
+        "user_level": user_level, "can_login": can_login, "can_edit_objects": can_edit_objects}
     for k in pop_keys:
         user.pop(k, None)
     return user
@@ -33,11 +39,11 @@ def insert_users(users, db_cursor, config, generate_user_ids = False):
     query = ""
 
     if generate_user_ids:
-        query = "INSERT INTO %s VALUES " + ", ".join(("(DEFAULT, %s, crypt(%s, gen_salt('bf')), %s, %s, %s)" for _ in range(len(users))))
+        query = "INSERT INTO %s VALUES " + ", ".join(("(DEFAULT, %s, %s, crypt(%s, gen_salt('bf')), %s, %s, %s, %s)" for _ in range(len(users))))
         for t in users:
             params.extend((t[k] for k in t if k != "user_id"))
     else:
-        query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, crypt(%s, gen_salt('bf')), %s, %s, %s)" for _ in range(len(users))))
+        query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, crypt(%s, gen_salt('bf')), %s, %s, %s, %s)" for _ in range(len(users))))
         for t in users:
             params.extend(t.values())
     db_cursor.execute(query, params)

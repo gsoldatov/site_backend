@@ -5,6 +5,8 @@ Revises: f09e2de355b2
 Create Date: 2021-08-29 12:52:30.874486
 
 """
+from datetime import datetime
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.schema import FetchedValue
@@ -38,10 +40,12 @@ def upgrade():
     )
     op.create_table('users',
     sa.Column('user_id', sa.Integer(), server_default=FetchedValue(), nullable=False),
+    sa.Column('registered_at', sa.DateTime(), nullable=False),
     sa.Column('login', sa.String(length=255), nullable=False),
     sa.Column('password', sa.Text(), nullable=False),
     sa.Column('username', sa.String(length=255), nullable=False),
     sa.Column('user_level', sa.String(length=16), nullable=False),
+    sa.Column('can_login', sa.Boolean(), nullable=False),
     sa.Column('can_edit_objects', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('user_id', name=op.f('pk_users')),
     sa.UniqueConstraint('login', name=op.f('uq_users_login')),
@@ -70,11 +74,12 @@ def upgrade():
     op.execute("INSERT INTO settings VALUES ('registration_allowed', 'FALSE')")
 
     # Add default user
+    current_time = datetime.utcnow()
     login = app_config["app"]["default_user"]["login"]
     password = app_config["app"]["default_user"]["password"]
     username = app_config["app"]["default_user"]["username"]
-    op.execute(f"""INSERT INTO users (login, password, username, user_level, can_edit_objects)
-                   VALUES ('{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE)""")
+    op.execute(f"""INSERT INTO users (registered_at, login, password, username, user_level, can_login, can_edit_objects)
+                   VALUES ('{current_time}', '{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE, TRUE)""")
 
     # Objects table
     op.add_column('objects', sa.Column('is_published', sa.Boolean()))

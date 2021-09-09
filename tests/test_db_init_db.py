@@ -30,14 +30,14 @@ def test_connect_disconnect(config):
 
 def test_create_user(config, init_db_cursor):
     db_config = config["db"]
-    create_user(init_db_cursor, db_config["db_username"], db_config["db_password"], False)
+    create_user(init_db_cursor, db_config["db_username"], db_config["db_password"])
     init_db_cursor.execute(f"SELECT usename FROM pg_user where usename = \'{db_config['db_username']}\'")
     assert init_db_cursor.fetchone() == (db_config["db_username"],)
 
 
 def test_create_db(config, init_db_cursor):
     db_config = config["db"]
-    create_db(init_db_cursor, db_config["db_database"], db_config["db_username"], False)
+    create_db(init_db_cursor, db_config["db_database"], db_config["db_username"])
     init_db_cursor.execute(f"SELECT datname FROM pg_database where datname = \'{db_config['db_database']}\'")
     assert init_db_cursor.fetchone() == (db_config["db_database"],)
 

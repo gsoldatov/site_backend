@@ -30,10 +30,12 @@ def get_tables(config):
             "users",
             meta,
             Column("user_id", Integer, primary_key=True, server_default=FetchedValue()),
+            Column("registered_at", DateTime, nullable=False),
             Column("login", String(255), nullable=False, unique=True),
             Column("password", Text, nullable=False),
             Column("username", String(255), nullable=False, unique=True),
             Column("user_level", String(16), nullable=False),
+            Column("can_login", Boolean, nullable=False),
             Column("can_edit_objects", Boolean, nullable=False)
         ),
 

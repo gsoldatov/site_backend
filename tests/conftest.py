@@ -140,11 +140,12 @@ def insert_data(config, db_cursor):
     db_cursor.execute("INSERT INTO settings VALUES ('registration_allowed', 'FALSE')")
 
     # Insert admin
+    current_time = datetime.utcnow()
     login = config["app"]["default_user"]["login"]
     password = config["app"]["default_user"]["password"]
     username = config["app"]["default_user"]["username"]
-    db_cursor.execute(f"""INSERT INTO users (login, password, username, user_level, can_edit_objects)
-                   VALUES ('{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE)""")
+    db_cursor.execute(f"""INSERT INTO users (registered_at, login, password, username, user_level, can_login, can_edit_objects)
+                   VALUES ('{current_time}', '{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE, TRUE)""")
     
     # Insert admin session
     db_cursor.execute("SELECT user_id FROM users")

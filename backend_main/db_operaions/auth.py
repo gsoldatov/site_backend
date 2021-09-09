@@ -13,7 +13,7 @@ from backend_main.auth.route_access_checks.util import debounce_anonymous
 async def prolong_token_and_get_user_info(request):
     """
     Gets user information for the provided access token and adds it to `request.user_info`.
-    Raises 401 if token is not found or expired.
+    Raises 401 if token is not found or expired, or is user's `can_login` attribute is false.
     Prolongs the lifetime of the token if otherwise.
     """
     # Exit if anonymous
@@ -40,12 +40,15 @@ async def prolong_token_and_get_user_info(request):
 
     result = await request["conn"].execute(
         select([users.c.user_id, users.c.user_level, users.c.can_edit_objects])
-        .where(users.c.user_id.in_(select([update_cte.c.user_id])))
+        .where(and_(
+            users.c.user_id.in_(select([update_cte.c.user_id])),
+            users.c.can_login == True
+        ))
     )
 
     info = await result.fetchone()
 
-    # Raise 401 if token was not found or expired
+    # Raise 401 if token was not found or expired, os user is not allowed to login
     if not info:
         raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
     
@@ -134,8 +137,8 @@ def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
     """
     Returns and SQL Alchemy where clause with a subquery for a specified `object_data_table`, which:
     - filters objects with provided `object_ids` if user has `admin` level;
-    - filters objects with provided `object_ids`, which are non-published and belong to other users if user has 'user' level;
-    - filters objects with provided `object_ids`, which are non-published if user is anonymous.
+    - filters objects with provided `object_ids`, which are not published and belong to other users if user has 'user' level;
+    - filters objects with provided `object_ids`, which are not published if user is anonymous.
     """
     objects = request.app["tables"]["objects"]
     ui = request.user_info
