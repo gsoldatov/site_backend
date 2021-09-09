@@ -71,7 +71,7 @@ def upgrade():
     )
 
     # Add app setting
-    op.execute("INSERT INTO settings VALUES ('registration_allowed', 'FALSE')")
+    op.execute("INSERT INTO settings VALUES ('non_admin_registration_allowed', 'FALSE')")
 
     # Add default user
     current_time = datetime.utcnow()
