@@ -5,7 +5,7 @@ from psycopg2.extensions import cursor as CursorClass
 import alembic.config
 
 
-class DBExistsException(Exception):
+class InitDBException(Exception):
     pass
 
 
@@ -23,50 +23,82 @@ def disconnect(cursor):
             cursor.connection.close()
 
 
-
-
-def create_user(cursor, user, password, force):
-    # Check if user exists
-    cursor.execute(f"SELECT usesysid FROM pg_catalog.pg_user WHERE usename = '{user}'")
-    user_id = cursor.fetchone()
-    if user_id is not None:
-        if not force:
-            raise DBExistsException(f"Username '{user}'' already exists, exiting without recreating and applying migrations.")
-        else:
-            # Close user connections and delete him if --force flag is provided
-            cursor.execute(f"""
-                            SELECT pg_terminate_backend(pg_stat_activity.pid)
-                            FROM pg_stat_activity
-                            WHERE pg_stat_activity.usesysid = '{user_id}';
-            """)
-            cursor.execute(f"DROP ROLE {user};")
-            print(f"Deleted existing user '{user}'.")
+def drop_user_and_db(cursor, db_config, force):
+    """
+    Removes user and database with `db_username` and `db_database` names specified in the config respectively, if `force` flag is true.
+    Checks all existing databases, reassigns all owned objects to default user and removes all privileges granted to default user.
+    After that, deletes the user and the database.
+    """
+    # Validate `db_database` and `db_username` values
+    print("Removing existing user and database...")
+    print("Validating db_config.")
+    db_init_username, db_init_database = db_config["db_init_username"], db_config["db_init_database"]
+    db_username, db_database = db_config["db_username"], db_config["db_database"]
     
-    # Create user
+    if db_init_database == db_database: raise InitDBException("db_init_database and db_database cannot be equal.")    
+    if db_database == "template0": raise InitDBException("db_database cannot be equal to 'template0'.")
+
+    # Get user and database
+    cursor.execute(f"SELECT usename FROM pg_user WHERE usename = '{db_username}'")
+    user_exists = cursor.fetchone() is not None
+    cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname = '{db_database}'")
+    database_exists = cursor.fetchone() is not None
+
+    # If none exists, return
+    print(f"db_username exists: {user_exists}, db_database exists: {database_exists}.")
+    if not (user_exists or database_exists):
+        print("Neither db_username, nor db_database exist, existing removal function.")
+        return
+    
+    # If at least one exists, and force flag is not provided, raise InitDBException
+    if not force: raise InitDBException(f"Cannot remove existing user or database without --force flag specified.")
+
+    if user_exists and db_init_username != db_username: # if `db_init_username` is used as app user, don't delete it
+        print(f"Deleting existing role '{db_username}'...")
+        # Close existing connections of `db_username`
+        cursor.execute(f"""
+                        SELECT pg_terminate_backend(pg_stat_activity.pid)
+                        FROM pg_stat_activity
+                        WHERE pg_stat_activity.usename = '{db_username}';
+        """)
+        print("Closed existing connections.")
+
+        # Connect to each database, except for default => reassign objects owned by `db_username` to `db_init_username` and drop all privileges of `db_username`
+        # https://dba.stackexchange.com/questions/155332/find-objects-linked-to-a-postgresql-role
+        cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname NOT IN ('template0', '{db_init_database}')")
+        for (database_name, ) in cursor.fetchall():
+            database_cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=database_name,
+                user=db_init_username, password=db_config["db_init_password"])
+            database_cursor.execute(f"""REASSIGN OWNED BY {db_username} TO {db_init_username}; DROP OWNED BY {db_username};""")
+            disconnect(database_cursor)
+        print(f"Finished clearing ownership & privileges in existing databases.")
+        
+        # Drop user
+        cursor.execute(f"DROP ROLE {db_username};")
+        print(f"Successfully deleted existing role '{db_username}'.")
+    
+    if database_exists:
+        print(f"Deleting existing database '{db_database}'...")
+        # Close existing connections to the database
+        cursor.execute(f"""
+                        SELECT pg_terminate_backend(pg_stat_activity.pid)
+                        FROM pg_stat_activity
+                        WHERE pg_stat_activity.datname = '{db_database}'
+                        AND pid <> pg_backend_pid();
+        """)
+        print(f"Closed existing connections to the database.")
+
+        # Drop database
+        cursor.execute(f"DROP DATABASE {db_database};")
+        print(f"Successfully deleted existing database '{db_database}'.")
+
+
+def create_user(cursor, user, password):
     cursor.execute(f"CREATE ROLE {user} PASSWORD '{password}' LOGIN;")
     print("Finished creating the user.")
 
 
-def create_db(cursor, db_name, db_owner, force):
-    # Check if db exists
-    cursor.execute(f"SELECT COUNT(*) as count FROM pg_database WHERE datname='{db_name}'")
-    db_exists = cursor.fetchone()[0]
-
-    if db_exists:
-        # Stop if db exists and --force flag is not provided
-        if not force:
-            raise DBExistsException(f"Database already exists, exiting without recreating and applying migrations.")
-        
-        # Close connections and drop existing database if --force flag is provided
-        cursor.execute(f"""
-                        SELECT pg_terminate_backend(pg_stat_activity.pid)
-                        FROM pg_stat_activity
-                        WHERE pg_stat_activity.datname = '{db_name}'
-                        AND pid <> pg_backend_pid();
-        """)
-        cursor.execute(f"DROP DATABASE {db_name};")
-        print(f"Deleted existing database '{db_name}'.")
-    
+def create_db(cursor, db_name, db_owner):
     cursor.execute(f"CREATE DATABASE {db_name} ENCODING 'UTF-8' OWNER {db_owner} TEMPLATE template0;")
     print("Finished creating the database.")
 
@@ -88,6 +120,7 @@ def revision(message = ""):
 
 def migrate_as_superuser(db_config):
     """Additional migration commands which require as superuser privilege."""
+    print("Running migrations as superuser...")
     cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
                                 user=db_config["db_init_username"], password=db_config["db_init_password"])
     try:
@@ -96,9 +129,11 @@ def migrate_as_superuser(db_config):
     finally:
         if type(cursor) == CursorClass:
             disconnect(cursor)
+        print("Fihished running migrations as superuser.")
 
 
 def migrate(config_file = None):
+    print("Running Alembic migrations...")
     # Set current working directory
     cwd = os.getcwd()
     alembic_dir = os.path.dirname(__file__)
@@ -111,4 +146,4 @@ def migrate(config_file = None):
 
     # Restore current working directory
     os.chdir(cwd)
-    print("Finished migrating the database.")
+    print("Finished running Alembic migrations.")
