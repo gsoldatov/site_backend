@@ -6,7 +6,7 @@ from backend_main.auth.route_access_checks.util import debounce_anonymous, debou
 
 def objects_modify(request):
     """
-    - if unauthorized or invalid token, return 401;
+    - if unauthenticated or invalid token, return 401;
     - if not an admin & `can_edit_objects` = false, return 403;
     """
     debounce_anonymous(request)
