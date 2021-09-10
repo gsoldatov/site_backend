@@ -48,6 +48,7 @@ async def prolong_access_token_and_get_user_info(request):
     
     ui = request.user_info
     ui.user_id, ui.user_level, ui.can_edit_objects = info[0], info[1], info[2]
+    ui.access_token_expiration_time = expiration_time
 
 
 async def add_session(request, user_id):

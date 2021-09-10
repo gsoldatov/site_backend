@@ -14,7 +14,7 @@ from backend_main.db_operations.users import add_user, get_user_by_credentials
 
 from backend_main.schemas.auth import register_schema, login_schema
 
-from backend_main.util.json import row_proxy_to_dict
+from backend_main.util.json import row_proxy_to_dict, serialize_datetime_to_str
 from backend_main.util.login_attempts_timeout import get_login_attempts_timeout_in_seconds
 
 
@@ -93,7 +93,7 @@ async def login(request):
         # Return access token
         return web.json_response({"auth": {
             "access_token": session["access_token"],
-            "access_token_expiration_time": session["expiration_time"],
+            "access_token_expiration_time": serialize_datetime_to_str(session["expiration_time"]),
             "user_level": user_data.user_level
         }})
 

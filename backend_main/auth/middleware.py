@@ -5,7 +5,8 @@ from aiohttp import web
 
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
 from backend_main.auth.route_access_checks import check_route_access
-from backend_main.util.json import error_json
+from backend_main.util.json import error_json, serialize_datetime_to_str
+from backend_main.util.constants import AUTH_SUBAPP_PREFIX
 
 
 @web.middleware
@@ -23,7 +24,13 @@ async def auth_middleware(request, handler):
     check_route_access(request)
 
     # Call next handler
-    return await handler(request)
+    response = await handler(request)
+
+    # Add new access token expiration time to the response (except for auth routes)
+    if not request.path.startswith(f"/AUTH_SUBAPP_PREFIX"):
+        response["auth"] = response.get("auth", {})
+        response["auth"]["access_token_expiration_time"] = serialize_datetime_to_str(request.user_info.access_token_expiration_time)
+
 
 
 def parse_access_token(request):
@@ -46,7 +53,8 @@ class UserInfo:
     """
     Dataclass for storing user information which corresponds to the provided `token`.
     """
-    __slots__ = ["access_token", "is_anonymous", "user_id", "user_level", "can_edit_objects"]
+    __slots__ = ["access_token", "is_anonymous", "user_id", "user_level", 
+        "can_edit_objects", "access_token_expiration_time"]
 
     def __init__(self, access_token = None):
         self.access_token = access_token
@@ -55,3 +63,4 @@ class UserInfo:
         self.user_id = None
         self.user_level = None
         self.can_edit_objects = None
+        self.access_token_expiration_time = None

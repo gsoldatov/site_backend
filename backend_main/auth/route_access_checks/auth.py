@@ -4,6 +4,8 @@ Auth checks for /auth/* routes.
 from backend_main.auth.route_access_checks.util import debounce_anonymous, \
     debounce_authenticated_non_admins, debounce_authenticated
 
+from backend_main.util.constants import AUTH_SUBAPP_PREFIX
+
 
 def register(request):
     """
@@ -26,7 +28,7 @@ def logout(request):
     debounce_anonymous(request)
 
 auth_checks = {
-    "/auth/register": register,
-    "/auth/login": login,
-    "/auth/logout": logout
+    f"/{AUTH_SUBAPP_PREFIX}/register": register,
+    f"/{AUTH_SUBAPP_PREFIX}/login": login,
+    f"/{AUTH_SUBAPP_PREFIX}/logout": logout
 }
