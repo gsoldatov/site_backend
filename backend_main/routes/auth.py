@@ -5,12 +5,12 @@ from aiohttp import web
 from datetime import datetime
 from jsonschema import validate
 
-from backend_main.db_operations.auth import check_if_non_admin_can_register, get_user_by_credentials
+from backend_main.db_operations.auth import check_if_non_admin_can_register
 from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to_request, \
     upsert_login_rate_limit, delete_login_rate_limits
 from backend_main.db_operations.sessions import add_session, delete_sessions
 from backend_main.db_operations.settings import view_settings
-from backend_main.db_operations.users import add_user
+from backend_main.db_operations.users import add_user, get_user_by_credentials
 
 from backend_main.schemas.auth import register_schema, login_schema
 

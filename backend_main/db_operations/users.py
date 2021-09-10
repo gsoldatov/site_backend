@@ -28,6 +28,24 @@ async def add_user(request, data):
     return await result.fetchone()
 
 
+async def get_user_by_credentials(request, login, password):
+    """
+    Returns information about the user with provided `login` and `password`, if he exists.
+    """
+    users = request.app["tables"]["users"]
+    password_clause = text("password = crypt(':submitted_password', password)")
+
+    result = await request["conn"].execute(
+        select([users.c.user_id, users.c.username, users.c.user_level, 
+            users.can_login, users.c.can_edit_objects])
+        .where(and_(
+            users.c.login == login,
+            password_clause
+        ))
+    , submitted_password=password)  # password is passed as a bind parameter in order to escape it
+    return await result.fetchone()
+
+
 async def check_if_user_ids_exist(request, user_ids):
     """
     Checks if provided `user_id` exists in the database.
@@ -45,4 +63,3 @@ async def check_if_user_ids_exist(request, user_ids):
     if len(user_ids) > len(existing_user_ids):
         non_existing_user_ids = set(user_ids).difference(existing_user_ids)
         raise web.HTTPBadRequest(text=error_json(f"User IDs '{non_existing_user_ids}' do not exist."), content_type="application/json")
-        
