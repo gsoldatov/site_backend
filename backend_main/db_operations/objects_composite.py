@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.sql import and_
 from psycopg2.errors import ForeignKeyViolation
 
-from backend_main.db_operaions.auth import get_objects_auth_filter_clause
-from backend_main.db_operaions.objects import add_objects, update_objects, delete_objects
+from backend_main.db_operations.auth import get_objects_auth_filter_clause
+from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
 
 from backend_main.util.json import error_json
 from backend_main.util.validation import validate_composite

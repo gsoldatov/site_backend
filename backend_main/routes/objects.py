@@ -10,9 +10,9 @@ from backend_main.schemas.objects import objects_add_schema, objects_update_sche
     objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema
 from backend_main.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
-from backend_main.db_operaions.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
+from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at
-from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
+from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 
 from backend_main.util.json import row_proxy_to_dict, error_json, serialize_datetime_to_str
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler

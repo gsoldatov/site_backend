@@ -1,13 +1,17 @@
 """
-Auth-related database operations.
+Auth-related database operations and SQLAlchemy constructs.
 """
 from datetime import datetime, timedelta
+from math import ceil
 
 from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_ 
 
 from backend_main.auth.route_access_checks.util import debounce_anonymous
+from backend_main.db_operations.settings import view_settings
+from backend_main.db_operations.settings import view_settings
+from backend_main.util.json import error_json
 
 
 async def prolong_token_and_get_user_info(request):
@@ -17,8 +21,7 @@ async def prolong_token_and_get_user_info(request):
     Prolongs the lifetime of the token if otherwise.
     """
     # Exit if anonymous
-    if request.user_info.is_anonymous:
-        return
+    if request.user_info.is_anonymous: return
     
     users = request.app["tables"]["users"]
     sessions = request.app["tables"]["sessions"]
@@ -155,3 +158,35 @@ def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
             objects.c.object_id.in_(object_ids)
         ))
     )
+
+
+async def check_if_non_admin_can_register(request):
+    """
+    Checks if non-admin registration is enabled.
+    If request was not sent by an admin and registration is not enabled, raises 403.
+    """
+    if request.user_info.user_level == "admin": return
+
+    setting_value = (await view_settings(request, ["non_admin_registration_allowed"]))["setting_value"]
+
+    if not setting_value:
+        raise web.HTTPForbidden(text=error_json(f"Registration is currently unavailable."), content_type="application/json")
+
+
+async def get_user_by_credentials(request, login, password):
+    """
+    Returns information about the user with provided `login` and `password`, if he exists.
+    """
+    users = request.app["tables"]["users"]
+    password_clause = text("password = crypt(':submitted_password', password)")
+
+    result = await request["conn"].execute(
+        select([users.c.user_id, users.c.username, users.c.user_level, 
+            users.can_login, users.c.can_edit_objects])
+        .where(and_(
+            users.c.login == login,
+            password_clause
+        ))
+    , submitted_password=password)  # password is passed as a bind parameter in order to escape it
+    return await result.fetchone()
+    

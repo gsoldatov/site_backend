@@ -3,8 +3,8 @@ from datetime import datetime
 from aiohttp import web
 from jsonschema import validate
 
-from backend_main.db_operaions.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
-from backend_main.db_operaions.objects_tags import view_objects_tags, update_objects_tags
+from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
+from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 from backend_main.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
     tags_get_page_tag_ids_schema, tags_search_schema
 from backend_main.util.json import row_proxy_to_dict

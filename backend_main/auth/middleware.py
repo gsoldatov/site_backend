@@ -3,7 +3,7 @@
 """
 from aiohttp import web
 
-from backend_main.db_operaions.auth import prolong_token_and_get_user_info
+from backend_main.db_operations.auth import prolong_token_and_get_user_info
 from backend_main.auth.route_access_checks import check_route_access
 from backend_main.util.json import error_json
 

@@ -8,8 +8,8 @@ from sqlalchemy import select, func
 from sqlalchemy.sql import and_, or_
 
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
-from backend_main.db_operaions.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
-from backend_main.db_operaions.users import check_if_user_ids_exist
+from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
+from backend_main.db_operations.users import check_if_user_ids_exist
 
 from backend_main.schemas.objects import object_types_enum
 from backend_main.util.json import error_json

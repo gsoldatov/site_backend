@@ -35,3 +35,9 @@ object_types_enum = ["link", "markdown", "to_do_list", "composite"]
 is_published = {
     "type": "boolean"
 }
+
+password = {
+    "type": "string",
+    "minLength": 8,
+    "maxLength": 72
+}

@@ -14,6 +14,14 @@ def debounce_anonymous(request):
         raise web.HTTPUnauthorized(text=error_json("Authentication required."), content_type="application/json")
 
 
+def debounce_authenticated(request):
+    """
+    Raises 403 if user is logged in.
+    """
+    if not request.user_info.is_anonymous:
+        raise web.HTTPForbidden(text=error_json("Logout first to perform the action."), content_type="application/json")
+
+
 def debounce_authenticated_non_admins(request):
     """
     Raises 403 if user is not anonymous and 'user_level' != 'admin'.
