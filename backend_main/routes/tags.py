@@ -27,7 +27,7 @@ async def add(request):
     # Tag objects with the new tag
     tag["object_updates"] = await update_objects_tags(request, {"tag_ids": [tag["tag_id"]], "added_object_ids": added_object_ids})
 
-    return web.json_response({"tag": tag})
+    return {"tag": tag}
 
 
 async def update(request):
@@ -48,7 +48,7 @@ async def update(request):
     tag["object_updates"] = await update_objects_tags(request, 
         {"tag_ids": [tag_id], "added_object_ids": added_object_ids, "removed_object_ids": removed_object_ids})
 
-    return web.json_response({"tag": tag})
+    return {"tag": tag}
 
 
 async def view(request):
@@ -72,7 +72,7 @@ async def view(request):
             tags[row["tag_id"]]["current_object_ids"].append(row["object_id"])
     
     response = {"tags": [tags[k] for k in tags]}
-    return web.json_response(response)
+    return response
 
 
 async def delete(request):
@@ -86,7 +86,7 @@ async def delete(request):
     
     # Send response
     response = {"tag_ids": tag_ids}
-    return web.json_response(response)
+    return response
 
 
 async def get_page_tag_ids(request):
@@ -94,7 +94,7 @@ async def get_page_tag_ids(request):
     data = await request.json()
     validate(instance = data, schema = tags_get_page_tag_ids_schema)
     
-    return web.json_response(await get_page_tag_ids_data(request, data["pagination_info"]))
+    return await get_page_tag_ids_data(request, data["pagination_info"])
         
 
 async def search(request):
@@ -105,7 +105,7 @@ async def search(request):
     # Search tags
     tag_ids = await search_tags(request, data["query"])
 
-    return web.json_response({"tag_ids": tag_ids})
+    return {"tag_ids": tag_ids}
 
 
 # async def merge(request):

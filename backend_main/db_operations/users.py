@@ -2,7 +2,7 @@
 User-related database operations.
 """
 from aiohttp import web
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.sql import text
 
 from backend_main.util.json import error_json
@@ -17,7 +17,7 @@ async def add_user(request, data):
 
     # Use encryption function on the password
     password = data["password"]
-    data["password"] = text("crypt(':password', gen_salt('bf'))")
+    data["password"] = text("crypt(:password, gen_salt('bf'))")
 
     result = await request["conn"].execute(
         users.insert()
@@ -32,12 +32,15 @@ async def get_user_by_credentials(request, login, password):
     """
     Returns information about the user with provided `login` and `password`, if he exists.
     """
+    # Exit if password has incorrect length
+    if len(password) < 8 or len(password) > 72: return None
+    
     users = request.app["tables"]["users"]
-    password_clause = text("password = crypt(':submitted_password', password)")
+    password_clause = text("password = crypt(:submitted_password, password)")
 
     result = await request["conn"].execute(
         select([users.c.user_id, users.c.username, users.c.user_level, 
-            users.can_login, users.c.can_edit_objects])
+            users.c.can_login, users.c.can_edit_objects])
         .where(and_(
             users.c.login == login,
             password_clause

@@ -72,7 +72,7 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
 async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, config, owner_id):
     # Add a second user
-    insert_users([get_test_user(2)], db_cursor, config)
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config)
     schema = config["db"]["db_schema"] 
 
     # Add a correct object with set owner_id

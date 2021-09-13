@@ -53,7 +53,7 @@ async def add(request):
     response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    return web.json_response({"object": response_data})
+    return {"object": response_data}
 
 
 async def update(request):
@@ -86,7 +86,7 @@ async def update(request):
         {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    return web.json_response({"object": response_data})
+    return {"object": response_data}
 
 
 async def view(request):
@@ -131,7 +131,7 @@ async def view(request):
     if len(object_attrs) == 0 and len(object_data) == 0:
         raise web.HTTPNotFound(text = error_json("Objects not found."), content_type = "application/json")
 
-    return web.json_response({ "objects": object_attrs, "object_data": object_data })
+    return {"objects": object_attrs, "object_data": object_data}
 
 
 async def delete(request):
@@ -145,7 +145,7 @@ async def delete(request):
     await delete_objects(request, object_ids, delete_subobjects)
 
     # Send response
-    return web.json_response({"object_ids": object_ids})
+    return {"object_ids": object_ids}
 
 
 async def get_page_object_ids(request):
@@ -153,7 +153,7 @@ async def get_page_object_ids(request):
     data = await request.json()
     validate(instance = data, schema = objects_get_page_object_ids_schema)
     
-    return web.json_response(await get_page_object_ids_data(request, data["pagination_info"]))
+    return await get_page_object_ids_data(request, data["pagination_info"])
 
 
 async def search(request):
@@ -164,7 +164,7 @@ async def search(request):
     # Search objects
     object_ids = await search_objects(request, data["query"])
 
-    return web.json_response({"object_ids": object_ids})
+    return {"object_ids": object_ids}
 
 
 async def update_tags(request):
@@ -180,7 +180,7 @@ async def update_tags(request):
     # Set objects' modified_at time
     response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
 
-    return web.json_response(response_data)
+    return response_data
 
 
 def get_object_data_update_schema(object_type):

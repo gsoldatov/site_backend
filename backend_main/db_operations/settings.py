@@ -6,13 +6,15 @@ from sqlalchemy import select, true
 from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
 
 
-async def view_settings(request, setting_names = []):
+async def view_settings(request, setting_names = [], disable_auth_checks = False):
     """
     Returns the settings specified in `setting_names` (or all app settings if it's omitted).
+    If `disable_auth_checks` is true, auth checks will not be performed.
     """
-    # Debounce non-admins
-    debounce_anonymous(request)
-    debounce_authenticated_non_admins(request)
+    if not disable_auth_checks:
+        # Debounce non-admins
+        debounce_anonymous(request)
+        debounce_authenticated_non_admins(request)
 
     settings = request.app["tables"]["settings"]
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()

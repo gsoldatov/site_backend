@@ -4,6 +4,12 @@ Session-related database operations.
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from aiohttp import web
+from sqlalchemy import select, and_
+
+from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
+from backend_main.util.json import error_json
+
 
 async def prolong_access_token_and_get_user_info(request):
     """
@@ -17,7 +23,7 @@ async def prolong_access_token_and_get_user_info(request):
     users = request.app["tables"]["users"]
     sessions = request.app["tables"]["sessions"]
     current_time = datetime.utcnow()
-    expiration_time = current_time + timedelta(seconds=request.app["config"]["app"]["token_lifetime"])
+    expiration_time = current_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
 
     # Update expiration time and return user information corresponding to the updated token 
     # in a single query using CTE.
@@ -44,11 +50,13 @@ async def prolong_access_token_and_get_user_info(request):
 
     # Raise 401 if token was not found or expired, os user is not allowed to login
     if not info:
-        raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
-    
-    ui = request.user_info
-    ui.user_id, ui.user_level, ui.can_edit_objects = info[0], info[1], info[2]
-    ui.access_token_expiration_time = expiration_time
+        # Don't raise for some route
+        if request.path not in ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING:
+            raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
+    else:
+        ui = request.user_info
+        ui.user_id, ui.user_level, ui.can_edit_objects = info[0], info[1], info[2]
+        ui.access_token_expiration_time = expiration_time
 
 
 async def add_session(request, user_id):
@@ -56,11 +64,11 @@ async def add_session(request, user_id):
     Adds a new session for the provided `user_id` and returns the generated access token.
     """
     sessions = request.app["tables"]["sessions"]
-
+    
     data = {
         "user_id": user_id,
         "access_token": uuid4().hex,
-        "expiration_time": datetime.utcnow() + timedelta(seconds=request.app["config"]["app"]["token_lifetime"])
+        "expiration_time": datetime.utcnow() + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
     }
 
     await request["conn"].execute(

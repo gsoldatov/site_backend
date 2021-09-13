@@ -17,7 +17,7 @@ register_schema = {
             "enum": ["admin", "user"]
         },
         "can_login": {"type": "boolean"},
-        "can_register": {"type": "boolean"}
+        "can_edit_objects": {"type": "boolean"}
     }
 }
 
@@ -28,6 +28,9 @@ login_schema = {
     "additionalProperties": False,
     "properties": {
         "login": name,
-        "password": password
+        "password": {   # Don't limit password length in validation, return 401 manually if len(password) >= 72 (max size for bcrypt-encrypted passwords)
+            "type": "string",
+            "minLength": 1
+        } 
     }
 }

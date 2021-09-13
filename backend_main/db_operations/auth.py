@@ -120,8 +120,8 @@ async def check_if_non_admin_can_register(request):
     """
     if request.user_info.user_level == "admin": return
 
-    setting_value = (await view_settings(request, ["non_admin_registration_allowed"]))["setting_value"]
+    setting_value = (await view_settings(request, ["non_admin_registration_allowed"], disable_auth_checks=True))["non_admin_registration_allowed"]
 
-    if not setting_value:
+    if setting_value.lower() != "true":
         raise web.HTTPForbidden(text=error_json(f"Registration is currently unavailable."), content_type="application/json")
     

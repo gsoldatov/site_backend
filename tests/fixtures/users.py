@@ -4,29 +4,44 @@ from psycopg2.extensions import AsIs
 
 
 admin_token = "admin token"
+non_existing_token = "non-existing token"
 
 headers_admin_token = {"Authorization": f"Bearer {admin_token}"}
+headers_non_existing_token = {"Authorization": f"Bearer {non_existing_token}"}
 
 
-def get_test_user(user_id, registeted_at = None, login = None, password = None, username = None,
+def get_test_user(user_id, registered_at = None, login = None, password = None, password_repeat = None, username = None,
     user_level = None, can_login = None, can_edit_objects = None, pop_keys = []):
     """
-    Returns a new dictionary for users table with attributes specified in `pop_keys` popped from it.
+    Returns a new dictionary for `users` table and auth route tests with attributes specified in `pop_keys` popped from it.
     `user_id` value is provided as the first argument, other user attributes can be optionally provided to override default values.
     """
-    registeted_at = registeted_at if registeted_at is not None else datetime.utcnow()
+    registered_at = registered_at if registered_at is not None else datetime.utcnow()
     login = login if login is not None else f"login {user_id}"
     password = password if password is not None else f"password {user_id}"
+    password_repeat = password_repeat if password_repeat is not None else password
     username = username if username is not None else f"username {user_id}"
     user_level = user_level if user_level is not None else "user"
     can_login = can_login if can_login is not None else True
     can_edit_objects = can_edit_objects if can_edit_objects is not None else True
 
-    user = {"user_id": user_id, "registeted_at": registeted_at, "login": login, "password": password, "username": username, 
-        "user_level": user_level, "can_login": can_login, "can_edit_objects": can_edit_objects}
+    user = {"user_id": user_id, "registered_at": registered_at, "login": login, "password": password, "password_repeat": password_repeat,
+        "username": username, "user_level": user_level, "can_login": can_login, "can_edit_objects": can_edit_objects}
     for k in pop_keys:
         user.pop(k, None)
     return user
+
+
+# Incorrect user registration data
+incorrect_user_attributes = {
+    "login": [1, False, "", "a"*256],
+    "password": [1, False, "a"*7, "a"*73],
+    "password_repeat": [1, False, "a"*7, "a"*73],
+    "username": [1, False, "", "a"*256],
+    "user_level": [1, False, "wrong str"],
+    "can_login": [1, "str"],
+    "can_edit_objects": [1, "str"]
+}
 
 
 def insert_users(users, db_cursor, config, generate_user_ids = False):
@@ -37,7 +52,6 @@ def insert_users(users, db_cursor, config, generate_user_ids = False):
     table = config["db"]["db_schema"] + ".users"
     params = [AsIs(table)]
     query = ""
-
     if generate_user_ids:
         query = "INSERT INTO %s VALUES " + ", ".join(("(DEFAULT, %s, %s, crypt(%s, gen_salt('bf')), %s, %s, %s, %s)" for _ in range(len(users))))
         for t in users:

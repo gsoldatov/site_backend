@@ -321,7 +321,7 @@ async def test_tags_view_route_as_admin(cli, db_cursor, config):
 
 async def test_tags_view_route_as_anonymous(cli, db_cursor, config):
     # Insert mock data
-    insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
 
     object_attributes = [get_test_object(i, owner_id=1 if i <= 2 else 2, is_published=i % 2 == 0, pop_keys=["object_data"]) for i in range(1, 5)]
     insert_objects(object_attributes, db_cursor, config)
@@ -455,7 +455,7 @@ async def test_objects_update_tags_route_as_admin(cli, db_cursor, config):
 
 async def test_objects_update_tags_route_as_anonymous(cli, db_cursor, config):
     # Insert mock data
-    insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
 
     object_attributes = [get_test_object(i, owner_id=1 if i <= 1 else 2, pop_keys=["object_data"]) for i in range(1, 3)]
     insert_objects(object_attributes, db_cursor, config)

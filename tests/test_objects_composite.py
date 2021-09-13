@@ -487,7 +487,7 @@ async def test_add_subobject_with_a_non_existing_owner_id_as_admin(cli, db_curso
         insert_links([get_test_object_data(subobject_id, object_type="link")], db_cursor, config)
     # Insert another user
     if owner_id == 2:
-        insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+        insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
     
     composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
@@ -635,7 +635,7 @@ async def test_view_composite_objects_without_subobjects_as_admin(cli, db_cursor
 
 
 async def test_view_composite_as_anonymous(cli, db_cursor, config):
-    insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
     object_attributes = [get_test_object(1, owner_id=1, pop_keys=["object_data"])]
     object_attributes.extend([get_test_object(i, object_type="composite", is_published=i % 2 == 0,
         owner_id=1 if i <= 35 else 2, pop_keys=["object_data"]) for i in range(31, 41)])

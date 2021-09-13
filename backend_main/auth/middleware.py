@@ -1,6 +1,8 @@
 """
     Auth middleware.
 """
+import json
+
 from aiohttp import web
 
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
@@ -27,10 +29,19 @@ async def auth_middleware(request, handler):
     response = await handler(request)
 
     # Add new access token expiration time to the response (except for auth routes)
-    if not request.path.startswith(f"/AUTH_SUBAPP_PREFIX"):
-        response["auth"] = response.get("auth", {})
-        response["auth"]["access_token_expiration_time"] = serialize_datetime_to_str(request.user_info.access_token_expiration_time)
-
+    if not request.path.startswith(f"/{AUTH_SUBAPP_PREFIX}"):
+        # Check if route returned response of a correct type
+        if type(response) != dict:
+            raise Exception(f"Auth middleware expected {request.path} route handler to return dict, got {type(response)}")
+                
+        if not request.user_info.is_anonymous:
+            response["auth"] = response.get("auth", {})
+            response["auth"]["access_token_expiration_time"] = serialize_datetime_to_str(request.user_info.access_token_expiration_time)
+        
+        # Create a Response object
+        response = web.json_response(response)
+    
+    return response
 
 
 def parse_access_token(request):
@@ -43,7 +54,7 @@ def parse_access_token(request):
     if access_token is None:
         request.user_info = UserInfo()
     else:
-        if access_token.find("Bearer ") == 0:
+        if access_token.find("Bearer ") == 0 and len(access_token) > 7:
             request.user_info = UserInfo(access_token[7:])
         else:
             raise web.HTTPUnauthorized(text=error_json("Incorrect token format."), content_type="application/json")

@@ -23,7 +23,7 @@ def login(request):
 
 def logout(request):
     """
-    - if anonymous, return 403;
+    - if anonymous, return 401;
     """
     debounce_anonymous(request)
 

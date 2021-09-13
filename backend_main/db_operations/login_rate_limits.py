@@ -7,6 +7,7 @@ from math import ceil
 from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_ 
+from sqlalchemy.dialects.postgresql import insert
 
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 from backend_main.db_operations.settings import view_settings
@@ -24,12 +25,12 @@ async def add_login_rate_limit_to_request(request):
         select([login_rate_limits.c.failed_login_attempts, login_rate_limits.c.cant_login_until])
         .where(login_rate_limits.c.ip_address == request.remote)
     )
-    row = result.fetchone()
-    request.login_rate_limit_info = LoginRateLimitInfo(request.remove, row[0], row[1]) if row is not None else LoginRateLimitInfo(request.remote)
+    row = await result.fetchone()
+    request.login_rate_limit_info = LoginRateLimitInfo(request.remote, row[0], row[1]) if row is not None else LoginRateLimitInfo(request.remote)
 
-    seconds_until_logging_in_is_available = ceil((request.login_rate_limit_info.cant_login_until - datetime.utcnow()).total_seconds)
+    seconds_until_logging_in_is_available = ceil((request.login_rate_limit_info.cant_login_until - datetime.utcnow()).total_seconds())
     if seconds_until_logging_in_is_available > 0:
-        raise web.HTTPTooManyRequests(content_type="application/json", headers={"Retry-After": seconds_until_logging_in_is_available})
+        raise web.HTTPTooManyRequests(headers={"Retry-After": str(seconds_until_logging_in_is_available)})
 
 
 async def upsert_login_rate_limit(request, login_rate_limit_info):
@@ -40,7 +41,7 @@ async def upsert_login_rate_limit(request, login_rate_limit_info):
     data = {attr: getattr(login_rate_limit_info, attr) for attr in ("ip_address", "failed_login_attempts", "cant_login_until")}
 
     await request["conn"].execute(
-        login_rate_limits.insert()
+        insert(login_rate_limits)
         .values(data)
         .on_conflict_do_update(
             index_elements=[login_rate_limits.c.ip_address],

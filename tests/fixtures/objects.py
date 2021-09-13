@@ -40,11 +40,11 @@ def get_test_object(object_id, object_type = None, created_at = None, modified_a
             raise ValueError(f"Received an incorrect combination of object_id and object_type in get_test_object function: '{object_id}', '{object_type}'")
     
     curr_time = datetime.utcnow()
-    created_at = created_at if created_at else curr_time
-    modified_at = modified_at if modified_at else curr_time
-    object_name = object_name if object_name else f"Object #{object_id}"
-    object_description = object_description if object_description else f"Description to {object_name}"
-    is_published = is_published if is_published else False
+    created_at = created_at if created_at is not None else curr_time
+    modified_at = modified_at if modified_at is not None else curr_time
+    object_name = object_name if object_name is not None else f"Object #{object_id}"
+    object_description = object_description if object_description is not None else f"Description to {object_name}"
+    is_published = is_published if is_published is not None else False
     object_data = get_test_object_data(object_id, object_type, composite_object_with_subobject_data)["object_data"]
 
     obj = {"object_id": object_id, "object_type": object_type, "created_at": curr_time, "modified_at": curr_time, 
@@ -111,7 +111,7 @@ def _get_composite_object_data(id, composite_object_with_subobject_data = False)
     if composite_object_with_subobject_data:
         so["object_name"] = "subobject name"
         so["object_description"] = "subobject description"
-        so["is_published"] = False,
+        so["is_published"] = False
         so["object_type"] = "link"
         so["object_data"] = get_composite_subobject_object_data(1)
 
@@ -352,7 +352,7 @@ def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, config, obj
     Objects belong to different users and are partially published.
     If `object_type` is provided, inserted objects have it as their object type (defaults to "link").
     """
-    insert_users([get_test_user(2)], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
     object_attributes = [get_test_object(i, object_type=object_type, owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
     # object_attributes = get_objects_attributes_list(1, 10)
     for i in range(5, 10):

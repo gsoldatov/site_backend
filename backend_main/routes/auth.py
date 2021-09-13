@@ -2,7 +2,7 @@
     Authorization & authentication routes.
 """
 from aiohttp import web
-from datetime import datetime
+from datetime import datetime, timedelta
 from jsonschema import validate
 
 from backend_main.db_operations.auth import check_if_non_admin_can_register
@@ -14,8 +14,8 @@ from backend_main.db_operations.users import add_user, get_user_by_credentials
 
 from backend_main.schemas.auth import register_schema, login_schema
 
-from backend_main.util.json import row_proxy_to_dict, serialize_datetime_to_str
-from backend_main.util.login_attempts_timeout import get_login_attempts_timeout_in_seconds
+from backend_main.util.json import error_json, row_proxy_to_dict, serialize_datetime_to_str
+from backend_main.util.login_rate_limits import get_login_attempts_timeout_in_seconds, IncorrectCredentialsException
 
 
 async def register(request):
@@ -23,18 +23,19 @@ async def register(request):
     await check_if_non_admin_can_register(request)
 
     # Validate request schema
-    data = await request.post()
+    data = await request.json()
     validate(instance=data, schema=register_schema)
 
     # Check password
     if data["password"] != data["password_repeat"]:
-        raise web.HTTPBadRequest(text=error_json(f"Password must be correctly repeated."), content_type="application/json")
+        raise web.HTTPBadRequest(text=error_json(f"Password is not correctly repeated."), content_type="application/json")
 
     # Check if non-admins are not trying to set privileges
     forbidden_attributes_for_user = ("user_level", "can_login", "can_edit_objects")
     if request.user_info.user_level != "admin":
         for attr in forbidden_attributes_for_user:
-            raise web.HTTPForbidden(text=error_json(f"Registration is currently unavailable."), content_type="application/json")
+            if attr in data:
+                raise web.HTTPForbidden(text=error_json(f"User privileges can only be set by admins."), content_type="application/json")
     
     # Set default values
     data.pop("password_repeat")
@@ -52,7 +53,7 @@ async def register(request):
     if request.user_info.user_level != "admin":
         for attr in forbidden_attributes_for_user: response.pop(attr)
     
-    return web.json_response({"user": user})
+    return web.json_response({"user": response})
 
 
 async def login(request):
@@ -60,7 +61,7 @@ async def login(request):
     await add_login_rate_limit_to_request(request)
 
     # Validate request schema
-    data = await request.post()
+    data = await request.json()
     validate(instance=data, schema=login_schema)
 
     # Try to get user data
@@ -70,18 +71,18 @@ async def login(request):
     if user_data is None:
         # Update login rate limits
         lrli = request.login_rate_limit_info
-        lrli.failed_login_attempts += 1
         lrli.cant_login_until = datetime.utcnow() + \
             timedelta(seconds=get_login_attempts_timeout_in_seconds(lrli.failed_login_attempts))
+        lrli.failed_login_attempts += 1
         await upsert_login_rate_limit(request, lrli)
 
-        # Raise 401
-        raise web.HTTPUnauthorized(text=error_json("Incorrect login or password."), content_type="application/json")
+        # Raise 401 with committing database changes
+        raise IncorrectCredentialsException()
     
     # User was found
     else:
         # If user can't login, raise 403
-        if not user_data.cant_login:
+        if not user_data.can_login:
             raise web.HTTPForbidden(text=error_json("User is not allowed to login."), content_type="application/json")
         
         # Create a session
@@ -101,13 +102,12 @@ async def login(request):
 async def logout(request):
     # Delete session (if it does not, return 200 anyway)
     await delete_sessions(request, [request.user_info.access_token])
-
-    return web.json_response({"auth": {"expire_access_token": True}})
+    return web.Response()
 
 
 async def get_registration_status(request):
-    setting_value = (await view_settings(request, ["non_admin_registration_allowed"]))["setting_value"]
-    return {"registration_allowed": setting_value.lower() == "true"}
+    setting_value = (await view_settings(request, ["non_admin_registration_allowed"], disable_auth_checks=True))["non_admin_registration_allowed"]
+    return web.json_response({"registration_allowed": setting_value.lower() == "true"})
 
 
 def get_subapp():

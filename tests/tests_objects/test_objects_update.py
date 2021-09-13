@@ -88,7 +88,7 @@ async def test_correct_update_with_set_owner_id_as_admin(cli, db_cursor, config,
 
     # Insert mock values
     _insert_mock_data_for_update_tests(cli, db_cursor, config)
-    insert_users([get_test_user(2)], db_cursor, config)
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config)
 
     # Correct update with set owner_id
     updated_name = "updated name"
