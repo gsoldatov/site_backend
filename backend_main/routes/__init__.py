@@ -10,7 +10,5 @@ def setup_routes(app):
         factory = globals()[f"get_{module_name}_subapp"]
         module = factory()
         app.add_subapp(f"/{module_name}/", module)
-        module["engine"] = app["engine"]
-        module["tables"] = app["tables"]
     
     return app

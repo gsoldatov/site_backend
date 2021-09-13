@@ -13,7 +13,7 @@ async def add_tag(request, tag_attributes):
         Insert a new row into "tags" table with provided object_attributes.
         Returns a RowProxy object with the inserted data.
     """
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
 
     result = await request["conn"].execute(
         tags.insert()
@@ -30,7 +30,7 @@ async def update_tag(request, tag_attributes):
         Returns a RowProxy object with the inserted data.
         Raises a 404 error if tag does not exist.
     """
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
     tag_id = tag_attributes["tag_id"]
 
     result = await request["conn"].execute(
@@ -52,7 +52,7 @@ async def view_tags(request, tag_ids):
         Returns a collection of RowProxy objects with tag attributes for provided tag_ids.
         Raises a 404 error tags do not exist.
     """
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
 
     rows = await request["conn"].execute(
         select([tags])
@@ -71,7 +71,7 @@ async def delete_tags(request, tag_ids):
         Deletes tag attributes for provided tag_ids.
         Raises a 404 error if tags do not exist.
     """
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
     result = await request["conn"].execute(
         tags.delete()
         .where(tags.c.tag_id.in_(tag_ids))
@@ -90,7 +90,7 @@ async def get_page_tag_ids_data(request, pagination_info):
         Raises a 404 error if no tags match the pagination info.
     """
     # Set query params
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
     order_by = tags.c.modified_at if pagination_info["order_by"] == "modified_at" else tags.c.tag_name
     order_asc = pagination_info["sort_order"] == "asc"
     items_per_page = pagination_info["items_per_page"]
@@ -144,7 +144,7 @@ async def search_tags(request, query):
         Raises a 404 error if no tags match the query.
     """
     # Set query params
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
     query_text = "%" + query["query_text"] + "%"
     maximum_values = query.get("maximum_values", 10)
     existing_ids = query.get("existing_ids", [])

@@ -10,8 +10,8 @@ from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.util.validation import validate_to_do_list
 
 async def add_to_do_lists(request, obj_ids_and_data):
-    to_do_lists = request.app["tables"]["to_do_lists"]
-    to_do_list_items = request.app["tables"]["to_do_list_items"]
+    to_do_lists = request.config_dict["tables"]["to_do_lists"]
+    to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
     new_to_do_lists = []
     new_to_do_list_items = []
@@ -51,8 +51,8 @@ async def update_to_do_lists(request, obj_ids_and_data):
         object_data = o["object_data"]
         validate_to_do_list(object_data["items"])
 
-        to_do_lists = request.app["tables"]["to_do_lists"]
-        to_do_list_items = request.app["tables"]["to_do_list_items"]
+        to_do_lists = request.config_dict["tables"]["to_do_lists"]
+        to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
         new_to_do_list = {"object_id": o["object_id"], "sort_type": object_data["sort_type"]}
         new_to_do_list_items = [{
@@ -90,8 +90,8 @@ async def update_to_do_lists(request, obj_ids_and_data):
 
 
 async def view_to_do_lists(request, object_ids):
-    to_do_lists = request.app["tables"]["to_do_lists"]
-    to_do_list_items = request.app["tables"]["to_do_list_items"]
+    to_do_lists = request.config_dict["tables"]["to_do_lists"]
+    to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, to_do_lists.c.object_id)

@@ -23,8 +23,8 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
     if object_ids is not None and tag_ids is not None:
         raise TypeError("view_objects_tags can't receive object and tag IDs at the same time.")
 
-    objects = request.app["tables"]["objects"]
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects = request.config_dict["tables"]["objects"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
 
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
@@ -85,7 +85,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         return []
     
     ## Handle tag_ids passed in added_tags
-    tags = request.app["tables"]["tags"]
+    tags = request.config_dict["tables"]["tags"]
     tag_ids = {id for id in objects_tags_data["added_tags"] if type(id) == int}
     
     if len(tag_ids) > 0:
@@ -152,7 +152,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     await _remove_tags_for_objects(request, {"object_ids": objects_tags_data["object_ids"], "removed_tag_ids": tag_ids})
 
     # Add all combinations of object and tag IDs
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
     pairs = [{"object_id": object_id, "tag_id": tag_id} for object_id in objects_tags_data["object_ids"] for tag_id in tag_ids]
 
     await request["conn"].execute(
@@ -167,7 +167,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
     # Delete data from objects_tags if:
     # 1. "object_ids" and "removed_tag_ids" in otd
     # 2. "object_ids" in otd and "remove_all_tags" == True
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
 
     # 1
     if "object_ids" in objects_tags_data and "removed_tag_ids" in objects_tags_data:
@@ -206,7 +206,7 @@ async def _add_objects_for_tags(request, objects_tags_data):
     await _remove_objects_for_tags(request, {"tag_ids": objects_tags_data["tag_ids"], "removed_object_ids": added_object_ids})
 
     # Add all combinations of object and tag IDs
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
     pairs = [{"object_id": object_id, "tag_id": tag_id} for object_id in added_object_ids for tag_id in objects_tags_data["tag_ids"]]
 
     await request["conn"].execute(
@@ -221,7 +221,7 @@ async def _remove_objects_for_tags(request, objects_tags_data):
     # Delete data from objects_tags if:
     # 1. "tag_ids" and "removed_object_ids" in otd
     # 2. "tag_ids" in otd and "remove_all_objects" == True
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
 
     # 1
     if "tag_ids" in objects_tags_data and "removed_object_ids" in objects_tags_data:
@@ -251,7 +251,7 @@ async def _remove_objects_for_tags(request, objects_tags_data):
 async def _check_object_ids(request, checked_object_ids):
     if type(checked_object_ids) != set:
         checked_object_ids = set(checked_object_ids)
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     result = await request["conn"].execute(
         select([objects.c.object_id])
         .where(objects.c.object_id.in_(checked_object_ids))

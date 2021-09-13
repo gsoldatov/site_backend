@@ -9,7 +9,7 @@ from backend_main.util.json import error_json
 
 @web.middleware
 async def connection_middleware(request, handler):
-    async with request.app["engine"].acquire() as conn:
+    async with request.config_dict["engine"].acquire() as conn:
         request["conn"] = conn
         trans = await conn.begin()
         try:

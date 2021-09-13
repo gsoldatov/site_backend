@@ -12,7 +12,7 @@ from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 async def add_markdown(request, obj_ids_and_data):
     object_data = [{"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]} for o in obj_ids_and_data]
 
-    markdown = request.app["tables"]["markdown"]
+    markdown = request.config_dict["tables"]["markdown"]
     await request["conn"].execute(
         markdown.insert()
         .values(object_data)
@@ -20,7 +20,7 @@ async def add_markdown(request, obj_ids_and_data):
 
 
 async def update_markdown(request, obj_ids_and_data):
-    markdown = request.app["tables"]["markdown"]
+    markdown = request.config_dict["tables"]["markdown"]
 
     for o in obj_ids_and_data:
         object_data = {"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]}
@@ -38,7 +38,7 @@ async def update_markdown(request, obj_ids_and_data):
 
 
 async def view_markdown(request, object_ids):
-    markdown = request.app["tables"]["markdown"]
+    markdown = request.config_dict["tables"]["markdown"]
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, markdown.c.object_id)

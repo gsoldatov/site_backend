@@ -30,7 +30,7 @@ async def add_objects(request, objects_attributes):
     await check_if_user_ids_exist(request, user_ids)
 
     # Insert and return new objects
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
 
     result = await request["conn"].execute(
         objects.insert()
@@ -61,7 +61,7 @@ async def update_objects(request, objects_attributes):
     object_ids = [o["object_id"] for o in objects_attributes]
     await check_if_user_owns_objects(request, object_ids)
 
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     records = []
 
     for oa in objects_attributes:
@@ -87,7 +87,7 @@ async def view_objects(request, object_ids):
     """
     Returns a collection of RowProxy objects with object attributes for provided object_ids.
     """
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
 
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
@@ -111,7 +111,7 @@ async def view_objects_types(request, object_ids):
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
 
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     result = await request["conn"].execute(
         select([objects.c.object_type])
         .distinct()
@@ -131,8 +131,8 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     """
     Deletes object attributes for provided object_ids.
     """
-    objects = request.app["tables"]["objects"]
-    composite = request.app["tables"]["composite"]
+    objects = request.config_dict["tables"]["objects"]
+    composite = request.config_dict["tables"]["composite"]
 
     # Get IDs of subobjects which should be deleted (not present in any non-deleted composite objects)
     subobject_ids_to_delete = []
@@ -182,8 +182,8 @@ async def get_page_object_ids_data(request, pagination_info):
     Returns a dict object to be used as a response body.
     Raises a 404 error if no objects match the pagination info.
     """
-    objects = request.app["tables"]["objects"]
-    objects_tags = request.app["tables"]["objects_tags"]
+    objects = request.config_dict["tables"]["objects"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
 
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
@@ -260,7 +260,7 @@ async def search_objects(request, query):
     Returns a list of object IDs matching the provided query.
     Raises a 404 error if no objects match the query.
     """
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     query_text = "%" + query["query_text"] + "%"
     maximum_values = query.get("maximum_values", 10)
     existing_ids = query.get("existing_ids", [])
@@ -302,7 +302,7 @@ async def set_modified_at(request, object_ids, modified_at = None):
         raise TypeError("modified_at is not a datetime object")
 
     # Update modified_at
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     await request["conn"].execute(objects.update()
         .where(objects.c.object_id.in_(object_ids))
         .values(modified_at = modified_at)

@@ -24,7 +24,7 @@ async def check_if_user_owns_objects(request, object_ids):
     debounce_anonymous(request)
 
     if request.user_info.user_level != "admin":
-        objects = request.app["tables"]["objects"]
+        objects = request.config_dict["tables"]["objects"]
         user_id = request.user_info.user_id
 
         result = await request["conn"].execute(
@@ -50,8 +50,8 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
     debounce_anonymous(request)
 
     if request.user_info.user_level != "admin":
-        objects = request.app["tables"]["objects"]
-        objects_tags = request.app["tables"]["objects_tags"]
+        objects = request.config_dict["tables"]["objects"]
+        objects_tags = request.config_dict["tables"]["objects_tags"]
         user_id = request.user_info.user_id
 
         result = await request["conn"].execute(
@@ -76,7 +76,7 @@ def get_objects_auth_filter_clause(request):
     - filters non-published objects of other users if user has 'user' level;
     - 1 = 1 for 'admin' user level.
     """
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     ui = request.user_info
 
     if ui.is_anonymous:
@@ -96,7 +96,7 @@ def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
     - filters objects with provided `object_ids`, which are not published and belong to other users if user has 'user' level;
     - filters objects with provided `object_ids`, which are not published if user is anonymous.
     """
-    objects = request.app["tables"]["objects"]
+    objects = request.config_dict["tables"]["objects"]
     ui = request.user_info
 
     if ui.user_level == "admin":

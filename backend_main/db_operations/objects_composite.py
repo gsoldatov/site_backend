@@ -23,8 +23,8 @@ async def update_composite(request, obj_ids_and_data):
 
 
 async def view_composite(request, object_ids):
-    objects = request.app["tables"]["objects"]
-    composite = request.app["tables"]["composite"]
+    objects = request.config_dict["tables"]["objects"]
+    composite = request.config_dict["tables"]["composite"]
 
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
@@ -169,8 +169,8 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
 
 
 async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
-    objects = request.app["tables"]["objects"]
-    composite = request.app["tables"]["composite"]
+    objects = request.config_dict["tables"]["objects"]
+    composite = request.config_dict["tables"]["composite"]
 
     # Prepare composite object data for insertion
     composite_object_data = []
@@ -212,7 +212,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
 
 
 async def _delete_subobjects(request, obj_ids_and_data):
-    composite = request.app["tables"]["composite"]
+    composite = request.config_dict["tables"]["composite"]
 
     # Delete marked for full deletion subobjects
     marked_for_full_deletion = set()

@@ -15,7 +15,7 @@ async def add_links(request, obj_ids_and_data):
     for nl in new_links:
         validate_link(nl["link"])
     
-    links = request.app["tables"]["links"]
+    links = request.config_dict["tables"]["links"]
     await request["conn"].execute(
         links.insert()
         .values(new_links)
@@ -27,7 +27,7 @@ async def update_links(request, obj_ids_and_data):
         new_link = {"object_id": o["object_id"], "link": o["object_data"]["link"]}
         validate_link(new_link["link"])
         
-        links = request.app["tables"]["links"]
+        links = request.config_dict["tables"]["links"]
         result = await request["conn"].execute(
             links.update()
             .where(links.c.object_id == o["object_id"])
@@ -41,7 +41,7 @@ async def update_links(request, obj_ids_and_data):
 
 
 async def view_links(request, object_ids):
-    links = request.app["tables"]["links"]
+    links = request.config_dict["tables"]["links"]
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, links.c.object_id)

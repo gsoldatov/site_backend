@@ -16,7 +16,7 @@ async def view_settings(request, setting_names = [], disable_auth_checks = False
         debounce_anonymous(request)
         debounce_authenticated_non_admins(request)
 
-    settings = request.app["tables"]["settings"]
+    settings = request.config_dict["tables"]["settings"]
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()
 
     result = await request["conn"].execute(

@@ -13,7 +13,7 @@ async def add_user(request, data):
     Adds a user with properties specified in `data` to the database.
     All auth and data checks are performed in /auth/register route handler.
     """
-    users = request.app["tables"]["users"]
+    users = request.config_dict["tables"]["users"]
 
     # Use encryption function on the password
     password = data["password"]
@@ -35,7 +35,7 @@ async def get_user_by_credentials(request, login, password):
     # Exit if password has incorrect length
     if len(password) < 8 or len(password) > 72: return None
     
-    users = request.app["tables"]["users"]
+    users = request.config_dict["tables"]["users"]
     password_clause = text("password = crypt(:submitted_password, password)")
 
     result = await request["conn"].execute(
@@ -55,7 +55,7 @@ async def check_if_user_ids_exist(request, user_ids):
     Raises 400 if not.
     """
     if len(user_ids) == 0: return
-    users = request.app["tables"]["users"]
+    users = request.config_dict["tables"]["users"]
 
     result = await request["conn"].execute(
         select([users.c.user_id])

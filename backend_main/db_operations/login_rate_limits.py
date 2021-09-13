@@ -19,7 +19,7 @@ async def add_login_rate_limit_to_request(request):
     Gets login rate limit information for the request sender and adds it to request.
     If `cant_login_until` exceeds current time, raises 403.
     """
-    login_rate_limits = request.app["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
 
     result = await request["conn"].execute(
         select([login_rate_limits.c.failed_login_attempts, login_rate_limits.c.cant_login_until])
@@ -37,7 +37,7 @@ async def upsert_login_rate_limit(request, login_rate_limit_info):
     """
     Upserts provided `login_rate_limit_info` into the database.
     """
-    login_rate_limits = request.app["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
     data = {attr: getattr(login_rate_limit_info, attr) for attr in ("ip_address", "failed_login_attempts", "cant_login_until")}
 
     await request["conn"].execute(
@@ -54,7 +54,7 @@ async def delete_login_rate_limits(request, ip_addresses):
     """
     Deletes login rate limits for the specified `ip_addresses`.
     """
-    login_rate_limits = request.app["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
 
     result = await request["conn"].execute(
         login_rate_limits.delete()

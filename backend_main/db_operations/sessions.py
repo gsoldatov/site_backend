@@ -20,8 +20,8 @@ async def prolong_access_token_and_get_user_info(request):
     # Exit if anonymous
     if request.user_info.is_anonymous: return
     
-    users = request.app["tables"]["users"]
-    sessions = request.app["tables"]["sessions"]
+    users = request.config_dict["tables"]["users"]
+    sessions = request.config_dict["tables"]["sessions"]
     current_time = datetime.utcnow()
     expiration_time = current_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
 
@@ -63,7 +63,7 @@ async def add_session(request, user_id):
     """
     Adds a new session for the provided `user_id` and returns the generated access token.
     """
-    sessions = request.app["tables"]["sessions"]
+    sessions = request.config_dict["tables"]["sessions"]
     
     data = {
         "user_id": user_id,
@@ -83,7 +83,7 @@ async def delete_sessions(request, access_tokens):
     """
     Deletes sessions with specified `access_tokens`.
     """
-    sessions = request.app["tables"]["sessions"]
+    sessions = request.config_dict["tables"]["sessions"]
 
     await request["conn"].execute(
         sessions.delete()
