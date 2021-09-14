@@ -26,10 +26,10 @@ async def test_view_non_existing_objects_as_admin(cli):
         assert resp.status == 404
 
 
-async def test_view_existing_objects_as_admin(cli, db_cursor, config):
+async def test_view_existing_objects_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
-    insert_links(links_data_list, db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
+    insert_links(links_data_list, db_cursor)
     
     # Correct request (object_ids only)
     object_ids = [_ for _ in range(1, 11)]
@@ -61,8 +61,8 @@ async def test_view_existing_objects_as_admin(cli, db_cursor, config):
         "Objects view, correct request for both object attributes and data as admin, object_data_ids")
 
 
-async def test_view_existing_objects_as_anonymous(cli, db_cursor, config):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+async def test_view_existing_objects_as_anonymous(cli, db_cursor):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
     
     # Correct request (object_ids only, published objects only are returned)
     requested_object_ids = [i for i in range(1, 11)]

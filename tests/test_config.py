@@ -74,7 +74,7 @@ def test_cors_urls(base_config):
 
 def test_db_config(base_config):
     required_db_settings = ["db_host", "db_port", "db_init_database", "db_init_username", 
-                        "db_init_password", "db_database", "db_schema"]
+                        "db_init_password", "db_database"]
     
     # Check lack of required db settings
     for setting in required_db_settings:
@@ -86,8 +86,7 @@ def test_db_config(base_config):
     # Check incorrect setting values
     for k, v in [("db_host", ""), ("db_host", 0), ("db_port", 1024), ("db_port", 65536), ("db_port", "str"),
         ("db_init_database", ""), ("db_init_database", 0), ("db_init_username", ""), ("db_init_username", 0), 
-        ("db_init_password", ""), ("db_init_password", 0), ("db_database", ""), ("db_database", 0),
-        ("db_schema", ""), ("db_schema", 0)]:
+        ("db_init_password", ""), ("db_init_password", 0), ("db_database", ""), ("db_database", 0)]:
         config = deepcopy(base_config)
         config["db"][k] = v
         with pytest.raises(ValidationError):

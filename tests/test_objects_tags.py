@@ -14,11 +14,9 @@ from fixtures.objects_tags import insert_objects_tags
 from fixtures.users import headers_admin_token, get_test_user, insert_users
 
 
-async def test_objects_add_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-
+async def test_objects_add_route_as_admin(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
 
     # Incorrect object's tags
     for added_tags in ["not a list", 1, {}]:
@@ -42,7 +40,7 @@ async def test_objects_add_route_as_admin(cli, db_cursor, config):
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert type(added_tag_ids) == list
     assert sorted(added_tag_ids) == [1, 2, 9, 10] # "a0", "b1", 9, 10
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 9, 10]
     
     # Add non-existing tags by tag_name (and check duplicate tag_name handling)
@@ -53,22 +51,20 @@ async def test_objects_add_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 3, 4, 11, 12] # "a0", 2, 3, 4, "new tag", "new tag 2"
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 11, 12]
-    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
+    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
 
-async def test_objects_update_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-
+async def test_objects_update_route_as_admin(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, config)    
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)    
     l_list = [get_test_object_data(1)]
-    insert_links(l_list, db_cursor, config)
+    insert_links(l_list, db_cursor)
 
-    insert_objects_tags([1], [1, 2, 3, 4, 5], db_cursor, config)
+    insert_objects_tags([1], [1, 2, 3, 4, 5], db_cursor)
     
     # Incorrect added_tags and removed_tag_ids
     for added_tags in ["not a list", 1, {}]:
@@ -99,7 +95,7 @@ async def test_objects_update_route_as_admin(cli, db_cursor, config):
     assert type(added_tag_ids) == list
     assert sorted(added_tag_ids) == [1, 2, 9, 10] # "i0", 10 were added; 1, 2 ("a0", "b1") were reapplied 
                                                   # (and should be returned for the case with partially applied tags in route with multiple objects being tagged)
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 9, 10]
 
     # Add non-existing tags by tag_name (and check duplicate tag_name handling) + remove existing tags
@@ -111,9 +107,9 @@ async def test_objects_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 11, 12] # 1, 2 were reapplied; "New Tag", "New Tag 2"
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 11, 12] # 9, 10 were removed; 11, 12 were added
-    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
+    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
     # Add tags only
@@ -124,7 +120,7 @@ async def test_objects_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("object", {}).get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [1, 2, 6, 13] # 1, 2 were reapplied; 6 and 13 were added
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11, 12, 13] # 6 and 13 were added
 
     # Remove tags only
@@ -135,19 +131,19 @@ async def test_objects_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     removed_tag_ids = data.get("object", {}).get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [11, 12, 13]
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = {data['object']['object_id']}")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {data['object']['object_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6]
 
 
-async def test_objects_view_route_as_admin(cli, db_cursor, config):
+async def test_objects_view_route_as_admin(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
     objects = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]
-    insert_objects(objects, db_cursor, config)
+    insert_objects(objects, db_cursor)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
-    insert_objects_tags([1], objects_tags[1], db_cursor, config)
-    insert_objects_tags([2], objects_tags[2], db_cursor, config)
+    insert_objects_tags([1], objects_tags[1], db_cursor)
+    insert_objects_tags([2], objects_tags[2], db_cursor)
 
     # View object without tags
     object_ids = [3]
@@ -171,35 +167,31 @@ async def test_objects_view_route_as_admin(cli, db_cursor, config):
         assert sorted(object_data["current_tag_ids"]) == sorted(objects_tags[object_data["object_id"]])
 
 
-async def test_objects_delete_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-
+async def test_objects_delete_route_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
     objects = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]
-    insert_objects(objects, db_cursor, config)
+    insert_objects(objects, db_cursor)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
-    insert_objects_tags([1], objects_tags[1], db_cursor, config)
-    insert_objects_tags([2], objects_tags[2], db_cursor, config)
-    insert_objects_tags([3], objects_tags[3], db_cursor, config)
+    insert_objects_tags([1], objects_tags[1], db_cursor)
+    insert_objects_tags([2], objects_tags[2], db_cursor)
+    insert_objects_tags([3], objects_tags[3], db_cursor)
 
     # Delete 2 objects
     resp = await cli.delete("/objects/delete", json={"object_ids": [1, 2]}, headers=headers_admin_token)
     assert resp.status == 200
 
     for id in [1, 2]:
-        db_cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE object_id = {id}")
+        db_cursor.execute(f"SELECT * FROM objects_tags WHERE object_id = {id}")
         assert not db_cursor.fetchone()
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 3")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 3")
     assert sorted(objects_tags[3]) == sorted([r[0] for r in db_cursor.fetchall()])
 
 
-async def test_tags_add_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-    
+async def test_tags_add_route_as_admin(cli, db_cursor):
     # Insert mock data
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
     
     # Incorrect tag's objects
     for added_object_ids in ["not a list", 1, {}]:
@@ -222,17 +214,15 @@ async def test_tags_add_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [1, 2, 4, 6]
-    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE tag_id = {data['tag']['tag_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 4, 6]
 
 
-async def test_tags_update_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-
+async def test_tags_update_route_as_admin(cli, db_cursor):
     # Insert mock data
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
-    insert_tags([get_test_tag(1)], db_cursor, config)
-    insert_objects_tags([1, 2, 3, 4, 5], [1], db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
+    insert_tags([get_test_tag(1)], db_cursor)
+    insert_objects_tags([1, 2, 3, 4, 5], [1], db_cursor)
 
     # Incorrect added_object_ids and removed_object_ids
     for added_object_ids in ["not a list", 1, {}]:
@@ -262,7 +252,7 @@ async def test_tags_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [3, 4, 6, 7]
-    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE tag_id = {data['tag']['tag_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed; 6, 7 were added
 
     # Tag objects only
@@ -273,7 +263,7 @@ async def test_tags_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_object_ids = data.get("tag", {}).get("object_updates", {}).get("added_object_ids")
     assert sorted(added_object_ids) == [1, 2, 3]
-    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE tag_id = {data['tag']['tag_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 7] # 1, 2 were added
 
     # Untag objects only
@@ -284,18 +274,18 @@ async def test_tags_update_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     removed_object_ids = data.get("tag", {}).get("object_updates", {}).get("removed_object_ids")
     assert sorted(removed_object_ids) == [1, 2]
-    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = {data['tag']['tag_id']}")
+    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE tag_id = {data['tag']['tag_id']}")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5, 6, 7] # 1, 2 were removed
 
 
-async def test_tags_view_route_as_admin(cli, db_cursor, config):
+async def test_tags_view_route_as_admin(cli, db_cursor):
     # Insert mock data
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
-    insert_tags(tags, db_cursor, config)
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
+    insert_tags(tags, db_cursor)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5]}
-    insert_objects_tags(tags_objects[1], [1], db_cursor, config)
-    insert_objects_tags(tags_objects[2], [2], db_cursor, config)
+    insert_objects_tags(tags_objects[1], [1], db_cursor)
+    insert_objects_tags(tags_objects[2], [2], db_cursor)
 
     # View tag without tagged objects
     tag_ids = [3]
@@ -319,17 +309,17 @@ async def test_tags_view_route_as_admin(cli, db_cursor, config):
         assert sorted(tag_data["current_object_ids"]) == sorted(tags_objects[tag_data["tag_id"]])
 
 
-async def test_tags_view_route_as_anonymous(cli, db_cursor, config):
+async def test_tags_view_route_as_anonymous(cli, db_cursor):
     # Insert mock data
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
 
     object_attributes = [get_test_object(i, owner_id=1 if i <= 2 else 2, is_published=i % 2 == 0, pop_keys=["object_data"]) for i in range(1, 5)]
-    insert_objects(object_attributes, db_cursor, config)
+    insert_objects(object_attributes, db_cursor)
 
-    insert_tags([get_test_tag(1), get_test_tag(2)], db_cursor, config)
+    insert_tags([get_test_tag(1), get_test_tag(2)], db_cursor)
 
-    insert_objects_tags([1, 2, 3, 4], [1], db_cursor, config)
-    insert_objects_tags([1, 3], [2], db_cursor, config)
+    insert_objects_tags([1, 2, 3, 4], [1], db_cursor)
+    insert_objects_tags([1, 3], [2], db_cursor)
     
     # View tag with `return_current_object_ids` without any published objects tagged by it
     resp = await cli.post("/tags/view", json={"tag_ids": [2], "return_current_object_ids": True})
@@ -344,39 +334,36 @@ async def test_tags_view_route_as_anonymous(cli, db_cursor, config):
     assert sorted(tag_data["current_object_ids"]) == [2, 4]
 
 
-async def test_tags_delete_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
-
+async def test_tags_delete_route_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor, config)
+    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
     tags = [get_test_tag(1), get_test_tag(2), get_test_tag(3)]
-    insert_tags(tags, db_cursor, config)
+    insert_tags(tags, db_cursor)
     tags_objects = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
-    insert_objects_tags(tags_objects[1], [1], db_cursor, config)
-    insert_objects_tags(tags_objects[2], [2], db_cursor, config)
-    insert_objects_tags(tags_objects[3], [3], db_cursor, config)
+    insert_objects_tags(tags_objects[1], [1], db_cursor)
+    insert_objects_tags(tags_objects[2], [2], db_cursor)
+    insert_objects_tags(tags_objects[3], [3], db_cursor)
 
     # Delete 2 tags
     resp = await cli.delete("/tags/delete", json={"tag_ids": [1, 2]}, headers=headers_admin_token)
     assert resp.status == 200
 
     for id in [1, 2]:
-        db_cursor.execute(f"SELECT * FROM {schema}.objects_tags WHERE tag_id = {id}")
+        db_cursor.execute(f"SELECT * FROM objects_tags WHERE tag_id = {id}")
         assert not db_cursor.fetchone()
-    db_cursor.execute(f"SELECT object_id FROM {schema}.objects_tags WHERE tag_id = 3")
+    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE tag_id = 3")
     assert sorted(tags_objects[3]) == sorted([r[0] for r in db_cursor.fetchall()])
 
 
-async def test_objects_update_tags_route_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
+async def test_objects_update_tags_route_as_admin(cli, db_cursor):
     obj_list = get_objects_attributes_list(1, 10)
 
     # Insert mock values
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
-    insert_objects(obj_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_objects(obj_list, db_cursor)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
-    insert_objects_tags([1], objects_tags[1], db_cursor, config)
-    insert_objects_tags([2], objects_tags[2], db_cursor, config)
+    insert_objects_tags([1], objects_tags[1], db_cursor)
+    insert_objects_tags([2], objects_tags[2], db_cursor)
 
 
     # Incorrect attributes
@@ -411,20 +398,20 @@ async def test_objects_update_tags_route_as_admin(cli, db_cursor, config):
     data = await resp.json()
     added_tag_ids = data.get("tag_updates", {}).get("added_tag_ids")
     assert sorted(added_tag_ids) == [3, 4, 5, 6, 11] # c0 = 3; 11 was added for "New Tag"
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11]
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 2")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == sorted(objects_tags[2])
     assert data.get("tag_updates", {}).get("removed_tag_ids") == []
 
     # Check modified_at values for modfied and not modified objects
     # Response from server format: "2021-04-27T15:29:41.701892+00:00"
     # Cursor value format - datetime without timezone, converted to str: "2021-04-27 15:43:02.557558"
-    db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 1")
+    db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 1")
     db_modified_at_value = db_cursor.fetchone()[0].replace(tzinfo=timezone.utc) # add a UTC timezone for correct comparison
     assert db_modified_at_value == datetime.strptime(data["modified_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
 
-    db_cursor.execute(f"SELECT modified_at FROM {schema}.objects WHERE object_id = 2")
+    db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 2")
     assert db_cursor.fetchone()[0] == obj_list[1]["modified_at"]
 
     # Remove tags by tag_id
@@ -435,7 +422,7 @@ async def test_objects_update_tags_route_as_admin(cli, db_cursor, config):
     assert data.get("tag_updates", {}).get("added_tag_ids") == []
     removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [1, 2, 3]
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [4, 5, 6, 11] # 1, 2, 3 were removed
     
     # Add and remove tags simultaneously
@@ -447,25 +434,25 @@ async def test_objects_update_tags_route_as_admin(cli, db_cursor, config):
     assert sorted(added_tag_ids) == [1, 2, 12] # 12 was added for "New Tag 2"
     removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
     assert sorted(removed_tag_ids) == [3, 4, 5]
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 1")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 6, 11, 12] # 1, 2, 12 were added; 4, 5 were removed
-    db_cursor.execute(f"SELECT tag_id FROM {schema}.objects_tags WHERE object_id = 2")
+    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 2")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 12] # 1, 2 were added; 3, 4, 5 were removed
 
 
-async def test_objects_update_tags_route_as_anonymous(cli, db_cursor, config):
+async def test_objects_update_tags_route_as_anonymous(cli, db_cursor):
     # Insert mock data
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
 
     object_attributes = [get_test_object(i, owner_id=1 if i <= 1 else 2, pop_keys=["object_data"]) for i in range(1, 3)]
-    insert_objects(object_attributes, db_cursor, config)
+    insert_objects(object_attributes, db_cursor)
 
     tags = [get_test_tag(i) for i in range(1, 11)]
-    insert_tags(tags, db_cursor, config)
+    insert_tags(tags, db_cursor)
 
     tags_objects = {1: [1, 2, 3, 4, 5], 2: [1, 2, 6, 7]}
     for k in tags_objects:
-        insert_objects_tags([k], tags_objects[k], db_cursor, config)
+        insert_objects_tags([k], tags_objects[k], db_cursor)
         
     # Try to update objects tags with different parameters
     for updates in [{"object_ids": [1], "added_tags": [6, 7, 8, "New Tag"]},

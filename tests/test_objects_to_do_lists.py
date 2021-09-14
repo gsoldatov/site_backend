@@ -12,8 +12,7 @@ from fixtures.objects import get_test_object, get_objects_attributes_list, get_t
 from fixtures.users import headers_admin_token
 
 
-async def test_add_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
+async def test_add_as_admin(cli, db_cursor):
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
     # Incorrect attributes
@@ -58,7 +57,7 @@ async def test_add_as_admin(cli, db_cursor, config):
     assert resp.status == 400
 
     for table in ["objects", "to_do_lists", "to_do_list_items"]:    # Check that a new object was not created
-        db_cursor.execute(f"SELECT object_id FROM {schema}.{table}") 
+        db_cursor.execute(f"SELECT object_id FROM {table}") 
         assert not db_cursor.fetchone()
     
     # Add a correct to-do list object
@@ -70,11 +69,11 @@ async def test_add_as_admin(cli, db_cursor, config):
     resp_object = resp_json["object"]
 
     # Check to_do_lists table
-    db_cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT sort_type FROM to_do_lists WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (tdl["object_data"]["sort_type"],)
     
     # Check to_do_list_items table
-    db_cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT * FROM to_do_list_items WHERE object_id = {resp_object['object_id']}")
     num_of_items = 0
     for row in db_cursor.fetchall():
         for item in tdl["object_data"]["items"]:
@@ -85,15 +84,14 @@ async def test_add_as_admin(cli, db_cursor, config):
     assert num_of_items == len(tdl["object_data"]["items"])
 
 
-async def test_update_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"]
+async def test_update_as_admin(cli, db_cursor):
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
     # Insert mock values
     obj_list = [get_test_object(7, owner_id=1, pop_keys=["object_data"]), get_test_object(8, owner_id=1, pop_keys=["object_data"])]
     tdl_list = [get_test_object_data(7), get_test_object_data(8)]
-    insert_objects(obj_list, db_cursor, config)
-    insert_to_do_lists(tdl_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
+    insert_to_do_lists(tdl_list, db_cursor)
 
     # Incorrect attributes
     for attr in [{"incorrect attr": "123"}, {"incorrect attr": "123", "sort_type": "default", "items": correct_to_do_list_items}]:
@@ -143,11 +141,11 @@ async def test_update_as_admin(cli, db_cursor, config):
     assert resp.status == 200
 
     # Check to_do_lists table
-    db_cursor.execute(f"SELECT sort_type FROM {schema}.to_do_lists WHERE object_id = {tdl['object_id']}")
+    db_cursor.execute(f"SELECT sort_type FROM to_do_lists WHERE object_id = {tdl['object_id']}")
     assert db_cursor.fetchone() == (tdl["object_data"]["sort_type"],)
     
     # Check to_do_list_items table
-    db_cursor.execute(f"SELECT * FROM {schema}.to_do_list_items WHERE object_id = {tdl['object_id']}")
+    db_cursor.execute(f"SELECT * FROM to_do_list_items WHERE object_id = {tdl['object_id']}")
     num_of_items = 0
     for row in db_cursor.fetchall():
         for item in tdl["object_data"]["items"]:
@@ -158,10 +156,10 @@ async def test_update_as_admin(cli, db_cursor, config):
     assert num_of_items == len(tdl["object_data"]["items"])
 
 
-async def test_view_as_admin(cli, db_cursor, config):
+async def test_view_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_objects(get_objects_attributes_list(21, 30), db_cursor, config)
-    insert_to_do_lists(to_do_lists_data_list, db_cursor, config)
+    insert_objects(get_objects_attributes_list(21, 30), db_cursor)
+    insert_to_do_lists(to_do_lists_data_list, db_cursor)
 
     # Correct request (object_data_ids only, to-do lists), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]
@@ -192,8 +190,8 @@ async def test_view_as_admin(cli, db_cursor, config):
         "Objects view, correct request, to-do lists object_data_ids only")
 
 
-async def test_view_as_anonymous(cli, db_cursor, config):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config, object_type="to_do_list")
+async def test_view_as_anonymous(cli, db_cursor):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, object_type="to_do_list")
 
     # Correct request (object_data_ids only, to-do lists, request all existing objects, receive only published)
     requested_object_ids = [i for i in range(1, 11)]

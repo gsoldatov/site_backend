@@ -37,7 +37,6 @@ def base_config():
             "db_init_username": "username",
             "db_init_password": "pwd123",
             "db_database": "db",
-            "db_schema": "public",
             "db_username": "username",
             "db_password": "pwd456"
     }
@@ -162,9 +161,8 @@ async def app(loop, config, db_cursor, insert_data):
     app = await create_app(config=config)
     yield app
 
-    schema = config["db"]["db_schema"]
     for table in app["tables"]:
-        db_cursor.execute(f"TRUNCATE {schema}.{table} RESTART IDENTITY CASCADE")
+        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
 
 
 @pytest.fixture

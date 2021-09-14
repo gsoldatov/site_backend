@@ -30,11 +30,10 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_update_with_incorrect_data_as_admin(cli, db_cursor, config):
+async def test_update_with_incorrect_data_as_admin(cli, db_cursor):
     # Insert mock values
-    table = config["db"]["db_schema"] + ".tags"
     tag_list = [get_test_tag(1), get_test_tag(2)]
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
     
     # Non-existing tag_id
     tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
@@ -56,32 +55,30 @@ async def test_update_with_incorrect_data_as_admin(cli, db_cursor, config):
     assert resp.status == 400
 
 
-async def test_correct_update_as_admin(cli, db_cursor, config):
+async def test_correct_update_as_admin(cli, db_cursor):
     # Insert mock values
-    table = config["db"]["db_schema"] + ".tags"
     tag_list = [get_test_tag(1)]
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
 
     # Correct update
     tag = get_test_tag(3, pop_keys=["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
+    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
     assert db_cursor.fetchone() == (tag["tag_name"],)
 
 
-async def test_correct_update_as_anonymous(cli, db_cursor, config):
+async def test_correct_update_as_anonymous(cli, db_cursor):
     # Insert mock values
-    table = config["db"]["db_schema"] + ".tags"
     tag_list = [get_test_tag(1)]
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
 
     tag = get_test_tag(3, pop_keys=["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag})
     assert resp.status == 401
-    db_cursor.execute(f"SELECT tag_name FROM {table} WHERE tag_id = 1")
+    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
     assert db_cursor.fetchone() == (tag_list[0]["tag_name"],)
 
 

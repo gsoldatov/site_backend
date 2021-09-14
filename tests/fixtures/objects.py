@@ -249,26 +249,26 @@ composite_data_list = [{
 
 
 # Insert/delete functions for manipulating test data in the database
-def insert_objects(objects, db_cursor, config):
+def insert_objects(objects, db_cursor):
     """
-    Inserts a list of objects into <db_schema>.objects table.
+    Inserts a list of objects into objects table.
     """
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s, %s, %s)" for _ in range(len(objects))))
-    table = config["db"]["db_schema"] + ".objects"
+    table = "objects"
     params = [AsIs(table)]
     for o in objects:
         params.extend(o.values())
     db_cursor.execute(query, params)
 
 
-def insert_links(links, db_cursor, config):
+def insert_links(links, db_cursor):
     """
     Inserts link objects' data into the database.
     `links` is an array with elements as dict objects with the folowing structure:
     {"object_id": ..., "object_data: {"link": ...}}
     """
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(links))))
-    table = config["db"]["db_schema"] + ".links"
+    table = "links"
     params = [AsIs(table)]
     for l in links:
         params.append(l["object_id"])
@@ -276,14 +276,14 @@ def insert_links(links, db_cursor, config):
     db_cursor.execute(query, params)
 
 
-def insert_markdown(markdown, db_cursor, config):
+def insert_markdown(markdown, db_cursor):
     """
     Inserts markdown objects' data into the database.
     `markdown` is an array with elements as dict objects with the folowing structure:
     {"object_id": ..., "object_data: {"raw_text": ...}}
     """
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(markdown))))
-    table = config["db"]["db_schema"] + ".markdown"
+    table = "markdown"
     params = [AsIs(table)]
     for m in markdown:
         params.append(m["object_id"])
@@ -291,7 +291,7 @@ def insert_markdown(markdown, db_cursor, config):
     db_cursor.execute(query, params)
 
 
-def insert_to_do_lists(lists, db_cursor, config):
+def insert_to_do_lists(lists, db_cursor):
     """
     Inserts to-do list objects' data into the database.
     `lists` is an array with elements as dict objects with the folowing structure:
@@ -299,7 +299,7 @@ def insert_to_do_lists(lists, db_cursor, config):
     """
     # to_do_lists
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s)" for _ in range(len(lists))))
-    table = config["db"]["db_schema"] + ".to_do_lists"
+    table = "to_do_lists"
     params = [AsIs(table)]
     for l in lists:
         params.extend([l["object_id"], l["object_data"]["sort_type"]])
@@ -308,7 +308,7 @@ def insert_to_do_lists(lists, db_cursor, config):
     # to_do_list_items
     num_of_lines = sum((len(t["object_data"]["items"]) for t in lists))
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
-    table = config["db"]["db_schema"] + ".to_do_list_items"
+    table = "to_do_list_items"
     params = [AsIs(table)]
     for l in lists:
         for i in l["object_data"]["items"]:
@@ -317,7 +317,7 @@ def insert_to_do_lists(lists, db_cursor, config):
     db_cursor.execute(query, params)
 
 
-def insert_composite(composite, db_cursor, config):
+def insert_composite(composite, db_cursor):
     """
     Inserts composite objects' data into the database.
     `composite` is an array with elements as dict objects with the folowing structure:
@@ -325,7 +325,7 @@ def insert_composite(composite, db_cursor, config):
     """
     num_of_lines = sum((len(c["object_data"]["subobjects"]) for c in composite))
     query = "INSERT INTO %s VALUES " + ", ".join(("(%s, %s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
-    table = config["db"]["db_schema"] + ".composite"
+    table = "composite"
     params = [AsIs(table)]
     for c in composite:
         for so in c["object_data"]["subobjects"]:
@@ -334,11 +334,11 @@ def insert_composite(composite, db_cursor, config):
     db_cursor.execute(query, params)
 
 
-def delete_objects(object_ids, db_cursor, config):
+def delete_objects(object_ids, db_cursor):
     """
     Deletes objects with provided IDs (this should also result in a cascade delete of related data from other tables).
     """
-    table = config["db"]["db_schema"] + ".objects"
+    table = "objects"
     query = "DELETE FROM %s WHERE object_id IN (" + ", ".join(("%s" for _ in range(len(object_ids)))) + ")"
     params = [AsIs(table)]
     params.extend(object_ids)
@@ -346,20 +346,20 @@ def delete_objects(object_ids, db_cursor, config):
 
 
 # Sets of mock data insertions in the database
-def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, config, object_type = "link"):
+def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, object_type = "link"):
     """
     Inserts another user and a set of likn objects in the database.
     Objects belong to different users and are partially published.
     If `object_type` is provided, inserted objects have it as their object type (defaults to "link").
     """
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config) # add a regular user
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
     object_attributes = [get_test_object(i, object_type=object_type, owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
     # object_attributes = get_objects_attributes_list(1, 10)
     for i in range(5, 10):
         object_attributes[i]["owner_id"] = 2
     for i in range(1, 10, 2):
         object_attributes[i]["is_published"] = True
-    insert_objects(object_attributes, db_cursor, config)
+    insert_objects(object_attributes, db_cursor)
     data_insert_func = insert_links if object_type == "link" else insert_markdown if object_type == "markdown" else \
         insert_to_do_lists if object_type == "to_do_list" else insert_composite
-    data_insert_func([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor, config)
+    data_insert_func([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor)

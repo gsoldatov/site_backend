@@ -7,8 +7,7 @@ from sqlalchemy.schema import FetchedValue
 
 def get_tables(config):
     """ Return a dictionary with SA tables and a metadata object. """
-    meta = MetaData(schema = config["db"]["db_schema"],
-        naming_convention={
+    meta = MetaData(naming_convention={
         "ix": "ix_%(column_0_name)s",
         "uq": "uq_%(table_name)s_%(column_0_name)s",
         "ck": "ck_%(table_name)s_%(constraint_name)s",

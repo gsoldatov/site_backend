@@ -33,7 +33,7 @@ async def test_incorrect_request_body_as_admin(cli):
             assert resp.status == 400
 
 
-async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor, config):
+async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor):
     # Write a correct tag
     tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
@@ -48,8 +48,7 @@ async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor, config
     assert tag["tag_name"] == resp_tag["tag_name"]
     assert tag["tag_description"] == resp_tag["tag_description"]
 
-    schema = config["db"]["db_schema"]
-    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags WHERE tag_id = 1")
+    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
     assert db_cursor.fetchone() == (tag["tag_name"],)
 
     # Add an existing tag_name
@@ -57,13 +56,12 @@ async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor, config
     assert resp.status == 400
 
 
-async def test_add_a_correct_tag_as_anonymous(cli, db_cursor, config):
+async def test_add_a_correct_tag_as_anonymous(cli, db_cursor):
     tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
     resp = await cli.post("/tags/add", json={"tag": tag})
     assert resp.status == 401
 
-    schema = config["db"]["db_schema"]
-    db_cursor.execute(f"SELECT tag_name FROM {schema}.tags")
+    db_cursor.execute(f"SELECT tag_name FROM tags")
     assert not db_cursor.fetchone()
 
 

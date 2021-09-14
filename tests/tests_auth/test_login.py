@@ -9,10 +9,10 @@ if __name__ == "__main__":
 from tests.fixtures.users import headers_admin_token, get_test_user, insert_users, incorrect_user_attributes
 
 
-async def test_incorrect_request_body_as_anonymous(cli, db_cursor, config):
+async def test_incorrect_request_body_as_anonymous(cli, db_cursor):
     # Insert a user
     user = get_test_user(2, pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
 
     # Incorrect request body
     resp = await cli.post("/auth/login", data="not a JSON document.")
@@ -48,10 +48,10 @@ async def test_incorrect_request_body_as_anonymous(cli, db_cursor, config):
         assert resp.status == 401 if len(value) == 73 else 400
 
 
-async def test_incorrect_credentials_as_anonymous(cli, db_cursor, config):
+async def test_incorrect_credentials_as_anonymous(cli, db_cursor):
     # Insert a user
     user = get_test_user(2, pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
 
     credentials = {"login": user["login"], "password": "incorrect password"}
     resp = await cli.post("/auth/login", json=credentials)
@@ -62,20 +62,20 @@ async def test_incorrect_credentials_as_anonymous(cli, db_cursor, config):
     assert resp.status == 401
 
 
-async def test_logging_in_as_admin(cli, db_cursor, config):
+async def test_logging_in_as_admin(cli, db_cursor):
     # Insert a user
     user = get_test_user(2, pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
 
     credentials = {"login": user["login"], "password": user["password"]}
     resp = await cli.post("/auth/login", json=credentials, headers=headers_admin_token)
     assert resp.status == 403
 
 
-async def test_failed_login_attempts_limiting_as_anonymous(cli, db_cursor, config):
+async def test_failed_login_attempts_limiting_as_anonymous(cli, db_cursor):
     # Insert a user
     user = get_test_user(2, pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
 
     # Expected login timeouts in seconds
     _LOGIN_TIMEOUTS = [-60] * 9
@@ -132,10 +132,10 @@ async def test_failed_login_attempts_limiting_as_anonymous(cli, db_cursor, confi
         assert timedelta(seconds=0) <= datetime.utcnow() - (rows[0][1] - timedelta(seconds=_LOGIN_TIMEOUTS[i])) <= timedelta(seconds=1)
             
 
-async def test_login_with_a_user_who_cant_login_as_anonymous(cli, db_cursor, config):
+async def test_login_with_a_user_who_cant_login_as_anonymous(cli, db_cursor):
     # Insert a user
     user = get_test_user(2, can_login=False, pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
     
     # Login as a user with `can_login` = False
     credentials = {"login": user["login"], "password": user["password"]}
@@ -146,7 +146,7 @@ async def test_login_with_a_user_who_cant_login_as_anonymous(cli, db_cursor, con
 async def test_logging_in_with_correct_admin_credentials_as_anonymous(cli, db_cursor, config):
     # Insert a user
     user = get_test_user(2, user_level="admin", pop_keys=["password_repeat"])
-    insert_users([user], db_cursor, config)
+    insert_users([user], db_cursor)
 
     # Add a login rate limiting record
     ip_address = "127.0.0.1"
@@ -180,7 +180,7 @@ async def test_logging_in_with_correct_admin_credentials_as_anonymous(cli, db_cu
     assert db_cursor.fetchone() == (0,)
     
 
-async def test_register_and_login_with_registered_credentials(cli, db_cursor, config):    
+async def test_register_and_login_with_registered_credentials(cli, db_cursor):    
     # Register a user
     current_time = datetime.utcnow()
     user = get_test_user(2, user_level="admin", pop_keys=["user_id", "registered_at"])

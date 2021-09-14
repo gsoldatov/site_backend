@@ -21,7 +21,6 @@
         "db_init_password": "dbpass",
         
         "db_database": "dbname",
-        "db_schema": "public",
         "db_username": "dbuser",
         "db_password": "dbpassword"
     }

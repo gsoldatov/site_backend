@@ -42,9 +42,7 @@ async def test_add_object_with_incorrect_data_as_admin(cli):
     assert resp.status == 400
 
 
-async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"] 
-
+async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor):
     # Add a correct object
     link = get_test_object(1, is_published=True, pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
@@ -59,7 +57,7 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
     assert link["object_description"] == resp_object["object_description"]
     assert link["is_published"] == resp_object["is_published"]
 
-    db_cursor.execute(f"SELECT object_name FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT object_name FROM objects WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (link["object_name"],)
 
     # Check if an object with existing name is added
@@ -70,10 +68,9 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor, confi
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
-async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, config, owner_id):
+async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, owner_id):
     # Add a second user
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor, config)
-    schema = config["db"]["db_schema"] 
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor)
 
     # Add a correct object with set owner_id
     link = get_test_object(1, owner_id=owner_id, pop_keys=["object_id", "created_at", "modified_at"])
@@ -82,17 +79,16 @@ async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, config, own
     resp_object = (await resp.json())["object"]
     assert link["owner_id"] == resp_object["owner_id"]
 
-    db_cursor.execute(f"SELECT owner_id FROM {schema}.objects WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT owner_id FROM objects WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (owner_id,)
 
 
-async def test_add_a_correct_object_as_anonymous(cli, db_cursor, config):
+async def test_add_a_correct_object_as_anonymous(cli, db_cursor):
     link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": link})
     assert resp.status == 401
 
-    schema = config["db"]["db_schema"]
-    db_cursor.execute(f"SELECT object_name FROM {schema}.objects")
+    db_cursor.execute(f"SELECT object_name FROM objects")
     assert not db_cursor.fetchone()
 
 

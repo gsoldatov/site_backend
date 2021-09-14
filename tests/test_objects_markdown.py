@@ -12,9 +12,7 @@ from fixtures.objects import get_test_object, get_objects_attributes_list, get_t
 from fixtures.users import headers_admin_token
 
 
-async def test_add_as_admin(cli, db_cursor, config):
-    schema = config["db"]["db_schema"] 
-    
+async def test_add_as_admin(cli, db_cursor):
     # Incorrect markdown attributes
     for attr in [{"incorrect MD attr": "123"}, {"incorrect MD attr": "123", "raw_text": "New text"}]:
         md = get_test_object(4, pop_keys=["object_id", "created_at", "modified_at"])
@@ -28,9 +26,9 @@ async def test_add_as_admin(cli, db_cursor, config):
     resp = await cli.post("/objects/add", json={"object": md}, headers=headers_admin_token)
     assert resp.status == 400
 
-    db_cursor.execute(f"SELECT object_name FROM {schema}.objects") # Check that a new object was not created
+    db_cursor.execute(f"SELECT object_name FROM objects") # Check that a new object was not created
     assert not db_cursor.fetchone()
-    db_cursor.execute(f"SELECT raw_text FROM {schema}.markdown")
+    db_cursor.execute(f"SELECT raw_text FROM markdown")
     assert not db_cursor.fetchone()
 
     # Add a correct markdown object
@@ -41,19 +39,16 @@ async def test_add_as_admin(cli, db_cursor, config):
     assert "object" in resp_json
     resp_object = resp_json["object"]
 
-    db_cursor.execute(f"SELECT raw_text FROM {schema}.markdown WHERE object_id = {resp_object['object_id']}")
+    db_cursor.execute(f"SELECT raw_text FROM markdown WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (md["object_data"]["raw_text"],)
 
 
-async def test_update_as_admin(cli, db_cursor, config):
-    objects = config["db"]["db_schema"] + ".objects"
-    markdown = config["db"]["db_schema"] + ".markdown"
-
+async def test_update_as_admin(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(4, owner_id=1, pop_keys=["object_data"]), get_test_object(5, owner_id=1, pop_keys=["object_data"])]
     md_list = [get_test_object_data(4), get_test_object_data(5)]
-    insert_objects(obj_list, db_cursor, config)
-    insert_markdown(md_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
+    insert_markdown(md_list, db_cursor)
 
     # Incorrect attributes in object_data for markdown
     for object_data in [{}, {"raw_text": "Some text", "incorrect_attr": 1}, {"raw_text": ""}, {"raw_text": 123}]:
@@ -68,14 +63,14 @@ async def test_update_as_admin(cli, db_cursor, config):
     obj["object_id"] = 4
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT raw_text FROM {markdown} WHERE object_id = 4")
+    db_cursor.execute(f"SELECT raw_text FROM markdown WHERE object_id = 4")
     assert db_cursor.fetchone() == (obj["object_data"]["raw_text"],)
 
 
-async def test_view_as_admin(cli, db_cursor, config):
+async def test_view_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_objects(get_objects_attributes_list(11, 20), db_cursor, config)
-    insert_markdown(markdown_data_list, db_cursor, config)
+    insert_objects(get_objects_attributes_list(11, 20), db_cursor)
+    insert_markdown(markdown_data_list, db_cursor)
 
     # Correct request (object_data_ids only, markdown), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]
@@ -97,8 +92,8 @@ async def test_view_as_admin(cli, db_cursor, config):
         "Objects view, correct request as admin, markdown object_data_ids only")
 
 
-async def test_view_as_anonymous(cli, db_cursor, config):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config, object_type="markdown")
+async def test_view_as_anonymous(cli, db_cursor):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor, object_type="markdown")
 
     # Correct request (object_data_ids only, markdown, request all existing objects, receive only published)
     requested_object_ids = [i for i in range(1, 11)]
@@ -111,27 +106,25 @@ async def test_view_as_anonymous(cli, db_cursor, config):
         "Objects view, correct request as anonymous, markdown object_data_ids only")
 
 
-async def test_delete_as_admin(cli, db_cursor, config):
-    markdown = config["db"]["db_schema"] + ".markdown"
-    
+async def test_delete_as_admin(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(4, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(5, owner_id=1, pop_keys=["object_data"]), get_test_object(6, owner_id=1, pop_keys=["object_data"])]
     md_list = [get_test_object_data(4), get_test_object_data(5), get_test_object_data(6)]
-    insert_objects(obj_list, db_cursor, config)
-    insert_markdown(md_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
+    insert_markdown(md_list, db_cursor)
 
     # Correct deletes (general data + markdown)
     resp = await cli.delete("/objects/delete", json={"object_ids": [4]}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT object_id FROM {markdown}")
+    db_cursor.execute(f"SELECT object_id FROM markdown")
     assert db_cursor.fetchone() == (5,)
     assert db_cursor.fetchone() == (6,)
     assert not db_cursor.fetchone()
 
     resp = await cli.delete("/objects/delete", json={"object_ids": [5, 6]}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT object_id FROM {markdown}")
+    db_cursor.execute(f"SELECT object_id FROM markdown")
     assert not db_cursor.fetchone()
 
 

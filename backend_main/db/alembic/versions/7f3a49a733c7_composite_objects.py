@@ -22,18 +22,15 @@ def upgrade():
     sa.Column('subobject_id', sa.Integer(), nullable=True),
     sa.Column('row', sa.Integer(), nullable=False),
     sa.Column('column', sa.Integer(), nullable=False),
-    sa.Column('selected_tab', sa.Integer(), nullable=False),
-    # sa.ForeignKeyConstraint(['object_id'], ['public.objects.object_id'], ondelete='CASCADE'),
-    # sa.ForeignKeyConstraint(['subobject_id'], ['public.objects.object_id'], ondelete='CASCADE'),
-    schema='public'
+    sa.Column('selected_tab', sa.Integer(), nullable=False)
     )
     
-    op.create_foreign_key(op.f('fk_composite_object_id_objects'), 'composite', 'objects', ['object_id'], ['object_id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
-    op.create_foreign_key(op.f('fk_composite_subobject_id_objects'), 'composite', 'objects', ['subobject_id'], ['object_id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_composite_object_id_objects'), 'composite', 'objects', ['object_id'], ['object_id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_composite_subobject_id_objects'), 'composite', 'objects', ['subobject_id'], ['object_id'], ondelete='CASCADE')
 
 
 def downgrade():
-    op.drop_constraint(op.f('fk_composite_subobject_id_objects'), 'composite', schema='public', type_='foreignkey')
-    op.drop_constraint(op.f('fk_composite_object_id_objects'), 'composite', schema='public', type_='foreignkey')
+    op.drop_constraint(op.f('fk_composite_subobject_id_objects'), 'composite', type_='foreignkey')
+    op.drop_constraint(op.f('fk_composite_object_id_objects'), 'composite', type_='foreignkey')
 
-    op.drop_table('composite', schema='public')
+    op.drop_table('composite')

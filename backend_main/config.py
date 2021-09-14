@@ -28,7 +28,7 @@ def _read_config(config_file):
 
 def _validate_and_set_values(config):
     if config:
-        validate(instance = config, schema = config_schema)
+        validate(instance=config, schema=config_schema)
 
         if config["db"].get("db_username"):
             config["db"]["create_user_required"] = True

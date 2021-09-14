@@ -22,21 +22,20 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_search_non_existing_objects_as_admin(cli, db_cursor, config):
+async def test_search_non_existing_objects_as_admin(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
-    insert_objects(obj_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
 
     req_body = {"query": {"query_text": "non-existing object"}}
     resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 404
 
 
-
-async def test_correct_search_requests_as_admin(cli, db_cursor, config):
+async def test_correct_search_requests_as_admin(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
-    insert_objects(obj_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
 
     # Correct request - check response and maximum_values limit
     req_body = {"query": {"query_text": "0", "maximum_values": 2}}
@@ -50,7 +49,7 @@ async def test_correct_search_requests_as_admin(cli, db_cursor, config):
     # Correct request - check if query case is ignored
     insert_objects([{"object_id": 11, "object_type": "link", "created_at": obj_list[0]["created_at"], "modified_at": obj_list[0]["modified_at"], 
                     "object_name": "A", "object_description": "", "is_published": False, "owner_id": 1}]
-                    , db_cursor, config)
+                    , db_cursor)
     req_body = {"query": {"query_text": "A"}}
     resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
@@ -71,8 +70,8 @@ async def test_correct_search_requests_as_admin(cli, db_cursor, config):
     assert data["object_ids"] == [5, 7]    #e0, g0
 
 
-async def test_correct_search_requests_as_anonymous(cli, db_cursor, config):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+async def test_correct_search_requests_as_anonymous(cli, db_cursor):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
     expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
 
     # Search a pattern matching all existing objects (and receive only published in the response)

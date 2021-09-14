@@ -25,14 +25,14 @@ async def test_access_token_parsing(app, cli):
             assert data["_error"] == "Incorrect token format."
         
 
-async def test_invalid_access_token_refusal(app, cli, db_cursor, config):
+async def test_invalid_access_token_refusal(app, cli, db_cursor):
     # Add an expired session for admin
     expired_token = "expired token"
     expiration_time = datetime.utcnow() + timedelta(seconds=-60)
     db_cursor.execute(f"INSERT INTO sessions (user_id, access_token, expiration_time) VALUES (1, '{expired_token}', '{expiration_time}')")
 
     # Add another user who can't login and an active session for him
-    insert_users([get_test_user(2, user_level="admin", can_login=False, pop_keys=["password_repeat"])], db_cursor, config)
+    insert_users([get_test_user(2, user_level="admin", can_login=False, pop_keys=["password_repeat"])], db_cursor)
     active_token_with_disabled_login = "active token with disabled login"
     expiration_time = datetime.utcnow() + timedelta(seconds=60)
     db_cursor.execute(f"INSERT INTO sessions (user_id, access_token, expiration_time) VALUES (2, '{active_token_with_disabled_login}', '{expiration_time}')")
@@ -54,16 +54,13 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor, config):
 
 async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
     # Insert mock data
-    objects = config["db"]["db_schema"] + ".objects"
-    links = config["db"]["db_schema"] + ".links"
-
     obj_list = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(100, 102)]
     l_list = [get_test_object_data(i, object_type="link") for i in range(100, 102)]
-    insert_objects(obj_list, db_cursor, config)
-    insert_links(l_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
+    insert_links(l_list, db_cursor)
 
     tag_list = [get_test_tag(i) for i in range(100, 102)]
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
 
     # Correct request bodies
     correct_request_bodies = {

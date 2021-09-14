@@ -34,11 +34,11 @@ tag_list = [{
     } for x in range(10)
 ]
 
-def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
+def insert_tags(tags, db_cursor, generate_tag_ids = False):
     """
-    Inserts a list of tags into <db_schema>.tags table.
+    Inserts a list of tags into tags table.
     """  
-    table = config["db"]["db_schema"] + ".tags"
+    table = "tags"
     params = [AsIs(table)]
     query = ""
 
@@ -53,11 +53,11 @@ def insert_tags(tags, db_cursor, config, generate_tag_ids = False):
     db_cursor.execute(query, params)
 
 
-def delete_tags(tag_ids, db_cursor, config):
+def delete_tags(tag_ids, db_cursor):
     """
     Deletes tags with provided IDs (this should also result in a cascade delete of related data from other tables).
     """
-    table = config["db"]["db_schema"] + ".tags"
+    table = "tags"
     query = "DELETE FROM %s WHERE tag_id IN (" + ", ".join(("%s" for _ in range(len(tag_ids)))) + ")"
     params = [AsIs(table)]
     params.extend(tag_ids)

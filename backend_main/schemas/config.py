@@ -61,8 +61,7 @@ config_schema = {
                 "db_init_database", 
                 "db_init_username", 
                 "db_init_password", 
-                "db_database", 
-                "db_schema"
+                "db_database"
             ],
             "dependencies": {
                 "db_username": ["db_password"]
@@ -90,10 +89,6 @@ config_schema = {
                     "minLength": 1
                 },
                 "db_database": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "db_schema": {
                     "type": "string",
                     "minLength": 1
                 },

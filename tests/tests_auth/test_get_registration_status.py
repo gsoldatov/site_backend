@@ -9,9 +9,9 @@ from tests.fixtures.users import headers_admin_token, headers_non_existing_token
 
 
 @pytest.mark.parametrize("headers", [None, headers_admin_token, headers_non_existing_token])
-async def test_get_registration_status(cli, db_cursor, config, headers):
+async def test_get_registration_status(cli, db_cursor, headers):
     # Enable non-admin user registration
-    set_setting("non_admin_registration_allowed", "TRUE", db_cursor, config)
+    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
     
     # Get setting value
     resp = await cli.get("/auth/get_registration_status", headers=headers)
@@ -20,7 +20,7 @@ async def test_get_registration_status(cli, db_cursor, config, headers):
     assert data["registration_allowed"] == True
 
     # Disable non-admin user registration
-    set_setting("non_admin_registration_allowed", "FALSE", db_cursor, config)
+    set_setting("non_admin_registration_allowed", "FALSE", db_cursor)
     
     # Get setting value
     resp = await cli.get("/auth/get_registration_status", headers=headers)

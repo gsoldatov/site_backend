@@ -19,9 +19,9 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_view_non_existing_tags_as_admin(cli, db_cursor, config):
+async def test_view_non_existing_tags_as_admin(cli, db_cursor):
     # Insert data
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
     
     resp = await cli.post("/tags/view", json={"tag_ids": [999, 1000]}, headers=headers_admin_token)
     assert resp.status == 404
@@ -29,9 +29,9 @@ async def test_view_non_existing_tags_as_admin(cli, db_cursor, config):
 
 # Run the test twice for unauthorized & admin privilege levels
 @pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_view_existing_tags_as_admin_and_anonymous(cli, db_cursor, config, headers):
+async def test_view_existing_tags_as_admin_and_anonymous(cli, db_cursor, headers):
     # Insert data
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
 
     # Correct request
     tag_ids = [_ for _ in range(1, 11)]

@@ -15,13 +15,11 @@ def test_get_tables(config, db_cursor):
     """
     Checks that SQLAlchemy objects match the state of the database after migrations applied to it.
     """
-    schema = config["db"]["db_schema"]
-
     # Get SQL Alchemy tables
     sa_tables = get_tables(config)[0]
 
     # Check if SA and DB tables match + check that all objects returned by get_tables belong to SQLAlchemy Table class
-    db_cursor.execute(f"SELECT tablename FROM pg_tables WHERE schemaname = '{schema}' AND tablename <> 'alembic_version'")
+    db_cursor.execute(f"SELECT tablename FROM pg_tables WHERE schemaname = current_schema() AND tablename <> 'alembic_version'")
     db_tables = [r[0] for r in db_cursor.fetchall()]
 
     for t in sa_tables:
@@ -39,7 +37,7 @@ def test_get_tables(config, db_cursor):
     db_cursor.execute(f"""
                         SELECT table_name, column_name 
                         FROM information_schema.columns
-                        WHERE table_schema = '{schema}' AND table_name <> 'alembic_version'
+                        WHERE table_schema = current_schema() AND table_name <> 'alembic_version'
                         """
     )
     db_column_names = {}

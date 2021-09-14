@@ -35,7 +35,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_correct_requests_as_admin(cli, db_cursor, config):
+async def test_correct_requests_as_admin(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)   # links
     obj_list.extend(get_objects_attributes_list(11, 18)) # markdown
@@ -43,13 +43,13 @@ async def test_correct_requests_as_admin(cli, db_cursor, config):
     links_count = sum((1 for obj in obj_list if obj["object_type"] == "link"))
     markdown_count = sum((1 for obj in obj_list if obj["object_type"] == "markdown"))
 
-    insert_objects(obj_list, db_cursor, config)
+    insert_objects(obj_list, db_cursor)
 
-    insert_tags(tag_list, db_cursor, config, generate_tag_ids=True)
-    insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor, config)
-    insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor, config)
-    insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor, config)
-    insert_objects_tags([11, 12], [1, 2, 3], db_cursor, config)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor)
+    insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor)
+    insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor)
+    insert_objects_tags([11, 12], [1, 2, 3], db_cursor)
     
     # Correct request - sort by object_name asc + check response body (links only)
     pi = deepcopy(pagination_info)
@@ -105,7 +105,7 @@ async def test_correct_requests_as_admin(cli, db_cursor, config):
                     get_test_object(101, owner_id=1, object_type="link", object_name="AaA", pop_keys=["object_data"]),
                     get_test_object(102, owner_id=1, object_type="link", object_name="AAaa", pop_keys=["object_data"]), 
                     get_test_object(103, owner_id=1, object_type="link", object_name="aaaAa", pop_keys=["object_data"])]
-    , db_cursor, config)
+    , db_cursor)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "aA"
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
@@ -113,7 +113,7 @@ async def test_correct_requests_as_admin(cli, db_cursor, config):
     data = await resp.json()
     assert data["total_items"] == 4 # id = [100, 101, 102, 103]
     assert data["object_ids"] == [100, 101]
-    delete_objects([100, 101, 102, 103], db_cursor, config)
+    delete_objects([100, 101, 102, 103], db_cursor)
 
     # Correct request - sort by object_name with no object names provided (query all object types)
     pi = deepcopy(pagination_info)
@@ -152,8 +152,8 @@ async def test_correct_requests_as_admin(cli, db_cursor, config):
     assert data["total_items"] == 4     # object_ids = [5, 7, 11, 12]
 
 
-async def test_correct_requests_as_anonymous(cli, db_cursor, config):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, config)
+async def test_correct_requests_as_anonymous(cli, db_cursor):
+    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
     expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
 
     # Get all objects on one page (and receive only published)

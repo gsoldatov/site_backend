@@ -34,9 +34,9 @@ async def test_incorrect_request_body_as_admin(cli):
 
 # Run the test twice for unauthorized & admin privilege levels
 @pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, config, headers):
+async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, headers):
     # Insert data
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
     
     # Correct request - sort by tag_name asc + response body
     pi = deepcopy(pagination_info)
@@ -88,7 +88,7 @@ async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, config, h
     assert data["tag_ids"] == [1, 3] # a0, c0
 
     # Correct request - filter by text + check if filter_text case is ignored
-    insert_tags([get_test_tag(100, "aa"), get_test_tag(101, "AaA"), get_test_tag(102, "AAaa"), get_test_tag(103, "aaaAa")], db_cursor, config)
+    insert_tags([get_test_tag(100, "aa"), get_test_tag(101, "AaA"), get_test_tag(102, "AAaa"), get_test_tag(103, "aaaAa")], db_cursor)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "aA"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
@@ -96,7 +96,7 @@ async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, config, h
     data = await resp.json()
     assert data["total_items"] == 4 # id = [100, 101, 102, 103]
     assert data["tag_ids"] == [100, 101]
-    delete_tags([100, 101, 102, 103], db_cursor, config)
+    delete_tags([100, 101, 102, 103], db_cursor)
 
 
 if __name__ == "__main__":

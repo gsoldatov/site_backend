@@ -24,9 +24,9 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_search_non_existing_tags_as_admin(cli, db_cursor, config):
+async def test_search_non_existing_tags_as_admin(cli, db_cursor):
     # Insert data
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
     
     req_body = {"query": {"query_text": "non-existing tag"}}
     resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
@@ -35,9 +35,9 @@ async def test_search_non_existing_tags_as_admin(cli, db_cursor, config):
 
 # Run the test twice for unauthorized & admin privilege levels
 @pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, config, headers):
+async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, headers):
     # Insert data
-    insert_tags(tag_list, db_cursor, config)
+    insert_tags(tag_list, db_cursor)
 
     # Correct request - check response and maximum_values limit
     req_body = {"query": {"query_text": "0", "maximum_values": 2}}
@@ -51,7 +51,7 @@ async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, co
     # Correct request - check if query case is ignored
     insert_tags([{"tag_id": 11, "created_at": tag_list[0]["created_at"], "modified_at": tag_list[0]["modified_at"], 
                     "tag_name": "A", "tag_description": ""}]
-                    , db_cursor, config)
+                    , db_cursor)
     req_body = {"query": {"query_text": "A"}}
     resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
