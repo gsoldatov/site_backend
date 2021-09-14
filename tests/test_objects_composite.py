@@ -15,7 +15,8 @@ from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, get_composite_subobject_object_data, \
     add_composite_subobject, add_composite_deleted_subobject, composite_data_list, \
     insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_data_for_view_objects_as_anonymous
-from fixtures.users import headers_admin_token, get_test_user, insert_users
+from tests.fixtures.sessions import headers_admin_token
+from fixtures.users import get_test_user, insert_users
 
 
 async def test_add_incorrect_top_level_data_as_admin(cli):

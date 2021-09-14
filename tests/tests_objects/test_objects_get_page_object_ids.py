@@ -8,7 +8,7 @@ from tests.fixtures.objects import get_test_object, get_objects_attributes_list,
     insert_data_for_view_objects_as_anonymous
 from tests.fixtures.objects_tags import insert_objects_tags
 from tests.fixtures.tags import tag_list, insert_tags
-from tests.fixtures.users import headers_admin_token
+from tests.fixtures.sessions import headers_admin_token
 
 
 pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}

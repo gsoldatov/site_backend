@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
 
-from tests.fixtures.users import admin_token
+from tests.fixtures.sessions import admin_token
 
 
 @pytest.fixture

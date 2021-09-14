@@ -2,7 +2,7 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-from tests.fixtures.users import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
+from tests.fixtures.sessions import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
 
 
 async def test_logout_as_anonymous(cli):

@@ -5,7 +5,8 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.objects import get_test_object, incorrect_object_values
-from tests.fixtures.users import headers_admin_token, get_test_user, insert_users
+from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.users import get_test_user, insert_users
 
 
 async def test_incorrect_request_body_as_admin(cli):

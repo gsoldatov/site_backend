@@ -3,13 +3,6 @@ from datetime import datetime
 from psycopg2.extensions import AsIs
 
 
-admin_token = "admin token"
-non_existing_token = "non-existing token"
-
-headers_admin_token = {"Authorization": f"Bearer {admin_token}"}
-headers_non_existing_token = {"Authorization": f"Bearer {non_existing_token}"}
-
-
 def get_test_user(user_id, registered_at = None, login = None, password = None, password_repeat = None, username = None,
     user_level = None, can_login = None, can_edit_objects = None, pop_keys = []):
     """

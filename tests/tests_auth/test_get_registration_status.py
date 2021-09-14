@@ -5,7 +5,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.settings import set_setting
-from tests.fixtures.users import headers_admin_token, headers_non_existing_token
+from tests.fixtures.sessions import headers_admin_token, headers_non_existing_token
 
 
 @pytest.mark.parametrize("headers", [None, headers_admin_token, headers_non_existing_token])

@@ -5,7 +5,7 @@ if __name__ == "__main__":
 from tests.util import check_ids
 from tests.fixtures.objects import get_objects_attributes_list,\
     links_data_list, insert_objects, insert_links, insert_data_for_view_objects_as_anonymous
-from tests.fixtures.users import headers_admin_token
+from tests.fixtures.sessions import headers_admin_token
 
 
 async def test_incorrect_request_body_as_admin(cli):

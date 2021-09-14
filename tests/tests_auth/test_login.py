@@ -6,7 +6,8 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-from tests.fixtures.users import headers_admin_token, get_test_user, insert_users, incorrect_user_attributes
+from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.users import get_test_user, insert_users, incorrect_user_attributes
 
 
 async def test_incorrect_request_body_as_anonymous(cli, db_cursor):

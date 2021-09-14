@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
 from tests.fixtures.tags import get_test_tag, tag_list, insert_tags, delete_tags
-from tests.fixtures.users import headers_admin_token
+from tests.fixtures.sessions import headers_admin_token
 
 
 pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}

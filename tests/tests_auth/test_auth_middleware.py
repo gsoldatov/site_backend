@@ -8,7 +8,8 @@ if __name__ == "__main__":
 
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_links
 from tests.fixtures.tags import get_test_tag, insert_tags
-from tests.fixtures.users import get_test_user, insert_users, headers_admin_token, admin_token
+from tests.fixtures.sessions import headers_admin_token, admin_token
+from tests.fixtures.users import get_test_user, insert_users
 
 
 async def test_access_token_parsing(app, cli):
