@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
 
+from tests.util import get_test_name
 from tests.fixtures.sessions import admin_token
 
 
@@ -64,8 +65,8 @@ def config(config_path, test_uuid):
         config = json.load(stream)
 
         # Set unique user and database names
-        config["db"]["db_database"] = config["db"]["db_database"] + f"_{test_uuid}"
-        config["db"]["db_username"] = config["db"]["db_username"] + f"_{test_uuid}"
+        config["db"]["db_database"] = get_test_name(config["db"]["db_database"], test_uuid)
+        config["db"]["db_username"] = get_test_name(config["db"]["db_username"], test_uuid)
 
         return config
 

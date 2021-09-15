@@ -13,6 +13,7 @@ import urllib.parse
 
 from backend_main.config import get_config
 from backend_main.db.tables import get_tables
+from tests.util import get_test_name
 
 
 # this is the Alembic Config object, which provides
@@ -30,8 +31,8 @@ app_config = get_config(app_config_path)
 test_uuid = x_arguments.get("test_uuid")
 if test_uuid is not None:
     test_uuid = test_uuid.replace('"', '')
-    app_config["db"]["db_database"] = app_config["db"]["db_database"] + f"_{test_uuid}"
-    app_config["db"]["db_username"] = app_config["db"]["db_username"] + f"_{test_uuid}"
+    app_config["db"]["db_database"] = get_test_name(app_config["db"]["db_database"], test_uuid)
+    app_config["db"]["db_username"] = get_test_name(app_config["db"]["db_username"], test_uuid)
 
 # Set connection string
 username = urllib.parse.quote(app_config['db']['db_username']).replace("%", "%%") # encode special characters in username and password;
