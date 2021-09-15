@@ -51,10 +51,10 @@ def test_create_db(config, init_db_cursor):
     init_db_cursor.execute(f"""DROP USER IF EXISTS {db_config["db_username"]}""")
 
 
-def test_migrate(config_path, config, db_and_user):
+def test_migrate(config_path, test_uuid, config, db_and_user):
     db_config = config["db"]
     migrate_as_superuser(db_config)
-    migrate(config_file=config_path)
+    migrate(config_file=config_path, test_uuid=test_uuid)
 
     connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
                     database=db_config["db_database"], user=db_config["db_username"], 

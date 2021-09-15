@@ -1,8 +1,9 @@
 import os, sys
 import json
 from datetime import datetime, timedelta
-import psycopg2
+from uuid import uuid4
 
+import psycopg2
 import pytest
 from aiohttp.pytest_plugin import loop, aiohttp_client
 
@@ -51,10 +52,22 @@ def config_path():
     )
 
 @pytest.fixture(scope="module")
-def config(config_path):
+def test_uuid():
+    """Unique key for mock database's and database user's names in each test module."""
+    return uuid4().hex
+
+
+@pytest.fixture(scope="module")
+def config(config_path, test_uuid):
     """ Test configuration of the app. """
     with open(config_path, "r") as stream:
-        return json.load(stream)
+        config = json.load(stream)
+
+        # Set unique user and database names
+        config["db"]["db_database"] = config["db"]["db_database"] + f"_{test_uuid}"
+        config["db"]["db_username"] = config["db"]["db_username"] + f"_{test_uuid}"
+
+        return config
 
 
 @pytest.fixture(scope="module")
@@ -99,7 +112,7 @@ def migrate_as_superuser(config, db_and_user):
 
 
 @pytest.fixture(scope="module")
-def migrate(config_path, db_and_user, migrate_as_superuser):
+def migrate(config_path, test_uuid, db_and_user, migrate_as_superuser):
     """ Run migrations against the test database. `migrate_as_superuser` is called first. """
     # Set current working directory
     cwd = os.getcwd()
@@ -107,7 +120,8 @@ def migrate(config_path, db_and_user, migrate_as_superuser):
     os.chdir(alembic_dir)
 
     # Run revision command
-    alembic_args = ["-x", f'app_config_path="{config_path}"', "upgrade", "head"]
+    # Add test config file location and `test_uuid` as x-arguments for Alembic to get info on database connection
+    alembic_args = ["-x", f'app_config_path="{config_path}"', "-x", f'test_uuid="{test_uuid}"', "upgrade", "head"]
     alembic.config.main(argv=alembic_args)
 
     # Restore current working directory

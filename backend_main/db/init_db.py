@@ -132,7 +132,7 @@ def migrate_as_superuser(db_config):
         print("Fihished running migrations as superuser.")
 
 
-def migrate(config_file = None):
+def migrate(config_file = None, test_uuid = None):
     print("Running Alembic migrations...")
     # Set current working directory
     cwd = os.getcwd()
@@ -140,7 +140,9 @@ def migrate(config_file = None):
     os.chdir(alembic_dir)
 
     # Run revision command
-    alembic_args = ["-x", f'app_config_path="{config_file}"'] if config_file else []
+    alembic_args = []
+    if config_file is not None: alembic_args.extend(["-x", f'app_config_path="{config_file}"'])
+    if test_uuid is not None: alembic_args.extend(["-x", f'test_uuid="{test_uuid}"'])
     alembic_args.extend(["upgrade", "head"])
     alembic.config.main(argv=alembic_args)
 

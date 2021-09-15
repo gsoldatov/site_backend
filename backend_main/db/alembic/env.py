@@ -20,10 +20,18 @@ from backend_main.db.tables import get_tables
 config = context.config
 
 # Get app config
-app_config_path = context.get_x_argument(as_dictionary=True).get("app_config_path")
-if type(app_config_path) == str:
+x_arguments = context.get_x_argument(as_dictionary=True)
+app_config_path = x_arguments.get("app_config_path")
+if app_config_path is not None:
     app_config_path = app_config_path.replace('"', '')
 app_config = get_config(app_config_path)
+
+# Modify app user & db names to match the ones created for the tests if `test_uuid` was passed
+test_uuid = x_arguments.get("test_uuid")
+if test_uuid is not None:
+    test_uuid = test_uuid.replace('"', '')
+    app_config["db"]["db_database"] = app_config["db"]["db_database"] + f"_{test_uuid}"
+    app_config["db"]["db_username"] = app_config["db"]["db_username"] + f"_{test_uuid}"
 
 # Set connection string
 username = urllib.parse.quote(app_config['db']['db_username']).replace("%", "%%") # encode special characters in username and password;
