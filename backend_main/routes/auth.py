@@ -95,6 +95,7 @@ async def login(request):
         return web.json_response({"auth": {
             "access_token": session["access_token"],
             "access_token_expiration_time": serialize_datetime_to_str(session["expiration_time"]),
+            "user_id": user_data.user_id,
             "user_level": user_data.user_level
         }})
 

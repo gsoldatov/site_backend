@@ -168,6 +168,7 @@ async def test_logging_in_with_correct_admin_credentials_as_anonymous(cli, db_cu
     expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"]).replace(tzinfo=None)
     assert datetime.utcnow() + timedelta(seconds=config["app"]["token_lifetime"]) \
         - expiration_time < timedelta(seconds=1)
+    assert data["auth"]["user_id"] == user["user_id"]
     assert data["auth"]["user_level"] == user["user_level"]
 
     # Check if a session was created for the user in the database
