@@ -28,8 +28,8 @@ async def auth_middleware(request, handler):
     # Call next handler
     response = await handler(request)
 
-    # Add new access token expiration time to the response (except for auth routes)
-    if not request.path.startswith(f"/{AUTH_SUBAPP_PREFIX}"):
+    # Add new access token expiration time to the response & create web.Response object (except for auth routes & CORS requests)
+    if not request.path.startswith(f"/{AUTH_SUBAPP_PREFIX}") and request.method not in ("OPTIONS", "HEAD"):
         # Check if route returned response of a correct type
         if type(response) != dict:
             raise Exception(f"Auth middleware expected {request.path} route handler to return dict, got {type(response)}")
