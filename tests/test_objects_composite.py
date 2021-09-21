@@ -45,7 +45,7 @@ async def test_add_incorrect_top_level_data_as_admin(cli):
 
 # Run the test twice for new & existing subobjects
 @pytest.mark.parametrize("subobject_id", [-1, 5])
-async def test_add_incorrect_subobject_attibutes_as_admin(cli, db_cursor, subobject_id):
+async def test_add_incorrect_subobject_attributes_as_admin(cli, db_cursor, subobject_id):
     # Insert existing subobject
     if subobject_id > 0:
         insert_objects([get_test_object(subobject_id, owner_id=1, pop_keys=["object_data"])], db_cursor)
@@ -350,6 +350,8 @@ async def test_add_correct_object_without_subobject_updates_as_admin(cli, db_cur
 
 
 async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
+
     # Send request with new subobjects
     composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
@@ -360,11 +362,11 @@ async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
     add_composite_subobject(composite, object_id=-3, is_expanded=False, object_name="new to-do list 1", object_description="new descr 3", 
                             is_published=True, object_type="to_do_list", object_data=get_composite_subobject_object_data(7))
     add_composite_subobject(composite, object_id=-4, column=1, object_name="new link 2", object_description="new descr 4", 
-                            is_published=False, object_type="link", object_data=get_composite_subobject_object_data(2))
+                            is_published=False, object_type="link", owner_id=2, object_data=get_composite_subobject_object_data(2))
     add_composite_subobject(composite, object_id=-5, column=1, object_name="new markdown 2", object_description="new descr 5", 
-                            is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(5))
+                            is_published=False, object_type="markdown", owner_id=2, object_data=get_composite_subobject_object_data(5))
     add_composite_subobject(composite, object_id=-6, column=1, object_name="new to-do list 2", object_description="new descr 6", 
-                            is_published=False, object_type="to_do_list", object_data=get_composite_subobject_object_data(8))
+                            is_published=False, object_type="to_do_list", owner_id=2, object_data=get_composite_subobject_object_data(8))
     resp = await cli.post("/objects/add", json={"object": composite}, headers=headers_admin_token)
     assert resp.status == 200
 
@@ -380,7 +382,7 @@ async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
                 subobjects[id_mapping[obj_id]] = so
                 break
     
-    db_cursor.execute(f"SELECT object_id, object_name, object_description, object_type, is_published FROM objects WHERE object_id IN {tuple(id_mapping.values())}")
+    db_cursor.execute(f"SELECT object_id, object_name, object_description, object_type, is_published, owner_id FROM objects WHERE object_id IN {tuple(id_mapping.values())}")
     result = db_cursor.fetchall()
     assert len(result) == len(id_mapping)
     for row in result:
@@ -389,6 +391,7 @@ async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
         assert subobjects[object_id]["object_description"] == row[2]
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
+        assert subobjects[object_id].get("owner_id", 1) == row[5]   # If owner_id is not set in request, token owner should be set as owner_id of new object
     
     # Check new subobjects' data in the database
     for object_id in subobjects:
@@ -419,10 +422,13 @@ async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
 
 
 async def test_add_correct_object_update_existing_subobjects_as_admin(cli, db_cursor):
+    insert_users([get_test_user(2, pop_keys=["password_repeat"]), get_test_user(3, pop_keys=["password_repeat"])], db_cursor) # add users
+    default_owner = 2
+
     # Insert objects' attributes and data
-    obj_list = [get_test_object(100, owner_id=1, is_published=False, object_type="link", pop_keys=["object_data"]), 
-                get_test_object(101, owner_id=1, is_published=True, object_type="markdown", pop_keys=["object_data"]),
-                get_test_object(102, owner_id=1, is_published=False, object_type="to_do_list", pop_keys=["object_data"])]
+    obj_list = [get_test_object(100, owner_id=default_owner, is_published=False, object_type="link", pop_keys=["object_data"]), 
+                get_test_object(101, owner_id=default_owner, is_published=True, object_type="markdown", pop_keys=["object_data"]),
+                get_test_object(102, owner_id=default_owner, is_published=False, object_type="to_do_list", pop_keys=["object_data"])]
     insert_objects(obj_list, db_cursor)
     link_data = [get_test_object_data(100, object_type="link")]
     markdown_data = [get_test_object_data(101, object_type="markdown")]
@@ -436,9 +442,9 @@ async def test_add_correct_object_update_existing_subobjects_as_admin(cli, db_cu
     composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=100, object_name="updated link name", object_description="updated link descr", 
-                            is_published=True, object_type="link", object_data=get_composite_subobject_object_data(1))
+                            is_published=True, object_type="link", owner_id=3, object_data=get_composite_subobject_object_data(1))
     add_composite_subobject(composite, object_id=101, object_name="updated markdown name", object_description="updated mardkown descr", 
-                            is_published=False, object_type="markdown", object_data=get_composite_subobject_object_data(4))
+                            is_published=False, object_type="markdown", owner_id=1, object_data=get_composite_subobject_object_data(4))
     add_composite_subobject(composite, object_id=102, object_name="updated to-do list name", object_description="updated to-do list descr", 
                             is_published=True, object_type="to_do_list", object_data=get_composite_subobject_object_data(7))
     
@@ -447,13 +453,14 @@ async def test_add_correct_object_update_existing_subobjects_as_admin(cli, db_cu
 
     # Check if subobjects' attributes are updated
     subobjects = {so["object_id"]: so for so in composite["object_data"]["subobjects"]}
-    db_cursor.execute(f"SELECT object_id, object_name, object_description, object_type, is_published FROM objects WHERE object_id IN {tuple(subobjects.keys())}")
+    db_cursor.execute(f"SELECT object_id, object_name, object_description, object_type, is_published, owner_id FROM objects WHERE object_id IN {tuple(subobjects.keys())}")
     for row in db_cursor.fetchall():
         object_id = row[0]
         assert subobjects[object_id]["object_name"] == row[1]
         assert subobjects[object_id]["object_description"] == row[2]
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
+        assert subobjects[object_id].get("owner_id", default_owner) == row[5]   # If owner_id is not set in request, it should not be changed
 
     # Check if subobjects' data is updated
     for object_id in subobjects:
