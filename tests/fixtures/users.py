@@ -54,3 +54,10 @@ def insert_users(users, db_cursor, generate_user_ids = False):
         for t in users:
             params.extend(t.values())
     db_cursor.execute(query, params)
+
+
+def clear_users(db_cursor):
+    """
+    Truncates `users` and, consequently, `sessions` table
+    """
+    db_cursor.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE")

@@ -64,6 +64,7 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
     insert_tags(tag_list, db_cursor)
 
     # Correct request bodies
+    # NOTE: correct request body for new non-auth route handlers must be included in the dict below
     correct_request_bodies = {
         "/tags/add": {"POST": {"tag": get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])}},
         "/tags/update": {"PUT": {"tag": get_test_tag(100, pop_keys=["created_at", "modified_at"])}},
@@ -79,8 +80,9 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
         "/objects/get_page_object_ids": {"POST": {
             "pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}},
         "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},
+        "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
 
-        "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}}
+        "/users/view": {"POST": {"user_ids": [1]}}
     }
 
     # Check token prolongation on successful requests for all non-auth routes

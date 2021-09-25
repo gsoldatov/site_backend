@@ -196,6 +196,6 @@ def get_subapp():
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/get_page_object_ids", get_page_object_ids, name = "get_page_object_ids"),
                     web.post("/search", search, name = "search"),
-                    web.put("/update_tags", update_tags, name = "update_tags"),
+                    web.put("/update_tags", update_tags, name = "update_tags")
                 ])
     return app
