@@ -47,13 +47,11 @@ async def register(request):
     # Add the user
     result = await add_user(request, data)
 
-    # Remove attributes which should not be seen by a user and send response
-    response = row_proxy_to_dict(result)
-    
-    if request.user_info.user_level != "admin":
-        for attr in forbidden_attributes_for_user: response.pop(attr)
-    
-    return web.json_response({"user": response})
+    # Don't send user info if admin token was not provided (registration form processing case)
+    if request.user_info.user_level != "admin": return web.Response()
+
+    # Return new user's data in case of admin registration
+    return web.json_response({"user": row_proxy_to_dict(result)})
 
 
 async def login(request):

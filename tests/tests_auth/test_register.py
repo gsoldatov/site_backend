@@ -114,15 +114,34 @@ async def test_correct_request_with_registation_not_allowed_as_anonymous(cli):
     assert resp.status == 403
 
 
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_request_with_omitted_privileges_as_admin_and_anonymous(cli, db_cursor, headers):
+async def test_correct_request_with_omitted_privileges_as_anonymous(cli, db_cursor):
     # Enable non-admin user registration
-    if headers is None:
-        set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
     
     current_time = datetime.utcnow()
     user = get_test_user(2, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])
-    resp = await cli.post("/auth/register", json=user, headers=headers)
+    resp = await cli.post("/auth/register", json=user)
+    assert resp.status == 200
+
+    # Check response
+    assert await resp.text() == ""
+    
+    # Check database
+    db_cursor.execute("SELECT registered_at, login, username, user_level, can_login, can_edit_objects FROM users WHERE user_id = 2")
+    row = db_cursor.fetchone()
+    assert row is not None
+    assert timedelta(seconds=0) <= row[0] - current_time <= timedelta(seconds=1)
+    assert row[1] == user["login"]
+    assert row[2] == user["username"]
+    assert row[3] == "user"
+    assert row[4] == True
+    assert row[5] == True
+
+
+async def test_correct_request_with_omitted_privileges_as_admin(cli, db_cursor):
+    current_time = datetime.utcnow()
+    user = get_test_user(2, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])
+    resp = await cli.post("/auth/register", json=user, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check response
@@ -133,9 +152,8 @@ async def test_correct_request_with_omitted_privileges_as_admin_and_anonymous(cl
     assert "password" not in data["user"]
     assert data["user"]["username"] == user["username"]
 
-    privilege_data_is_expected = headers is not None
     for attr in ("user_level", "can_login", "can_edit_objects"):
-        assert (attr in data["user"]) == privilege_data_is_expected
+        assert attr in data["user"]
     
     # Check database
     db_cursor.execute("SELECT registered_at, login, username, user_level, can_login, can_edit_objects FROM users WHERE user_id = 2")
