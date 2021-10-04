@@ -87,7 +87,7 @@ async def view_users(request, user_ids, full_view_mode):
     # Query and return data
     users = request.config_dict["tables"]["users"]
 
-    columns = [users.c.user_id, users.c.registered_at, users.c.login, users.c.username, users.c.user_level, users.c.can_login, users.c.can_edit_objects] \
+    columns = [users.c.user_id, users.c.registered_at, users.c.username, users.c.user_level, users.c.can_login, users.c.can_edit_objects] \
         if full_view_mode else [users.c.user_id, users.c.registered_at, users.c.username]
     
     result = await request["conn"].execute(

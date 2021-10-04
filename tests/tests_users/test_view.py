@@ -96,7 +96,7 @@ async def test_valid_request_for_full_view_as_admin(cli, db_cursor):
     # Check user data
     for user in data["users"]:
         assert type(user) == dict
-        attrs = ("user_id", "registered_at", "login", "username", "user_level", "can_login", "can_edit_objects")
+        attrs = ("user_id", "registered_at", "username", "user_level", "can_login", "can_edit_objects")
         for attr in attrs: assert attr in user
         assert len(user.keys()) == len(attrs)
 
