@@ -1,5 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, password
-from backend_main.schemas.objects_tags import added_object_ids, removed_object_ids
+from backend_main.schemas.common import name, password, user_level
 
 
 register_schema = {
@@ -12,10 +11,7 @@ register_schema = {
         "password_repeat": password,
         "username": name,
 
-        "user_level": {
-            "type": "string",
-            "enum": ["admin", "user"]
-        },
+        "user_level": user_level,
         "can_login": {"type": "boolean"},
         "can_edit_objects": {"type": "boolean"}
     }

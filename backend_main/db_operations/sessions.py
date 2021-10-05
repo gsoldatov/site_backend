@@ -79,13 +79,17 @@ async def add_session(request, user_id):
     return data
 
 
-async def delete_sessions(request, access_tokens):
+async def delete_sessions(request, user_ids = None, access_tokens = None):
     """
-    Deletes sessions with specified `access_tokens`.
+    Deletes sessions for provided `user_ids` or with specified `access_tokens`.
     """
+    # Raise if provided arguments are incorrect
+    if user_ids is None and access_tokens is None: raise TypeError("Either `user_ids` or `access_tokens` must be provided.")
+
     sessions = request.config_dict["tables"]["sessions"]
+    clause = sessions.c.user_id.in_(user_ids) if user_ids is not None else sessions.c.access_token.in_(access_tokens)
 
     await request["conn"].execute(
         sessions.delete()
-        .where(sessions.c.access_token.in_(access_tokens))
+        .where(clause)
     )

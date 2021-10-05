@@ -14,6 +14,7 @@ from backend_main.db_operations.users import add_user, get_user_by_credentials
 
 from backend_main.schemas.auth import register_schema, login_schema
 
+from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
 from backend_main.util.json import error_json, row_proxy_to_dict, serialize_datetime_to_str
 from backend_main.util.login_rate_limits import get_login_attempts_timeout_in_seconds, IncorrectCredentialsException
 
@@ -31,9 +32,8 @@ async def register(request):
         raise web.HTTPBadRequest(text=error_json(f"Password is not correctly repeated."), content_type="application/json")
 
     # Check if non-admins are not trying to set privileges
-    forbidden_attributes_for_user = ("user_level", "can_login", "can_edit_objects")
     if request.user_info.user_level != "admin":
-        for attr in forbidden_attributes_for_user:
+        for attr in forbidden_non_admin_user_modify_attributes:
             if attr in data:
                 raise web.HTTPForbidden(text=error_json(f"User privileges can only be set by admins."), content_type="application/json")
     
@@ -63,7 +63,7 @@ async def login(request):
     validate(instance=data, schema=login_schema)
 
     # Try to get user data
-    user_data = await get_user_by_credentials(request, data["login"], data["password"])
+    user_data = await get_user_by_credentials(request, login=data["login"], password=data["password"])
 
     # User was not found
     if user_data is None:
@@ -99,8 +99,8 @@ async def login(request):
 
 
 async def logout(request):
-    # Delete session (if it does not, return 200 anyway)
-    await delete_sessions(request, [request.user_info.access_token])
+    # Delete session (if it does not exist, return 200 anyway)
+    await delete_sessions(request, access_tokens=[request.user_info.access_token])
     return web.Response()
 
 

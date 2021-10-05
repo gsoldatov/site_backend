@@ -25,6 +25,19 @@ def get_test_user(user_id, registered_at = None, login = None, password = None, 
     return user
 
 
+def get_update_user_request_body(user = None, token_owner_password = None):
+    """
+    Returns a valid request body for /update/users route.
+    `user` and `token_owner_password` are respective JSON attributes of the request body.
+    """
+    if token_owner_password is None: raise TypeError("`token_owner_password` is required.")
+
+    if user is None:
+        user = get_test_user(1, pop_keys=["registered_at"])
+    
+    return {"user": user, "token_owner_password": token_owner_password}
+
+
 # Incorrect user registration data
 incorrect_user_attributes = {
     "login": [1, False, "", "a"*256],

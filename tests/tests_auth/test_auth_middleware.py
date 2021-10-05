@@ -82,6 +82,7 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
         "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},
         "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
 
+        "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config["app"]["default_user"]["password"]}},
         "/users/view": {"POST": {"user_ids": [1]}}
     }
 

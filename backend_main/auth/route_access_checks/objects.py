@@ -1,5 +1,5 @@
 """
-Auth checks for /objects/* routes.
+Middleware auth checks for /objects/* routes.
 """
 from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins_who_cant_edit
 

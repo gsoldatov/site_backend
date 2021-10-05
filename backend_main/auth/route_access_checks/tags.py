@@ -1,5 +1,5 @@
 """
-Auth checks for /tags/* routes.
+Middleware auth checks for /tags/* routes.
 """
 from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
 

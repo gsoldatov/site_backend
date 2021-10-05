@@ -41,3 +41,8 @@ password = {
     "minLength": 8,
     "maxLength": 72
 }
+
+user_level = {
+    "type": "string",
+    "enum": ["admin", "user"]
+}
