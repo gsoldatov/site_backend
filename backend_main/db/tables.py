@@ -4,6 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import FetchedValue
+from sqlalchemy.sql.expression import false
 
 def get_tables(config):
     """ Return a dictionary with SA tables and a metadata object. """
@@ -21,7 +22,8 @@ def get_tables(config):
             "settings",
             meta,
             Column("setting_name", String(255), primary_key=True),
-            Column("setting_value", String(255))
+            Column("setting_value", String(255)),
+            Column("is_public", Boolean, nullable=False)
         ),
 
         # Users, sessions and log in rate limiting
