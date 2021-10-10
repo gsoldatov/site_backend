@@ -38,10 +38,10 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor):
     expiration_time = datetime.utcnow() + timedelta(seconds=60)
     db_cursor.execute(f"INSERT INTO sessions (user_id, access_token, expiration_time) VALUES (2, '{active_token_with_disabled_login}', '{expiration_time}')")
 
-    # Check incorrect access_token format for all routes, excluding /auth/logout & /auth/get_registration_status
+    # Check incorrect access_token format for all routes, excluding /auth/logout & /settings/view
     for route in app.router.routes():
         url = route.url_for()
-        if str(url) in ["/auth/logout", "/auth/get_registration_status"]: continue
+        if str(url) in ["/auth/logout", "/settings/view"]: continue
         if route.method in ("OPTIONS", "HEAD"): continue    # Don't check routes created by Aiohttp-CORS
         
         client_method = getattr(cli, route.method.lower())
