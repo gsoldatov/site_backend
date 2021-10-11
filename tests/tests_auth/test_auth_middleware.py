@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -81,6 +79,9 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
             "pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}},
         "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},
         "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
+
+        "/settings/update": {"PUT": {"settings": {"non_admin_registration_allowed": False}}},
+        "/settings/view": {"POST": {"view_all": True}},
 
         "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config["app"]["default_user"]["password"]}},
         "/users/view": {"POST": {"user_ids": [1]}}

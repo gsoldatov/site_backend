@@ -5,13 +5,8 @@ from datetime import datetime, timedelta
 from math import ceil
 
 from aiohttp import web
-from sqlalchemy import select, true
-from sqlalchemy.sql import and_ 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-
-from backend_main.auth.route_access_checks.util import debounce_anonymous
-from backend_main.db_operations.settings import view_settings
-from backend_main.util.json import error_json
 
 
 async def add_login_rate_limit_to_request(request):

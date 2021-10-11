@@ -13,7 +13,7 @@ from tests.fixtures.users import incorrect_user_attributes, get_test_user, inser
 
 async def test_incorrect_request_body_as_anonymous(cli, db_cursor):
     # Enable non-admin user registration
-    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+    set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
 
     # Incorrect request body
     resp = await cli.post("/auth/register", data="not a JSON document.")
@@ -71,7 +71,7 @@ async def test_incorrect_request_body_as_admin(cli):
 @pytest.mark.parametrize("headers", [None, headers_admin_token])
 async def test_password_not_matching_repeat_as_admin_and_anonymous(cli, db_cursor, headers):
     # Enable non-admin user registration
-    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+    set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
 
     user = get_test_user(2, password="a"*10, password_repeat="b"*10, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])
     resp = await cli.post("/auth/register", json=user, headers=headers)
@@ -82,7 +82,7 @@ async def test_password_not_matching_repeat_as_admin_and_anonymous(cli, db_curso
 async def test_existing_login_and_username_as_admin_and_anonymous(cli, db_cursor, headers):
     # Enable non-admin user registration
     if headers is None:
-        set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+        set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
 
     # Add an existing user
     existing_login, existings_username = "existing login", "existing_username"
@@ -99,7 +99,7 @@ async def test_existing_login_and_username_as_admin_and_anonymous(cli, db_cursor
 
 async def test_passing_privilege_as_anonymous(cli, db_cursor):
     # Enable non-admin user registration
-    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+    set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
 
     for attr, value in [("user_level", "admin"), ("can_login", True), ("can_edit_objects", True)]:
         user = get_test_user(2, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])
@@ -116,7 +116,7 @@ async def test_correct_request_with_registation_not_allowed_as_anonymous(cli):
 
 async def test_correct_request_with_omitted_privileges_as_anonymous(cli, db_cursor):
     # Enable non-admin user registration
-    set_setting("non_admin_registration_allowed", "TRUE", db_cursor)
+    set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
     
     current_time = datetime.utcnow()
     user = get_test_user(2, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])

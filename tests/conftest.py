@@ -151,7 +151,7 @@ def insert_data(config, db_cursor):
         db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
     
     # Insert app settings
-    db_cursor.execute("INSERT INTO settings VALUES ('non_admin_registration_allowed', 'FALSE')")
+    db_cursor.execute("INSERT INTO settings VALUES ('non_admin_registration_allowed', 'FALSE', true)")
 
     # Insert admin
     current_time = datetime.utcnow()

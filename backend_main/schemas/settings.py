@@ -25,7 +25,7 @@ settings_view_schema = {
     ],
     "additionalProperties": False,
     "properties": {
-        "view_all": { "type": "boolean" },
+        "view_all": { "type": "boolean", "enum": [True] },
         "setting_names": {
             "type": "array",
             "minItems": 1,

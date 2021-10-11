@@ -16,12 +16,14 @@ async def update_settings(request, settings):
     data = serialize_settings(settings)
     settings = request.config_dict["tables"]["settings"]
 
+    insert_stmt = insert(settings).values(data)
+    
     await request["conn"].execute(
-        insert(settings)
-        .values(data)
+        insert_stmt
         .on_conflict_do_update(
             index_elements=[settings.c.setting_name],
-            set_=data
+            # On conflict get the correct value for update from the conflicted row via 'excluded' prop of the statement
+            set_=dict(setting_value=insert_stmt.excluded.setting_value)
         )
     )
 
@@ -47,7 +49,7 @@ async def view_settings(request, setting_names = None):
     # Deserialize settings and check if they can be returned to non-admins
     for row in await result.fetchall():
         # Private settings can only be viewed by admins (skip double check if all settings are being returned)
-        if not row[2] and setting_names is None:
+        if not row[2] and setting_names is not None:
             debounce_anonymous(request)
             debounce_authenticated_non_admins(request)
         

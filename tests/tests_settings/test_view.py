@@ -1,0 +1,93 @@
+import pytest
+
+if __name__ == "__main__":
+    import os, sys
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+
+from tests.fixtures.settings import set_setting
+from tests.fixtures.sessions import headers_admin_token
+
+
+async def test_incorrect_request_body_as_admin(cli):
+    # Incorrect request body
+    resp = await cli.post("/settings/view", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Required attributes missing
+    resp = await cli.post("settings/view", json={}, headers=headers_admin_token)
+    assert resp.status == 400
+    
+    # Unallowed attributes
+    for attr, value in [("setting_names", ["non_admin_registration_allowed"]), ("view_all", True)]:
+        body = {attr: value}
+        body["unallowed"] = "unallowed"
+        resp = await cli.post("/settings/view", json=body, headers=headers_admin_token)
+        assert resp.status == 400
+    
+    # Incorrect attribute values
+    for attr, value in [("setting_names", 1), ("setting_names", "str"), ("setting_names", True), ("setting_names", []), ("setting_names", ["a"] * 1001),
+        ("setting_names", [1]), ("setting_names", [True]), ("setting_names", [""]), ("setting_names", ["" * 256]), ("view_all", 1), ("view_all", "str"), ("view_all", False)]:
+        body = {attr: value}
+        resp = await cli.post("/settings/view", json=body, headers=headers_admin_token)
+        assert resp.status == 400
+
+
+async def test_non_existing_setting_name_as_admin(cli):
+    body = {"setting_names": ["non-existing setting name"]}
+    resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
+    assert resp.status == 404
+
+
+async def test_view_private_setting_as_anonymous(cli, db_cursor):
+    set_setting(db_cursor, "non_admin_registration_allowed", is_public=False)
+    
+    body = {"setting_names": ["non_admin_registration_allowed"]}
+    resp = await cli.post("settings/view", json=body)
+    assert resp.status == 401
+
+
+async def test_view_all_settings_as_anonymous(cli):
+    body = {"view_all": True}
+    resp = await cli.post("settings/view", json=body)
+    assert resp.status == 401
+
+
+@pytest.mark.parametrize("headers", [None, headers_admin_token])
+async def test_view_non_admin_registration_as_admin_and_anonymous(cli, db_cursor, headers):
+    body = {"setting_names": ["non_admin_registration_allowed"]}
+    resp = await cli.post("settings/view", json=body, headers=headers)
+    assert resp.status == 200
+    data = await resp.json()
+    
+    assert type(data) == dict
+    
+    assert "settings" in data
+    assert type(data["settings"]) == dict
+    
+    assert data["settings"].get("non_admin_registration_allowed") == False
+
+    set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
+    resp = await cli.post("settings/view", json=body, headers=headers)
+    assert resp.status == 200
+    data = await resp.json()
+    
+    assert data["settings"].get("non_admin_registration_allowed") == True
+
+
+async def test_view_all_as_admin(cli):
+    body = {"view_all": True}
+    resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    
+    assert type(data) == dict
+    
+    assert "settings" in data
+    assert type(data["settings"]) == dict
+    assert len(data["settings"]) == 1
+
+    assert data["settings"].get("non_admin_registration_allowed") == False
+
+
+if __name__ == "__main__":
+    os.system(f'pytest "{os.path.abspath(__file__)}" -v')

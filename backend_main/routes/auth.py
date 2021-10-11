@@ -9,7 +9,6 @@ from backend_main.db_operations.auth import check_if_non_admin_can_register
 from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to_request, \
     upsert_login_rate_limit, delete_login_rate_limits
 from backend_main.db_operations.sessions import add_session, delete_sessions
-from backend_main.db_operations.settings import view_settings
 from backend_main.db_operations.users import add_user, get_user_by_credentials
 
 from backend_main.schemas.auth import register_schema, login_schema
@@ -104,17 +103,11 @@ async def logout(request):
     return web.Response()
 
 
-async def get_registration_status(request):
-    setting_value = (await view_settings(request, ["non_admin_registration_allowed"], disable_auth_checks=True))["non_admin_registration_allowed"]
-    return web.json_response({"registration_allowed": setting_value.lower() == "true"})
-
-
 def get_subapp():
     app = web.Application()
     app.add_routes([
         web.post("/register", register, name="register"),
         web.post("/login", login, name="login"),
-        web.post("/logout", logout, name="logout"),
-        web.get("/get_registration_status", get_registration_status, name="get_registration_status")
+        web.post("/logout", logout, name="logout")
         ])
     return app
