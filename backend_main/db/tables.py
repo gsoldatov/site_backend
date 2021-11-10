@@ -77,9 +77,10 @@ def get_tables(config):
             Column("modified_at", DateTime, nullable=False),
             Column("object_name", String(255), nullable=False),
             Column("object_description", Text),
-            
             Column("owner_id", Integer, ForeignKey("users.user_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
-            Column("is_published", Boolean, nullable=False)
+
+            Column("is_published", Boolean, nullable=False),
+            Column("show_description", Boolean, nullable=False)
         ),
 
         "objects_tags": Table(
@@ -94,7 +95,8 @@ def get_tables(config):
             "links", 
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
-            Column("link", Text, nullable=False)
+            Column("link", Text, nullable=False),
+            Column("show_description_as_link", Boolean, nullable=False)
         ),
 
         "markdown": Table(
@@ -123,6 +125,14 @@ def get_tables(config):
             Column("is_expanded", Boolean, nullable=False)
         ),
 
+        "composite_properties": Table(
+            "composite_properties",
+            meta,
+            Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
+            Column("display_mode", Text, nullable=False),
+            Column("numerate_chapters", Boolean, nullable=False)
+        ),
+
         "composite": Table(
             "composite",
             meta,
@@ -131,7 +141,10 @@ def get_tables(config):
             Column("row", Integer, nullable=False),
             Column("column", Integer, nullable=False),
             Column("selected_tab", Integer, nullable=False),
-            Column("is_expanded", Boolean, nullable=False)
+
+            Column("is_expanded", Boolean, nullable=False),
+            Column("show_description", Text, nullable=False),
+            Column("show_description_as_link", Text, nullable=False)
         )
     } \
     , meta
