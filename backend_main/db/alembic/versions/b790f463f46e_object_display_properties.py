@@ -33,11 +33,11 @@ def upgrade():
     op.alter_column('composite_properties', 'numerate_chapters', nullable=False)
 
     op.add_column('composite', sa.Column('show_description', sa.Text()))
-    op.execute('UPDATE composite SET show_description=TRUE')
+    op.execute("UPDATE composite SET show_description='inherit'")
     op.alter_column('composite', 'show_description', nullable=False)
 
     op.add_column('composite', sa.Column('show_description_as_link', sa.Text()))
-    op.execute('UPDATE composite SET show_description_as_link=TRUE')
+    op.execute("UPDATE composite SET show_description_as_link='inherit'")
     op.alter_column('composite', 'show_description_as_link', nullable=False)
 
     op.add_column('links', sa.Column('show_description_as_link', sa.Boolean()))
