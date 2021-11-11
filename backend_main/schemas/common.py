@@ -46,3 +46,8 @@ user_level = {
     "type": "string",
     "enum": ["admin", "user"]
 }
+
+show_description_composite = {
+    "type": "string",
+    "enum": ["yes", "no", "inherit"]
+}

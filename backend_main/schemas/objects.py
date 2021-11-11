@@ -11,13 +11,14 @@ objects_add_schema = {
         "object": {
             "type": "object",
             "oneOf": [{
-                "required": ["object_type", "object_name", "object_description", "is_published", "object_data"],
+                "required": ["object_type", "object_name", "object_description", "is_published", "show_description", "object_data"],
                 "additionalProperties": False,
                 "properties": {
                     "object_type": { "const": object_type },
                     "object_name": name,
                     "object_description": description,
                     "is_published": is_published,
+                    "show_description": {"type": "boolean"},
                     "owner_id": object_id,
                     "object_data": object_type_and_data_options[object_type],
                     "added_tags": added_tags
@@ -34,13 +35,14 @@ objects_update_schema = {
     "properties": {
         "object": {
             "type": "object",
-            "required": ["object_id", "object_name", "object_description", "is_published", "object_data"],
+            "required": ["object_id", "object_name", "object_description", "is_published", "show_description", "object_data"],
             "additionalProperties": False,
             "properties": {
                 "object_id": object_id,
                 "object_name": name,
                 "object_description": description,
                 "is_published": is_published,
+                "show_description": {"type": "boolean"},
                 "owner_id": object_id,
                 "object_data": {
                     "type": "object"

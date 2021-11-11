@@ -35,7 +35,7 @@ async def add_objects(request, objects_attributes):
     result = await request["conn"].execute(
         objects.insert()
         .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.owner_id)
+                objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.show_description, objects.c.owner_id)
         .values(objects_attributes)
         )
 
@@ -72,7 +72,7 @@ async def update_objects(request, objects_attributes):
             .where(objects.c.object_id == object_id)
             .values(oa)
             .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                    objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.owner_id)
+                    objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.show_description, objects.c.owner_id)
             )
         record = await result.fetchone()
 
@@ -95,7 +95,7 @@ async def view_objects(request, object_ids):
     result = await request["conn"].execute(
         select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
             objects.c.modified_at, objects.c.object_name, objects.c.object_description,
-            objects.c.is_published, objects.c.owner_id])
+            objects.c.is_published, objects.c.show_description, objects.c.owner_id])
         .where(and_(
             auth_filter_clause,
             objects.c.object_id.in_(object_ids)

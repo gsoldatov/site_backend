@@ -25,13 +25,15 @@ async def update_composite(request, obj_ids_and_data):
 async def view_composite(request, object_ids):
     objects = request.config_dict["tables"]["objects"]
     composite = request.config_dict["tables"]["composite"]
+    composite_properties = request.config_dict["tables"]["composite_properties"]
 
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
 
+    # Query subobjects
     records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
-        select([objects.c.object_id, composite.c.subobject_id, 
-                composite.c.row, composite.c.column, composite.c.selected_tab, composite.c.is_expanded])
+        select([objects.c.object_id, composite.c.subobject_id, composite.c.row, composite.c.column, 
+            composite.c.selected_tab, composite.c.is_expanded, composite.c.show_description, composite.c.show_description_as_link])
         .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
         .where(and_(
             auth_filter_clause,
@@ -39,21 +41,45 @@ async def view_composite(request, object_ids):
             objects.c.object_type == "composite"))
     )
 
-    data = {}
+    subobject_data = {}
     for row in await records.fetchall():
         object_id = row["object_id"]
-        subobjects = data.get(object_id, [])
+        subobjects = subobject_data.get(object_id, [])
         if row["subobject_id"] != None: # don't add lines without subobject data
             subobjects.append({
                 "object_id": row["subobject_id"],
                 "row": row["row"],
                 "column": row["column"],
                 "selected_tab": row["selected_tab"],
-                "is_expanded": row["is_expanded"]
+                "is_expanded": row["is_expanded"],
+                "show_description": row["show_description"],
+                "show_description_as_link": row["show_description_as_link"]
             })
-        data[object_id] = subobjects
+        subobject_data[object_id] = subobjects
     
-    return [{ "object_id": object_id, "object_data": { "subobjects": data[object_id] }} for object_id in data]
+    # Query composite properties
+    records = await request["conn"].execute(
+        select([composite_properties.c.object_id, composite_properties.c.display_mode, composite_properties.c.numerate_chapters])
+        .where(and_(
+            auth_filter_clause,
+            composite_properties.c.object_id.in_(object_ids)))
+    )
+
+    composite_properties_data = {
+        row["object_id"]: {
+            "display_mode": row["display_mode"], 
+            "numerate_chapters": row["numerate_chapters"]
+        } for row in await records.fetchall()
+    }
+    
+    return [{
+        "object_id": object_id, 
+        "object_data": {
+            "subobjects": subobject_data[object_id],
+            "display_mode": composite_properties_data[object_id]["display_mode"],
+            "numerate_chapters": composite_properties_data[object_id]["numerate_chapters"]
+        }
+    } for object_id in subobject_data]
 
 
 async def _add_update_composite(request, obj_ids_and_data):
@@ -61,6 +87,7 @@ async def _add_update_composite(request, obj_ids_and_data):
     _validate(request, obj_ids_and_data)
     id_mapping = await _add_new_subobjects(request, obj_ids_and_data)
     await _update_existing_subobjects(request, obj_ids_and_data)
+    await _update_composite_properties(request, obj_ids_and_data)
     await _update_composite_object_data(request, obj_ids_and_data, id_mapping)
     # await _update_existing_subobjects(request, obj_ids_and_data)    # was called a second time for unknown reasons
     await _delete_subobjects(request, obj_ids_and_data)
@@ -88,9 +115,11 @@ async def _add_new_subobjects(request, obj_ids_and_data):
                     "object_type": object_type,
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
-                    "is_published": so["is_published"],
                     "created_at": request["current_time"],
                     "modified_at": request["current_time"],
+                    
+                    "is_published": so["is_published"],
+                    "show_description": so["show_description"],
 
                     "owner_id": so.get("owner_id", request.user_info.user_id),
                     "owner_id_is_autoset": not ("owner_id" in so)
@@ -145,6 +174,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
                     "is_published": so["is_published"],
+                    "show_description": so["show_description"],
                     "modified_at": request["current_time"]
                 }
                 if "owner_id" in so:     # don't update owner_id if it was not explicitly passed
@@ -168,6 +198,33 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                 await handler(request, updated_ids_and_data[object_type])
 
 
+async def _update_composite_properties(request, obj_ids_and_data):
+    """ Upserts properties of composite objects into `composite_properties` table. """
+    composite_properties = request.config_dict["tables"]["composite_properties"]
+
+    # Prepare data for insertion
+    inserted_data = []
+    for obj_id_and_data in obj_ids_and_data:
+        object_id, data = obj_id_and_data["object_id"], obj_id_and_data["object_data"]
+        inserted_data.append({
+            "object_id": object_id,
+            "display_mode": data["display_mode"],
+            "numerate_chapters": data["numerate_chapters"]
+        })
+    
+    # Delete existing & insert new composite object data
+    object_ids = [obj_id_and_data["object_id"] for obj_id_and_data in obj_ids_and_data]
+    await request["conn"].execute(
+        composite_properties.delete()
+        .where(composite_properties.c.object_id.in_(object_ids))
+    )
+
+    await request["conn"].execute(
+        composite_properties.insert()
+        .values(inserted_data)
+    )
+
+
 async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     objects = request.config_dict["tables"]["objects"]
     composite = request.config_dict["tables"]["composite"]
@@ -184,7 +241,9 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
                 "row": so["row"],
                 "column": so["column"],
                 "selected_tab": so["selected_tab"],
-                "is_expanded": so["is_expanded"]
+                "is_expanded": so["is_expanded"],
+                "show_description": so["show_description_composite"],
+                "show_description_as_link": so["show_description_as_link_composite"]
             })
     
     # Check if all subobject IDs exist as objects

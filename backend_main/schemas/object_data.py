@@ -1,19 +1,20 @@
 from copy import deepcopy
 
-from backend_main.schemas.common import object_id, name, description, is_published
+from backend_main.schemas.common import object_id, name, description, is_published, show_description_composite
 # from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
 
 # Link object data
 link_object_data = {
     "type": "object",
-    "required": ["link"],
+    "required": ["link", "show_description_as_link"],
     "additionalProperties": False,
     "properties": {
         "link": {
             "type": "string",
             "minLength": 1
-        }
+        },
+        "show_description_as_link": {"type": "boolean"}
     }
 }
 
@@ -89,22 +90,24 @@ object_type_and_data_options_without_composite = {
 composite_subobject_item_options = [{ 
     # Existing subobjects without data update
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab", "is_expanded"],
+    "required": ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"],
     "additionalProperties": False,
     "properties": {
         "object_id": object_id,
         "row": { "type": "integer", "minimum": 0 },
         "column": { "type": "integer", "minimum": 0 },
         "selected_tab": { "type": "integer", "minimum": 0 },
-        "is_expanded": { "type": "boolean" }
+        "is_expanded": { "type": "boolean" },
+        "show_description_composite": show_description_composite,
+        "show_description_as_link_composite": show_description_composite
     }
 }]
 
 composite_subobject_item_options.extend([{
     # New subobjects and existing subobjects with data updates (custom object_data for each object_type, composite subobjects are not allowed)
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab", "is_expanded",
-                    "object_name", "object_description", "object_type", "is_published", "object_data"],
+    "required": ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite",
+                    "object_name", "object_description", "object_type", "is_published", "show_description", "object_data"],
     "additionalProperties": False,    # added_tags and removed_tag_ids are optional (but currently not added => False)
     "properties": {                            
         "object_id": { "type": "integer" }, # can be negative for new objects
@@ -112,6 +115,8 @@ composite_subobject_item_options.extend([{
         "column": { "type": "integer", "minimum": 0 },
         "selected_tab": { "type": "integer", "minimum": 0 },
         "is_expanded": { "type": "boolean" },
+        "show_description_composite": show_description_composite,
+        "show_description_as_link_composite": show_description_composite,
         
         "object_name": name,
         "object_description": description,
@@ -119,6 +124,7 @@ composite_subobject_item_options.extend([{
             "const": object_type
         },
         "is_published": is_published,
+        "show_description": { "type": "boolean" },
         "owner_id": object_id,
         
         "object_data": object_type_and_data_options_without_composite[object_type]
@@ -132,7 +138,7 @@ for object_type in object_type_and_data_options_without_composite])
 # Composite object data with and without object_type specified
 composite_object_data = {
     "type": "object",
-    "required": ["subobjects", "deleted_subobjects"],
+    "required": ["subobjects", "deleted_subobjects", "display_mode", "numerate_chapters"],
     "additionalProperties": False,
     "properties": {
         "subobjects": {
@@ -154,7 +160,14 @@ composite_object_data = {
                     "is_full_delete": { "type": "boolean" }
                 }
             }
-        }
+        },
+
+        "display_mode": {
+            "type": "string",
+            "enum": ["basic", "multicolumn", "chapters"]
+        },
+
+        "numerate_chapters": {"type": "boolean"}
     }
 }
 

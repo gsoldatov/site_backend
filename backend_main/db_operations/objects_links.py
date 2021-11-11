@@ -11,7 +11,11 @@ from backend_main.util.validation import validate_link
 
 
 async def add_links(request, obj_ids_and_data):
-    new_links = [{"object_id": o["object_id"], "link": o["object_data"]["link"]} for o in obj_ids_and_data]
+    new_links = [{
+        "object_id": o["object_id"], 
+        "link": o["object_data"]["link"],
+        "show_description_as_link": o["object_data"]["show_description_as_link"]
+    } for o in obj_ids_and_data]
     for nl in new_links:
         validate_link(nl["link"])
     
@@ -24,7 +28,11 @@ async def add_links(request, obj_ids_and_data):
 
 async def update_links(request, obj_ids_and_data):
     for o in obj_ids_and_data:
-        new_link = {"object_id": o["object_id"], "link": o["object_data"]["link"]}
+        new_link = {
+            "object_id": o["object_id"], 
+            "link": o["object_data"]["link"],
+            "show_description_as_link": o["object_data"]["show_description_as_link"]
+        }
         validate_link(new_link["link"])
         
         links = request.config_dict["tables"]["links"]
@@ -47,7 +55,7 @@ async def view_links(request, object_ids):
     auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, links.c.object_id)
 
     records = await request["conn"].execute(
-        select([links.c.object_id, links.c.link])
+        select([links.c.object_id, links.c.link, links.c.show_description_as_link])
         .where(auth_filter_clause)
         # .where(links.c.object_id.in_(object_ids))
     )
