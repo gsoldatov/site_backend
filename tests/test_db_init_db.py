@@ -2,7 +2,6 @@
 db/init_db.py tests
 """
 import os, sys
-import shutil
 
 import pytest
 import psycopg2

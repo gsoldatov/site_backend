@@ -2,7 +2,7 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 
-from tests.fixtures.objects import get_objects_attributes_list, insert_objects, insert_data_for_view_objects_as_anonymous
+from tests.fixtures.objects import get_objects_attributes_list, get_test_object, insert_objects, insert_data_for_view_objects_as_anonymous
 from tests.fixtures.sessions import headers_admin_token
 
 
@@ -47,9 +47,9 @@ async def test_correct_search_requests_as_admin(cli, db_cursor):
     assert data["object_ids"] == [1, 3]    # a0, c0
 
     # Correct request - check if query case is ignored
-    insert_objects([{"object_id": 11, "object_type": "link", "created_at": obj_list[0]["created_at"], "modified_at": obj_list[0]["modified_at"], 
-                    "object_name": "A", "object_description": "", "is_published": False, "owner_id": 1}]
-                    , db_cursor)
+    insert_objects([get_test_object(object_id=11, object_type="link", created_at=obj_list[0]["created_at"], modified_at=obj_list[0]["modified_at"], 
+                    object_name="A", object_description="", is_published=False, show_description=True, owner_id=1)]
+                , db_cursor)
     req_body = {"query": {"query_text": "A"}}
     resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200

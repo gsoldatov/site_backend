@@ -30,14 +30,18 @@ def error_json(e):
 
 
 def link_data_row_proxy_to_dict(row):
-    result = row_proxy_to_dict(row)
-    result["object_data"] = {"link": result.pop("link")}
+    d = row_proxy_to_dict(row)
+    result = {"object_id": d.pop("object_id"), "object_data": {}}
+    for attr in [a for a in d]:
+        result["object_data"][attr] = d.pop(attr)
     return result
 
 
 def markdown_data_row_proxy_to_dict(row):
-    result = row_proxy_to_dict(row)
-    result["object_data"] = {"raw_text": result.pop("raw_text")}
+    d = row_proxy_to_dict(row)
+    result = {"object_id": d.pop("object_id"), "object_data": {}}
+    for attr in [a for a in d]:
+        result["object_data"][attr] = d.pop(attr)
     return result
 
 

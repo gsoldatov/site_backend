@@ -13,14 +13,27 @@ from tests.fixtures.sessions import headers_admin_token
 
 
 async def test_add_as_admin(cli, db_cursor):
-    # Incorrect link attributes
-    for attr in [{"incorrect link attr": "123"}, {"incorrect link attr": "123", "link": "https://google.com"}]:
+    # Missing link object data attributes
+    for attr in ["link", "show_description_as_link"]:
         link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-        link["object_data"] = attr
+        link["object_data"].pop(attr)
+        resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+        assert resp.status == 400
+
+    # Unallowed link object data attribute
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+    link["object_data"]["unallowed"] = "some str"
+    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Incorrect link object data attribute values
+    for attr, value in [("link", 123), ("link", False), ("show_description_as_link", 1), ("show_description_as_link", "str")]:
+        link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+        link["object_data"][attr] = value
         resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Incorrect link value
+    # Incorrect link value (not a valid URL)
     link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
     link["object_data"] = {"link": "not a valid link"}
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
@@ -50,14 +63,32 @@ async def test_update_as_admin(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
     insert_links(l_list, db_cursor)
 
-    # Incorrect attributes in object_data for links
-    for object_data in [{}, {"link": "https://google.com", "incorrect_attr": 1}, {"link": "not a link"},
-                        {"link": ""}, {"link": 123}]:
-        obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
-        obj["object_id"] = 1
-        obj["object_data"] = object_data
+    # Missing link object data attributes
+    for attr in ["link", "show_description_as_link"]:
+        obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
+        obj["object_data"].pop(attr)
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
         assert resp.status == 400
+
+    # Unallowed link object data attribute
+    obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
+    obj["object_data"]["unallowed"] = "some str"
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Incorrect link object data attribute values
+    for attr, value in [("link", 123), ("link", False), ("show_description_as_link", 1), ("show_description_as_link", "str")]:
+        obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
+        obj["object_data"][attr] = value
+        resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+        assert resp.status == 400
+
+    # Incorrect link value (not a valid URL)
+    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
+    obj["object_id"] = 1
+    obj["object_data"]["link"] = "not a link"
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+    assert resp.status == 400
 
     # Correct update (link)
     obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
@@ -87,7 +118,8 @@ async def test_view_as_admin(cli, db_cursor):
 
     for field in ("object_id", "object_type", "object_data"):
         assert field in data["object_data"][0]
-    assert "link" in data["object_data"][0]["object_data"]
+    for field in ("link", "show_description_as_link"):
+        assert field in data["object_data"][0]["object_data"]
 
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as admin, link object_data_ids only")

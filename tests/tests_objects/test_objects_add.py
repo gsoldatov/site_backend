@@ -15,7 +15,7 @@ async def test_incorrect_request_body_as_admin(cli):
     assert resp.status == 400
 
     # Required attributes missing
-    for attr in ("object_type", "object_name", "object_description", "is_published"):
+    for attr in ("object_type", "object_name", "object_description", "is_published", "show_description"):
         link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
         link.pop(attr)
         resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
@@ -54,9 +54,8 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor):
     assert type(resp_object) == dict
     for attr in ("object_id", "object_type", "created_at", "modified_at", "object_name", "object_description"):
         assert attr in resp_object
-    assert link["object_name"] == resp_object["object_name"]
-    assert link["object_description"] == resp_object["object_description"]
-    assert link["is_published"] == resp_object["is_published"]
+    for attr in ("object_name", "object_description", "is_published", "show_description"):
+        assert link[attr] == resp_object[attr]
 
     db_cursor.execute(f"SELECT object_name FROM objects WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (link["object_name"],)
