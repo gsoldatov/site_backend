@@ -143,8 +143,8 @@ def get_tables(config):
             Column("selected_tab", Integer, nullable=False),
 
             Column("is_expanded", Boolean, nullable=False),
-            Column("show_description", Text, nullable=False),
-            Column("show_description_as_link", Text, nullable=False)
+            Column("show_description_composite", Text, nullable=False),
+            Column("show_description_as_link_composite", Text, nullable=False)
         )
     } \
     , meta

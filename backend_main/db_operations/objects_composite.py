@@ -33,7 +33,7 @@ async def view_composite(request, object_ids):
     # Query subobjects
     records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
         select([objects.c.object_id, composite.c.subobject_id, composite.c.row, composite.c.column, 
-            composite.c.selected_tab, composite.c.is_expanded, composite.c.show_description, composite.c.show_description_as_link])
+            composite.c.selected_tab, composite.c.is_expanded, composite.c.show_description_composite, composite.c.show_description_as_link_composite])
         .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
         .where(and_(
             auth_filter_clause,
@@ -52,8 +52,8 @@ async def view_composite(request, object_ids):
                 "column": row["column"],
                 "selected_tab": row["selected_tab"],
                 "is_expanded": row["is_expanded"],
-                "show_description": row["show_description"],
-                "show_description_as_link": row["show_description_as_link"]
+                "show_description_composite": row["show_description_composite"],
+                "show_description_as_link_composite": row["show_description_as_link_composite"]
             })
         subobject_data[object_id] = subobjects
     
@@ -242,8 +242,8 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
                 "column": so["column"],
                 "selected_tab": so["selected_tab"],
                 "is_expanded": so["is_expanded"],
-                "show_description": so["show_description_composite"],
-                "show_description_as_link": so["show_description_as_link_composite"]
+                "show_description_composite": so["show_description_composite"],
+                "show_description_as_link_composite": so["show_description_as_link_composite"]
             })
     
     # Check if all subobject IDs exist as objects

@@ -11,12 +11,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
 
 
-from util import check_ids
-from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, get_composite_subobject_object_data, \
+from tests.util import check_ids
+from tests.fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, get_composite_subobject_object_data, \
     add_composite_subobject, add_composite_deleted_subobject, composite_data_list, \
     insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_composite_properties, insert_data_for_view_objects_as_anonymous
 from tests.fixtures.sessions import headers_admin_token
-from fixtures.users import get_test_user, insert_users
+from tests.fixtures.users import get_test_user, insert_users
 
 
 async def test_add_incorrect_top_level_data_as_admin(cli):
@@ -414,7 +414,7 @@ async def test_add_correct_object_with_new_subobjects_as_admin(cli, db_cursor):
             
     
     # Check composite object's subobjects in the database
-    db_cursor.execute(f"SELECT subobject_id, row, \"column\", selected_tab, is_expanded, show_description, show_description_as_link FROM composite WHERE object_id = {resp_json['object']['object_id']}")
+    db_cursor.execute(f"SELECT subobject_id, row, \"column\", selected_tab, is_expanded, show_description_composite, show_description_as_link_composite FROM composite WHERE object_id = {resp_json['object']['object_id']}")
     result = db_cursor.fetchall()
     assert len(result) == len(id_mapping)
     for row in result:
@@ -602,7 +602,7 @@ async def test_view_composite_objects_as_admin(cli, db_cursor):
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, composite object_data_ids only")
     
-    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description", "show_description_as_link"]:
+    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"]:
         assert attr in data["object_data"][0]["object_data"]["subobjects"][0]
 
 

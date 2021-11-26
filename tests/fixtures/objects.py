@@ -335,7 +335,7 @@ def insert_composite(composite, db_cursor):
     `composite` is an array with elements as dict objects with the folowing structure:
     {"object_id": ..., "object_data: {...}}
     """
-    field_names = ("object_id", "subobject_id", "column", "row", "selected_tab", "is_expanded", "show_description", "show_description_as_link")
+    field_names = ("object_id", "subobject_id", "column", "row", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite")
     num_of_lines = sum((len(c["object_data"]["subobjects"]) for c in composite))
     query = "INSERT INTO %s" + str(field_names).replace("'", '"') + " VALUES " \
         + ", ".join(("(%s, %s, %s, %s, %s, %s, %s, %s)" for _ in range(num_of_lines)))
@@ -348,8 +348,6 @@ def insert_composite(composite, db_cursor):
                     pass
                 elif field == "subobject_id":
                     params.append(so["object_id"])
-                elif field in ("show_description", "show_description_as_link"):
-                    params.append(so[f"{field}_composite"])
                 else:
                     params.append(so[field])
     db_cursor.execute(query, params)
