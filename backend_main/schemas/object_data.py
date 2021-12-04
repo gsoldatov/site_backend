@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from backend_main.schemas.common import object_id, name, description, is_published, show_description_composite
+from backend_main.schemas.common import object_id, name, description, show_description_composite
 # from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
 
@@ -107,7 +107,7 @@ composite_subobject_item_options.extend([{
     # New subobjects and existing subobjects with data updates (custom object_data for each object_type, composite subobjects are not allowed)
     "type": "object",
     "required": ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite",
-                    "object_name", "object_description", "object_type", "is_published", "show_description", "object_data"],
+                    "object_name", "object_description", "object_type", "is_published", "display_in_feed", "feed_timestamp", "show_description", "object_data"],
     "additionalProperties": False,    # added_tags and removed_tag_ids are optional (but currently not added => False)
     "properties": {                            
         "object_id": { "type": "integer" }, # can be negative for new objects
@@ -123,7 +123,9 @@ composite_subobject_item_options.extend([{
         "object_type": {
             "const": object_type
         },
-        "is_published": is_published,
+        "is_published": {"type": "boolean"},
+        "display_in_feed": {"type": "boolean"},
+        "feed_timestamp": {"type": "string"},
         "show_description": { "type": "boolean" },
         "owner_id": object_id,
         

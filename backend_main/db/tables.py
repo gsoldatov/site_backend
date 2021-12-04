@@ -80,6 +80,8 @@ def get_tables(config):
             Column("owner_id", Integer, ForeignKey("users.user_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
 
             Column("is_published", Boolean, nullable=False),
+            Column("display_in_feed", Boolean, nullable=False),
+            Column("feed_timestamp", DateTime),
             Column("show_description", Boolean, nullable=False)
         ),
 

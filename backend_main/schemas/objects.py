@@ -1,4 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, is_published, object_types_enum
+from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, object_types_enum
 from backend_main.schemas.object_data import object_type_and_data_options
 from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
 
@@ -11,13 +11,15 @@ objects_add_schema = {
         "object": {
             "type": "object",
             "oneOf": [{
-                "required": ["object_type", "object_name", "object_description", "is_published", "show_description", "object_data"],
+                "required": ["object_type", "object_name", "object_description", "is_published", "display_in_feed", "feed_timestamp", "show_description", "object_data"],
                 "additionalProperties": False,
                 "properties": {
                     "object_type": { "const": object_type },
                     "object_name": name,
                     "object_description": description,
-                    "is_published": is_published,
+                    "is_published": {"type": "boolean"},
+                    "display_in_feed": {"type": "boolean"},
+                    "feed_timestamp": {"type": "string"},
                     "show_description": {"type": "boolean"},
                     "owner_id": object_id,
                     "object_data": object_type_and_data_options[object_type],
@@ -35,13 +37,15 @@ objects_update_schema = {
     "properties": {
         "object": {
             "type": "object",
-            "required": ["object_id", "object_name", "object_description", "is_published", "show_description", "object_data"],
+            "required": ["object_id", "object_name", "object_description", "is_published", "display_in_feed", "feed_timestamp", "show_description", "object_data"],
             "additionalProperties": False,
             "properties": {
                 "object_id": object_id,
                 "object_name": name,
                 "object_description": description,
-                "is_published": is_published,
+                "is_published": {"type": "boolean"},
+                "display_in_feed": {"type": "boolean"},
+                "feed_timestamp": {"type": "string"},
                 "show_description": {"type": "boolean"},
                 "owner_id": object_id,
                 "object_data": {
@@ -85,7 +89,7 @@ objects_get_page_object_ids_schema = {
     "properties": {
         "pagination_info": {
             "type": "object",
-            "required": ["page", "items_per_page", "order_by", "sort_order", "filter_text", "object_types", "tags_filter"],
+            "required": ["page", "items_per_page", "order_by"],
             "additionalProperties": False,
             "properties": {
                 "page": {
@@ -98,7 +102,7 @@ objects_get_page_object_ids_schema = {
                 },
                 "order_by": {
                     "type": "string",
-                    "enum": ["object_name", "modified_at"]
+                    "enum": ["object_name", "modified_at", "feed_timestamp"]
                 },
                 "sort_order": {
                     "type": "string",
@@ -116,7 +120,9 @@ objects_get_page_object_ids_schema = {
                         "enum": object_types_enum
                     }
                 },
-                "tags_filter": list_of_ids()
+                "tags_filter": list_of_ids(),
+
+                "show_only_displayed_in_feed": {"type": "boolean"}
             }
         }
     }
