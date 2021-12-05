@@ -1,6 +1,6 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, object_types_enum
-from backend_main.schemas.object_data import object_type_and_data_options
-from backend_main.schemas.objects_tags import added_tags, removed_tag_ids
+from backend_main.validation.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description, object_types_enum
+from backend_main.validation.schemas.object_data import object_type_and_data_options
+from backend_main.validation.schemas.objects_tags import added_tags, removed_tag_ids
 
 
 objects_add_schema = {

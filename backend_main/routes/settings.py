@@ -6,7 +6,7 @@ from jsonschema import validate
 
 from backend_main.db_operations.settings import update_settings, view_settings
 
-from backend_main.schemas.settings import settings_view_schema, settings_update_schema
+from backend_main.validation.schemas.settings import settings_view_schema, settings_update_schema
 
 from backend_main.util.json import error_json
 

@@ -6,9 +6,9 @@ from datetime import datetime
 from aiohttp import web
 from jsonschema import validate
 
-from backend_main.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
+from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
     objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema
-from backend_main.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
+from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, set_modified_at

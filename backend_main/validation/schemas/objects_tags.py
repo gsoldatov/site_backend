@@ -1,4 +1,4 @@
-from backend_main.schemas.common import list_of_ids, object_id, name
+from backend_main.validation.schemas.common import list_of_ids, object_id, name
 
 
 added_tags = {
@@ -14,7 +14,7 @@ removed_object_ids = list_of_ids(max_items = 100, unique = False)
 
 
 # # Schema which was used to perform a full check of objects_tags data in objects_tags db operations
-# from backend_main.schemas.common import non_empty_list_of_ids
+# from backend_main.validation.schemas.common import non_empty_list_of_ids
 
 
 # objects_tags_update_schema = {

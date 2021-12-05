@@ -7,7 +7,7 @@ from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation
 
 from backend_main.util.json import error_json
-from backend_main.util.validation import RequestValidationException
+from backend_main.validation.util import RequestValidationException
 
 
 def _get_uv_msg(e):

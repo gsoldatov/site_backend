@@ -11,7 +11,7 @@ from sqlalchemy.sql import and_
 from backend_main.db_operations.auth import check_if_user_owns_objects, \
     check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause
 
-from backend_main.util.validation import RequestValidationException
+from backend_main.validation.util import RequestValidationException
 
 
 async def view_objects_tags(request, object_ids = None, tag_ids = None):

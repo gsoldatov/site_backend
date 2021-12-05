@@ -11,7 +11,7 @@ from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to
 from backend_main.db_operations.sessions import add_session, delete_sessions
 from backend_main.db_operations.users import add_user, get_user_by_credentials
 
-from backend_main.schemas.auth import register_schema, login_schema
+from backend_main.validation.schemas.auth import register_schema, login_schema
 
 from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
 from backend_main.util.json import error_json, row_proxy_to_dict, serialize_datetime_to_str

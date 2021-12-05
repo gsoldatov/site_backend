@@ -1,4 +1,4 @@
-from backend_main.schemas.common import name
+from backend_main.validation.schemas.common import name
 
 
 settings_update_schema = {

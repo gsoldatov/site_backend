@@ -7,7 +7,7 @@ from sqlalchemy import select
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 
 from backend_main.util.json import link_data_row_proxy_to_dict, error_json
-from backend_main.util.validation import validate_link
+from backend_main.validation.db_operations.object_data import validate_link
 
 
 async def add_links(request, obj_ids_and_data):

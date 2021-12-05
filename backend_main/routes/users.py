@@ -4,7 +4,7 @@ from jsonschema import validate
 
 from backend_main.db_operations.users import update_user, view_users
 
-from backend_main.schemas.users import users_update_schema, users_view_schema
+from backend_main.validation.schemas.users import users_update_schema, users_view_schema
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 

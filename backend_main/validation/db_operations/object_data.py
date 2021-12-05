@@ -1,10 +1,10 @@
 """
-Validation utility functions.
+Validation functions performed before running database operations for object data.
 """
-from datetime import datetime
 from urllib.parse import urlparse
-import json
 from collections import Counter
+
+from backend_main.validation.util import RequestValidationException
 
 
 def validate_link(link):
@@ -51,7 +51,3 @@ def validate_composite(object_id_and_data):
 
     if len(intersection) > 0:
         raise RequestValidationException(f"Validation error for composite object ID `{object_id}`, subobject IDs `{intersection}` are present both in `subobjects` and `deleted_subobjects`.")
-
-
-class RequestValidationException(Exception):
-    pass

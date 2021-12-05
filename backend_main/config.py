@@ -3,7 +3,7 @@ import json
 
 from jsonschema import validate
 
-from backend_main.schemas.config import config_schema
+from backend_main.validation.schemas.config import config_schema
 
 
 def get_config(config_file = None):

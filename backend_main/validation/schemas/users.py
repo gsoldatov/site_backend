@@ -1,4 +1,4 @@
-from backend_main.schemas.common import non_empty_list_of_ids, object_id, password, name, user_level
+from backend_main.validation.schemas.common import non_empty_list_of_ids, object_id, password, name, user_level
 
 
 users_update_schema = {

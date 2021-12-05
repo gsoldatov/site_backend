@@ -10,7 +10,7 @@ from backend_main.db_operations.auth import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
 
 from backend_main.util.json import error_json
-from backend_main.util.validation import validate_composite
+from backend_main.validation.db_operations.object_data import validate_composite
 from backend_main.util.object_type_route_handler_resolving import object_type_func_name_mapping, get_object_type_route_handler
 
 

@@ -1,5 +1,5 @@
-from backend_main.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
-from backend_main.schemas.objects_tags import added_object_ids, removed_object_ids
+from backend_main.validation.schemas.common import non_empty_list_of_ids, list_of_ids, object_id, name, description
+from backend_main.validation.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
 tags_add_schema = {

@@ -1,4 +1,4 @@
-from backend_main.schemas.common import name, password, user_level
+from backend_main.validation.schemas.common import name, password, user_level
 
 
 register_schema = {
