@@ -4,6 +4,8 @@ Data converting functions for preparing JSON responses.
 from datetime import datetime, timezone
 import json
 
+from backend_main.validation.util import RequestValidationException
+
 
 def row_proxy_to_dict(row_proxy):
     """
@@ -50,3 +52,19 @@ def serialize_datetime_to_str(d):
     date_with_timezone = d.replace(tzinfo=timezone.utc)
     return date_with_timezone.isoformat()
 
+
+def deserialize_str_to_datetime(s, allow_empty_string = False, error_msg = None):
+    """
+    Deserializes ISO-formatted datetime string `s` into datetime object.
+    If `allow_empty_string` is True, empty strings will be converted into None.
+    Raises `RequestValidationException` in case of failure.
+    `field_name` may be passed to customize error message.
+    """
+    if allow_empty_string and len(s) == 0: return None
+
+    try:
+        if s.endswith("Z"): s = s[:-1] # remove Zulu timezone if present to avoid parsing failure
+        return datetime.fromisoformat(s)
+    except ValueError:
+        error_msg = error_msg or f"'{s}' is not a valid ISO-formatted string."
+        raise RequestValidationException(error_msg)

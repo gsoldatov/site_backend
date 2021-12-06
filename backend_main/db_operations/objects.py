@@ -6,12 +6,13 @@ from datetime import datetime
 from aiohttp import web
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_, or_
+from sqlalchemy.sql.expression import true
+from sqlalchemy.sql.functions import coalesce
 
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
 from backend_main.db_operations.users import check_if_user_ids_exist
 
-from backend_main.validation.schemas.objects import object_types_enum
 from backend_main.util.json import error_json
 
 
@@ -35,7 +36,8 @@ async def add_objects(request, objects_attributes):
     result = await request["conn"].execute(
         objects.insert()
         .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.show_description, objects.c.owner_id)
+                objects.c.object_name, objects.c.object_description, objects.c.is_published, 
+                objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id)
         .values(objects_attributes)
         )
 
@@ -72,7 +74,8 @@ async def update_objects(request, objects_attributes):
             .where(objects.c.object_id == object_id)
             .values(oa)
             .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
-                    objects.c.object_name, objects.c.object_description, objects.c.is_published, objects.c.show_description, objects.c.owner_id)
+                    objects.c.object_name, objects.c.object_description, objects.c.is_published, 
+                    objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id)
             )
         record = await result.fetchone()
 
@@ -94,8 +97,8 @@ async def view_objects(request, object_ids):
 
     result = await request["conn"].execute(
         select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
-            objects.c.modified_at, objects.c.object_name, objects.c.object_description,
-            objects.c.is_published, objects.c.show_description, objects.c.owner_id])
+            objects.c.modified_at, objects.c.object_name, objects.c.object_description, objects.c.is_published, 
+            objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id])
         .where(and_(
             auth_filter_clause,
             objects.c.object_id.in_(object_ids)
@@ -172,7 +175,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     )
 
     if not await result.fetchone():
-        raise web.HTTPNotFound(text = error_json("Objects(s) not found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("Objects(s) not found."), content_type="application/json")
 
 
 async def get_page_object_ids_data(request, pagination_info):
@@ -188,34 +191,59 @@ async def get_page_object_ids_data(request, pagination_info):
     # Objects filter for non 'admin` user level
     auth_filter_clause = get_objects_auth_filter_clause(request)
 
-    # Set query params
-    order_by = objects.c.modified_at if pagination_info["order_by"] == "modified_at" else objects.c.object_name
+    # Basic query parameters and clauses
+    order_by = {
+        "object_name": objects.c.object_name,
+        "modified_at": objects.c.modified_at,
+        "feed_timestamp": coalesce(objects.c.feed_timestamp, objects.c.modified_at)
+    }[pagination_info["order_by"]]
     order_asc = pagination_info["sort_order"] == "asc"
     items_per_page = pagination_info["items_per_page"]
     first = (pagination_info["page"] - 1) * items_per_page
-    filter_text = f"%{pagination_info['filter_text'].lower()}%"
-    object_types = pagination_info["object_types"] if len(pagination_info["object_types"]) > 0 else object_types_enum
-    tags_filter = pagination_info["tags_filter"]
 
-    # Sub-query for filtering objects which match tags filter condition
-    tags_filter_subquery = (
-        select([objects_tags.c.object_id.label("object_id"), func.count().label("tags_count")])
-        .where(objects_tags.c.tag_id.in_(tags_filter))
-        .group_by(objects_tags.c.object_id)
-    ).alias("t_f_subquery")
-    tags_filter_query = (
-        select([tags_filter_subquery.c.object_id])
-        .select_from(tags_filter_subquery)
-        .where(tags_filter_subquery.c.tags_count == len(tags_filter))
-    ).as_scalar()
-
-    # return where clause statements for a select statement `s`.
+    # Optional search condidions
     def with_where_clause(s):
+        """ Returns where clause statements for a select statement `s`. """
+        # Text filter for object name
+        filter_text = pagination_info.get("filter_text", "")
+        if len(filter_text) > 0: filter_text = f"%{filter_text.lower()}%"
+        filter_clause = func.lower(objects.c.object_name).like(filter_text) if len(filter_text) > 0 else true()
+
+        # Object types filter
+        object_types = pagination_info.get("object_types", [])
+        object_types_clause = objects.c.object_type.in_(object_types) if len(object_types) > 0 else true()
+
+        # Tags filter
+        tags_filter_clause = true()
+        if "tags_filter" in pagination_info:
+            tags_filter = pagination_info["tags_filter"]
+
+            # Sub-query for filtering objects which match tags filter condition
+            tags_filter_subquery = (
+                select([objects_tags.c.object_id.label("object_id"), func.count().label("tags_count")])
+                .where(objects_tags.c.tag_id.in_(tags_filter))
+                .group_by(objects_tags.c.object_id)
+            ).alias("t_f_subquery")
+            tags_filter_query = (
+                select([tags_filter_subquery.c.object_id])
+                .select_from(tags_filter_subquery)
+                .where(tags_filter_subquery.c.tags_count == len(tags_filter))
+            ).as_scalar()
+
+            tags_filter_clause = objects.c.object_id.in_(tags_filter_query)
+        
+        # Display in feed
+        display_in_feed_clause = true()
+        if "show_only_displayed_in_feed" in pagination_info:
+            display_in_feed_clause = objects.c.display_in_feed == pagination_info["show_only_displayed_in_feed"]
+        
+        # Resulting statement
         return s\
             .where(auth_filter_clause)\
-            .where(func.lower(objects.c.object_name).like(filter_text))\
-            .where(objects.c.object_type.in_(object_types))\
-            .where(objects.c.object_id.in_(tags_filter_query) if len(tags_filter) > 0 else 1 == 1)
+            .where(filter_clause)\
+            .where(object_types_clause)\
+            .where(tags_filter_clause)\
+            .where(display_in_feed_clause)
 
     # Get object ids
     result = await request["conn"].execute(
@@ -231,7 +259,7 @@ async def get_page_object_ids_data(request, pagination_info):
         object_ids.append(row["object_id"])
     
     if len(object_ids) == 0:
-        raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("No objects found."), content_type="application/json")
 
     # Get object count
     result = await request["conn"].execute(
@@ -243,16 +271,18 @@ async def get_page_object_ids_data(request, pagination_info):
     total_items = (await result.fetchone())[0]
 
     # Return response
-    return {
+    result = {
         "page": pagination_info["page"],
         "items_per_page": items_per_page,
         "total_items": total_items,
         "order_by": pagination_info["order_by"],
         "sort_order": pagination_info["sort_order"],
-        "filter_text": pagination_info["filter_text"],
-        "object_types": object_types,
         "object_ids": object_ids
     }
+
+    for attr in ("filter_text", "object_types", "tags_filter"):
+        if attr in pagination_info: result[attr] = pagination_info[attr]
+    return result
 
 
 async def search_objects(request, query):

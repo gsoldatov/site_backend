@@ -89,7 +89,7 @@ objects_get_page_object_ids_schema = {
     "properties": {
         "pagination_info": {
             "type": "object",
-            "required": ["page", "items_per_page", "order_by"],
+            "required": ["page", "items_per_page", "order_by", "sort_order"],
             "additionalProperties": False,
             "properties": {
                 "page": {

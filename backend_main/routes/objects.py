@@ -14,20 +14,21 @@ from backend_main.db_operations.objects import add_objects, update_objects, view
     get_page_object_ids_data, search_objects, set_modified_at
 from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 
-from backend_main.util.json import row_proxy_to_dict, error_json, serialize_datetime_to_str
+from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json, serialize_datetime_to_str
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 
 async def add(request):
     # Validate request body
     data = await request.json()
-    validate(instance = data, schema = objects_add_schema)
+    validate(instance=data, schema=objects_add_schema)
 
     # Get and set attribute values
     current_time = datetime.utcnow()
     request["current_time"] = current_time
     data["object"]["created_at"] = current_time
     data["object"]["modified_at"] = current_time
+    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
 
@@ -59,12 +60,13 @@ async def add(request):
 async def update(request):
     # Validate request body
     data = await request.json()
-    validate(instance = data, schema = objects_update_schema)
+    validate(instance=data, schema=objects_update_schema)
 
     # Get and set attribute values
     current_time = datetime.utcnow()
     request["current_time"] = current_time
     data["object"]["modified_at"] = current_time
+    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
@@ -74,7 +76,7 @@ async def update(request):
     response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
 
     # Validate object_data property and call handler to update object-specific data
-    validate(instance = object_data, schema = get_object_data_update_schema(response_data["object_type"]))
+    validate(instance=object_data, schema=get_object_data_update_schema(response_data["object_type"]))
     specific_data = [{"object_id": response_data["object_id"], "object_data": object_data}]
     handler = get_object_type_route_handler("update", response_data["object_type"])
     returned_object_data = await handler(request, specific_data)
@@ -92,7 +94,7 @@ async def update(request):
 async def view(request):
     # Validate request body
     data = await request.json()
-    validate(instance = data, schema = objects_view_schema)
+    validate(instance=data, schema=objects_view_schema)
 
     # Get object IDs and initialize containers for response data
     object_ids = data.get("object_ids", [])
@@ -129,7 +131,7 @@ async def view(request):
             object_data.extend(object_type_data)
     
     if len(object_attrs) == 0 and len(object_data) == 0:
-        raise web.HTTPNotFound(text = error_json("Objects not found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("Objects not found."), content_type="application/json")
 
     return {"objects": object_attrs, "object_data": object_data}
 
@@ -137,7 +139,7 @@ async def view(request):
 async def delete(request):
     # Validate request body
     data = await request.json()
-    validate(instance = data, schema = objects_delete_schema)
+    validate(instance=data, schema=objects_delete_schema)
     object_ids = data["object_ids"]
     delete_subobjects = data.get("delete_subobjects", False)
 
@@ -151,7 +153,7 @@ async def delete(request):
 async def get_page_object_ids(request):
     # Validate request data
     data = await request.json()
-    validate(instance = data, schema = objects_get_page_object_ids_schema)
+    validate(instance=data, schema=objects_get_page_object_ids_schema)
     
     return await get_page_object_ids_data(request, data["pagination_info"])
 
@@ -159,7 +161,7 @@ async def get_page_object_ids(request):
 async def search(request):
     # Validate request data
     data = await request.json()
-    validate(instance = data, schema = objects_search_schema)
+    validate(instance=data, schema=objects_search_schema)
 
     # Search objects
     object_ids = await search_objects(request, data["query"])
@@ -170,12 +172,12 @@ async def search(request):
 async def update_tags(request):
     # Perform basic data validation
     data = await request.json()
-    validate(instance = data, schema = objects_update_tags_schema)
+    validate(instance=data, schema=objects_update_tags_schema)
 
     # Update objects_tags and send response
     response_data = {}
     # Update tags
-    response_data["tag_updates"] = await update_objects_tags(request, data, check_ids = True)
+    response_data["tag_updates"] = await update_objects_tags(request, data, check_ids=True)
     
     # Set objects' modified_at time
     response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
@@ -190,12 +192,12 @@ def get_object_data_update_schema(object_type):
 def get_subapp():
     app = web.Application()
     app.add_routes([
-                    web.post("/add", add, name = "add"),
-                    web.put("/update", update, name = "update"),
-                    web.post("/view", view, name = "view"),
-                    web.delete("/delete", delete, name = "delete"),
-                    web.post("/get_page_object_ids", get_page_object_ids, name = "get_page_object_ids"),
-                    web.post("/search", search, name = "search"),
-                    web.put("/update_tags", update_tags, name = "update_tags")
+                    web.post("/add", add, name="add"),
+                    web.put("/update", update, name="update"),
+                    web.post("/view", view, name="view"),
+                    web.delete("/delete", delete, name="delete"),
+                    web.post("/get_page_object_ids", get_page_object_ids, name="get_page_object_ids"),
+                    web.post("/search", search, name="search"),
+                    web.put("/update_tags", update_tags, name="update_tags")
                 ])
     return app

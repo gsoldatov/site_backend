@@ -4,12 +4,11 @@
 from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.sql import and_
-from psycopg2.errors import ForeignKeyViolation
 
 from backend_main.db_operations.auth import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
 
-from backend_main.util.json import error_json
+from backend_main.util.json import deserialize_str_to_datetime, error_json
 from backend_main.validation.db_operations.object_data import validate_composite
 from backend_main.util.object_type_route_handler_resolving import object_type_func_name_mapping, get_object_type_route_handler
 
@@ -119,7 +118,10 @@ async def _add_new_subobjects(request, obj_ids_and_data):
                     "modified_at": request["current_time"],
                     
                     "is_published": so["is_published"],
+
                     "show_description": so["show_description"],
+                    "display_in_feed": so["display_in_feed"],
+                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
 
                     "owner_id": so.get("owner_id", request.user_info.user_id),
                     "owner_id_is_autoset": not ("owner_id" in so)
@@ -175,6 +177,8 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                     "object_description": so["object_description"],
                     "is_published": so["is_published"],
                     "show_description": so["show_description"],
+                    "display_in_feed": so["display_in_feed"],
+                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
                     "modified_at": request["current_time"]
                 }
                 if "owner_id" in so:     # don't update owner_id if it was not explicitly passed
