@@ -38,7 +38,7 @@ async def test_view_existing_objects_as_admin(cli, db_cursor):
     data = await resp.json()
     assert "objects" in data
 
-    for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "is_published", "show_description"):
+    for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         assert field in data["objects"][0]
 
     check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 

@@ -11,7 +11,19 @@ from tests.fixtures.tags import tag_list, insert_tags
 from tests.fixtures.sessions import headers_admin_token
 
 
-pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}
+pagination_info = {
+    "pagination_info": {
+        "page": 1, 
+        "items_per_page": 2, 
+        "order_by": "object_name", 
+        "sort_order": "asc", 
+        "filter_text": "", 
+        "object_types": ["link"], 
+        "tags_filter": [],
+        "show_only_displayed_in_feed": False
+}}
+required_attributes = ("page", "items_per_page", "order_by", "sort_order")
+pagination_info_basic = {"pagination_info": {attr: pagination_info["pagination_info"][attr] for attr in required_attributes}}
 
 
 async def test_incorrect_request_body_as_admin(cli):
@@ -19,138 +31,298 @@ async def test_incorrect_request_body_as_admin(cli):
     resp = await cli.post("/objects/get_page_object_ids", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
-    for attr in pagination_info["pagination_info"]:
+    for attr in required_attributes:
         pi = deepcopy(pagination_info)
         pi["pagination_info"].pop(attr)
         resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
         assert resp.status == 400
 
     # Incorrect param values
-    for k, v in [("page", "text"), ("page", -1), ("items_per_page", "text"), ("items_per_page", -1), ("order_by", 1), ("order_by", "wrong text"),
-                 ("sort_order", 1), ("sort_order", "wrong text"), ("filter_text", 1), ("object_types", "not a list"), ("object_types", ["wrong object type"]),
-                 ("tags_filter", 1), ("tags_filter", "string"), ("tags_filter", [1, 2, -1]), ("tags_filter", [1, 2, "not a number"])]:
+    for k, v in [("page", "text"), ("page", -1), 
+        ("items_per_page", "text"), ("items_per_page", -1), 
+        ("order_by", 1), ("order_by", "wrong text"),
+        ("sort_order", 1), ("sort_order", "wrong text"), 
+        ("filter_text", 1), ("filter_text", True), 
+        ("object_types", "not a list"), ("object_types", ["wrong object type"]),
+        ("tags_filter", 1), ("tags_filter", "string"), ("tags_filter", [1, 2, -1]), ("tags_filter", [1, 2, "not a number"]),
+        ("show_only_displayed_in_feed", 1), ("show_only_displayed_in_feed", "str")]:
         pi = deepcopy(pagination_info)
         pi["pagination_info"][k] = v
         resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
         assert resp.status == 400
 
 
-async def test_correct_requests_as_admin(cli, db_cursor):
+async def test_correct_request_sort_by_name_as_admin(cli, db_cursor):
     # Insert mock values
-    obj_list = get_objects_attributes_list(1, 10)   # links
-    obj_list.extend(get_objects_attributes_list(11, 18)) # markdown
-    obj_count = len(obj_list)
-    links_count = sum((1 for obj in obj_list if obj["object_type"] == "link"))
-    markdown_count = sum((1 for obj in obj_list if obj["object_type"] == "markdown"))
-
+    obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
 
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
-    insert_objects_tags([_ for _ in range(1, 8)], [1], db_cursor)
-    insert_objects_tags([_ for _ in range(5, 11)], [2], db_cursor)
-    insert_objects_tags([1, 3, 5, 7, 9], [3], db_cursor)
-    insert_objects_tags([11, 12], [1, 2, 3], db_cursor)
-    
-    # Correct request - sort by object_name asc + check response body (links only)
-    pi = deepcopy(pagination_info)
+    # Correct request - sort by object_name asc + check response body
+    pi = deepcopy(pagination_info_basic)
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    for attr in ["page", "items_per_page","total_items", "order_by", "sort_order", "filter_text", "object_types", "object_ids"]:
-        assert attr in data
-        assert data[attr] == pi["pagination_info"].get(attr, None) or attr in ["object_types", "total_items", "object_ids"]
-    assert data["total_items"] == links_count
-    assert data["object_ids"] == [1, 2] # a0, b1
+    assert "pagination_info" in data
+    for attr in pagination_info["pagination_info"]:
+        assert attr in data["pagination_info"] or attr not in required_attributes
+        assert data["pagination_info"].get(attr) == pi["pagination_info"].get(attr) or attr not in required_attributes
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2] # a0, b1
 
-    # Correct request - sort by object_name desc (links only)
-    pi = deepcopy(pagination_info)
+    # Correct request - sort by object_name desc
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["sort_order"] = "desc"
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count
-    assert data["object_ids"] == [10, 9] # j1, h0
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [10, 9] # j1, h0
 
-    # Correct request - sort by modified_at asc (links only)
-    pi = deepcopy(pagination_info)
+
+async def test_correct_request_sort_by_modified_at_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = get_objects_attributes_list(1, 10)
+    insert_objects(obj_list, db_cursor)
+
+    # Correct request - sort by modified_at asc
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["order_by"] = "modified_at"
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count
-    assert data["object_ids"] == [8, 4]
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [8, 4]
 
-    # Correct request - sort by modified_at desc + query second page (links only)
-    pi = deepcopy(pagination_info)
+    # Correct request - sort by modified_at desc + query second page
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["page"] = 2
     pi["pagination_info"]["order_by"] = "modified_at"
     pi["pagination_info"]["sort_order"] = "desc"
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count
-    assert data["object_ids"] == [7, 6]
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [7, 6]
 
-    # Correct request - filter by text (links only)
-    pi = deepcopy(pagination_info)
-    pi["pagination_info"]["filter_text"] = "0"
+
+async def test_correct_request_sort_by_feed_timestamp_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = get_objects_attributes_list(1, 10)
+    insert_objects(obj_list, db_cursor)
+
+    """
+    Sort by feed_timestamp asc order (for object IDs 1 to 10):
+    7 3 8 4 2 6 10 1 5 9
+
+    Even numbers don't have feed_timestamp set, so use modified_at instead, which is offset by minutes, rather than days, as are set `feed_timestamp` values.
+    """
+    # Correct request - sort by feed_timestamp asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["order_by"] = "feed_timestamp"
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [7, 3]
+
+    # Correct request - sort by feed_timestamp desc + query second page
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["order_by"] = "feed_timestamp"
+    pi["pagination_info"]["sort_order"] = "desc"
+    pi["pagination_info"]["page"] = 2
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count // 2
-    assert data["object_ids"] == [1, 3] # a0, c0
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 10]
 
-    # Correct request - filter by text + check if filter_text case is ignored (links only)
-    insert_objects([get_test_object(100, owner_id=1, object_type="link", object_name="aa", pop_keys=["object_data"]), 
-                    get_test_object(101, owner_id=1, object_type="link", object_name="AaA", pop_keys=["object_data"]),
-                    get_test_object(102, owner_id=1, object_type="link", object_name="AAaa", pop_keys=["object_data"]), 
-                    get_test_object(103, owner_id=1, object_type="link", object_name="aaaAa", pop_keys=["object_data"])]
-    , db_cursor)
-    pi = deepcopy(pagination_info)
+
+async def test_correct_request_filter_text_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = [
+        get_test_object(1, object_name="A-A", owner_id=1),
+        get_test_object(2, object_name="BAa", owner_id=1),
+        get_test_object(3, object_name="CAa", owner_id=1),
+        get_test_object(4, object_name="DAa", owner_id=1),
+        get_test_object(5, object_name="EAEa", owner_id=1),
+        get_test_object(6, object_name="FAEF", owner_id=1)
+    ]
+    insert_objects(obj_list, db_cursor)
+
+    # Correct request - no text filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
+
+    # Correct request - empty string as text filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["filter_text"] = ""
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
+
+    # Correct request - text filter  + sort by object name asc (also check if filter text case is ignored)
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["filter_text"] = "aA"
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == 4 # id = [100, 101, 102, 103]
-    assert data["object_ids"] == [100, 101]
-    delete_objects([100, 101, 102, 103], db_cursor)
+    assert data["pagination_info"]["total_items"] == 3
+    assert data["pagination_info"]["object_ids"] == [2, 3]
 
-    # Correct request - sort by object_name with no object names provided (query all object types)
-    pi = deepcopy(pagination_info)
+    # Correct request - no matches found
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["filter_text"] = "non-existing object name"
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 404
+
+
+async def test_correct_request_object_types_filter_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = [
+        get_test_object(1, object_type="link", owner_id=1),
+        get_test_object(2, object_type="link", owner_id=1),
+        get_test_object(3, object_type="markdown", owner_id=1),
+        get_test_object(4, object_type="markdown", owner_id=1),
+        get_test_object(5, object_type="to_do_list", owner_id=1),
+        get_test_object(6, object_type="to_do_list", owner_id=1)
+    ]
+    insert_objects(obj_list, db_cursor)
+
+    # Correct request - no objects type filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
+
+    # Correct request - empty object types filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["object_types"] = []
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == obj_count
-    assert data["object_ids"] == [1, 2]
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
 
-    # Correct request - sort by object_name and filter "link" object_type
-    pi = deepcopy(pagination_info)
+    # Correct request - object types filter + sort by object name asc
+    for object_types, result_object_ids, total_items in ((["link", "markdown"], [1, 2], 4), (["markdown", "to_do_list"], [3, 4], 4)):
+        pi = deepcopy(pagination_info_basic)
+        pi["pagination_info"]["object_types"] = object_types
+        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+        assert resp.status == 200
+        data = await resp.json()
+        assert data["pagination_info"]["total_items"] == total_items
+        assert data["pagination_info"]["object_ids"] == result_object_ids
+
+    # Correct request - no matches found
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["object_types"] = ["composite"]
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 404
+
+
+async def test_correct_request_tags_filter_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = get_objects_attributes_list(1, 10)
+    insert_objects(obj_list, db_cursor)
+    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_objects_tags([5], [1, 2], db_cursor)
+    insert_objects_tags([6], [1, 3], db_cursor)
+    insert_objects_tags([7, 8], [1, 2, 3], db_cursor)
+
+    # Correct request - no tags filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == links_count
-    assert data["object_ids"] == [1, 2]
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
 
-    # Correct request - sort by object_name and filter "markdown" object_type
-    pi = deepcopy(pagination_info)
-    pi["pagination_info"]["object_types"] = ["markdown"]
+    # Correct request - empty tags filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["tags_filter"] = []
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == markdown_count
-    assert data["object_ids"] == [11, 12]
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
 
-    # Correct request - filter objects by their tags (all object types)
-    pi = deepcopy(pagination_info)
-    pi["pagination_info"]["object_types"] = []
+    # Correct request - one tag in tags filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["tags_filter"] = [1]
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == 4
+    assert data["pagination_info"]["object_ids"] == [5, 6]
+
+    # Correct request - multiple tags in tags filter + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
     pi["pagination_info"]["tags_filter"] = [1, 2, 3]
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert sorted(data["object_ids"]) == [5, 7]
-    assert data["total_items"] == 4     # object_ids = [5, 7, 11, 12]
+    assert data["pagination_info"]["total_items"] == 2
+    assert data["pagination_info"]["object_ids"] == [7, 8]
 
+    # Correct request - no matches found
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["tags_filter"] = [4]
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 404
+
+
+async def test_correct_request_show_only_displayed_in_feed_as_admin(cli, db_cursor):
+    # Insert mock values
+    obj_list = [
+        get_test_object(1, object_type="link", display_in_feed=False, owner_id=1),
+        get_test_object(2, object_type="link", display_in_feed=False, owner_id=1),
+        get_test_object(3, object_type="link", display_in_feed=True, owner_id=1),
+        get_test_object(4, object_type="link", display_in_feed=True, owner_id=1)
+    ]
+    insert_objects(obj_list, db_cursor)
+
+    # Correct request - no show_only_displayed_in_feed + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
+
+    # Correct request - show_only_displayed_in_feed = False + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["show_only_displayed_in_feed"] = False
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(obj_list)
+    assert data["pagination_info"]["object_ids"] == [1, 2]
+
+    # Correct request - show_only_displayed_in_feed = True + sort by object name asc
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["show_only_displayed_in_feed"] = True
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == 2
+    assert data["pagination_info"]["object_ids"] == [3, 4]
+
+    # Correct request - show_only_displayed_in_feed = True + no matches
+    pi = deepcopy(pagination_info_basic)
+    pi["pagination_info"]["show_only_displayed_in_feed"] = True
+    pi["pagination_info"]["object_types"] = ["composite"]
+    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 404
+    
 
 async def test_correct_requests_as_anonymous(cli, db_cursor):
     insert_data_for_view_objects_as_anonymous(cli, db_cursor)
@@ -162,8 +334,8 @@ async def test_correct_requests_as_anonymous(cli, db_cursor):
     resp = await cli.post("/objects/get_page_object_ids", json=pi)
     assert resp.status == 200
     data = await resp.json()
-    assert data["total_items"] == len(expected_object_ids)
-    assert sorted(data["object_ids"]) == expected_object_ids
+    assert data["pagination_info"]["total_items"] == len(expected_object_ids)
+    assert sorted(data["pagination_info"]["object_ids"]) == expected_object_ids
     
 
 if __name__ == "__main__":

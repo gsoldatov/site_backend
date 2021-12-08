@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 
 if __name__ == "__main__":
     import os, sys
@@ -19,7 +20,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
     
     # Missing attributes
-    for attr in ("object_id", "object_name", "object_description", "is_published", "show_description"):
+    for attr in ("object_id", "object_name", "object_description", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
         obj.pop(attr)
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
@@ -77,8 +78,8 @@ async def test_correct_update_as_admin(cli, db_cursor):
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT object_name, is_published, show_description FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"], obj["show_description"])
+    db_cursor.execute(f"SELECT object_name, is_published, display_in_feed, feed_timestamp, show_description FROM objects WHERE object_id = 1")
+    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"], obj["display_in_feed"], datetime.fromisoformat(obj["feed_timestamp"][:-1]), obj["show_description"])
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id

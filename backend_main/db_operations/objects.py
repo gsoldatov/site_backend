@@ -215,7 +215,7 @@ async def get_page_object_ids_data(request, pagination_info):
 
         # Tags filter
         tags_filter_clause = true()
-        if "tags_filter" in pagination_info:
+        if len(pagination_info.get("tags_filter", [])) > 0:
             tags_filter = pagination_info["tags_filter"]
 
             # Sub-query for filtering objects which match tags filter condition
@@ -234,7 +234,7 @@ async def get_page_object_ids_data(request, pagination_info):
         
         # Display in feed
         display_in_feed_clause = true()
-        if "show_only_displayed_in_feed" in pagination_info:
+        if pagination_info.get("show_only_displayed_in_feed"):
             display_in_feed_clause = objects.c.display_in_feed == pagination_info["show_only_displayed_in_feed"]
         
         # Resulting statement
@@ -282,7 +282,7 @@ async def get_page_object_ids_data(request, pagination_info):
 
     for attr in ("filter_text", "object_types", "tags_filter"):
         if attr in pagination_info: result[attr] = pagination_info[attr]
-    return result
+    return {"pagination_info": result}
 
 
 async def search_objects(request, query):

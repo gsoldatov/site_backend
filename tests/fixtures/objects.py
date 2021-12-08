@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from json import loads
 
 from psycopg2.extensions import AsIs
 
+from tests.util import parse_iso_timestamp
 from tests.fixtures.users import get_test_user, insert_users
 
 
@@ -12,7 +14,8 @@ __all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values",
 
 
 def get_test_object(object_id, object_type = None, created_at = None, modified_at = None, \
-    object_name = None, object_description = None, is_published = None, show_description = None, owner_id = None, \
+    object_name = None, object_description = None, is_published = None, display_in_feed = None, feed_timestamp = None, \
+    show_description = None, owner_id = None, \
     pop_keys = [], composite_subobject_object_type = None):
     """
     Returns a dictionary representing an object, which can be sent in a request body or inserted into the database.
@@ -21,7 +24,7 @@ def get_test_object(object_id, object_type = None, created_at = None, modified_a
     If `owner_id` is omitted, it will not be returned in the response.
 
     Returnes dictionary contains `object_id`, `object_type`, `created_at`, `modified_at`, `object_name`, `object_description`,
-    `is_published`, `show_description`, `owner_id` and `object_data` attributes.
+    `is_published`, `display_in_feed`, `feed_timestamp`, `show_description`, `owner_id` and `object_data` attributes.
     Attributes, which are not required, can be removed by adding them into `pop_keys` list.
 
     `object_data` is generated accordingly to `object_type` provided or set based on `object_id`.
@@ -45,11 +48,14 @@ def get_test_object(object_id, object_type = None, created_at = None, modified_a
     object_name = object_name if object_name is not None else f"Object #{object_id}"
     object_description = object_description if object_description is not None else f"Description to {object_name}"
     is_published = is_published if is_published is not None else False
+    display_in_feed = display_in_feed if display_in_feed is not None else False
+    feed_timestamp = feed_timestamp if feed_timestamp is not None else curr_time.isoformat() + "Z"
     show_description = show_description if show_description is not None else False
     object_data = get_test_object_data(object_id, object_type, composite_subobject_object_type)["object_data"]
 
     obj = {"object_id": object_id, "object_type": object_type, "created_at": curr_time, "modified_at": curr_time, 
-           "object_name": object_name, "object_description": object_description, "is_published": is_published, "show_description": show_description,
+           "object_name": object_name, "object_description": object_description, "is_published": is_published, 
+           "display_in_feed": display_in_feed, "feed_timestamp": feed_timestamp, "show_description": show_description,
            "object_data": object_data}
     if owner_id is not None:
         obj["owner_id"] = owner_id
@@ -114,6 +120,8 @@ def _get_composite_object_data(id, composite_subobject_object_type = None):
         so["object_name"] = "subobject name"
         so["object_description"] = "subobject description"
         so["is_published"] = False
+        so["display_in_feed"] = False
+        so["feed_timestamp"] = datetime.utcnow().isoformat() + "Z"
         so["show_description"] = False
         so["object_type"] = composite_subobject_object_type
         so["object_data"] = get_composite_subobject_object_data(1, object_type=composite_subobject_object_type)
@@ -133,7 +141,21 @@ def _get_obj_timestamp(x):
     E.g.: 
     ... 16 12 8 4 1 2 3 5 6 7 9 ...
     """
-    return datetime.utcnow() + timedelta(minutes = -x if x % 4 == 0 else x)
+    delta = -x if x % 4 == 0 else x
+    return datetime.utcnow() + timedelta(minutes=delta)
+
+
+def _get_object_feed_timestamp(x):
+    """
+    Returns string feed timestamp based on the provided object ID `x`.
+    If x % 4 == 0, returns empty string.
+    If x % 4 == 1, returns current time + 10 * x days.
+    If x % 4 == 2, returns empty string.
+    If x % 4 == 1, returns current time - 10 * x days.
+    """
+    if x % 2 == 0: return ""
+    delta = 10 * x * (1 if x % 4 == 1 else -1)
+    return (datetime.utcnow() + timedelta(days=delta)).isoformat() + "Z"
 
 
 def get_objects_attributes_list(min_id, max_id, owner_id = 1):
@@ -153,6 +175,8 @@ def get_objects_attributes_list(min_id, max_id, owner_id = 1):
         "object_name": chr(ord("a") + x - 1) + str((x+1) % 2),
         "object_description": chr(ord("a") + x - 1) + str((x+1) % 2) + " description",
         "is_published": False,
+        "display_in_feed": False,
+        "feed_timestamp": _get_object_feed_timestamp(x),
         "show_description": False,
         "owner_id": owner_id
     } for x in range(min_id, max_id + 1)]
@@ -161,16 +185,24 @@ def get_objects_attributes_list(min_id, max_id, owner_id = 1):
 # Composite subobject modification
 def add_composite_subobject(composite, object_id, row = None, column = None, selected_tab = 0, is_expanded = True, \
     show_description_composite = "inherit", show_description_as_link_composite = "inherit", \
-    object_name = None, object_description = None, object_type = None, is_published = None, show_description = None, owner_id = None, \
-    addedTags = None, removed_tag_ids = None, object_data = None):
+    object_name = None, object_description = None, object_type = None, is_published = None, 
+    display_in_feed = None, feed_timestamp = None, show_description = None, owner_id = None, \
+    object_data = None):
     """
     Accepts a `composite` (dict respesenting `object_data` property of a composite object)
     and inserts a new subobject with provided or default props and data updates (if specified).
     """
     # Check if subobject attributes/data are correctly provided
-    for attr in (object_name, object_description, object_type, is_published, owner_id, addedTags, removed_tag_ids, object_data):
-        if attr is not None:
-            if None in (object_name, object_description, object_type, is_published, show_description, object_data):
+    locals_ = locals()
+    subobject_object_attributes = ("object_name", "object_description", "object_type", "is_published", "display_in_feed", "feed_timestamp", 
+        "show_description", "owner_id", "object_data")
+    subobject_object_attribute_values = {attr: locals_.get(attr) for attr in subobject_object_attributes}
+    required_subobject_object_attribute_values = {attr: locals_.get(attr) for attr in ("object_name", "object_type")}
+    optional_subobject_object_attributes = ("owner_id",)
+
+    for attr in subobject_object_attributes:
+        if subobject_object_attribute_values[attr] is not None:
+            if None in required_subobject_object_attribute_values:
                 raise Exception("Received incorrect subobject attributes or data when adding a new subobject.")
             break
     
@@ -192,14 +224,13 @@ def add_composite_subobject(composite, object_id, row = None, column = None, sel
     new_so = {"object_id": object_id, "row": row, "column": column, "selected_tab": selected_tab, "is_expanded": is_expanded,
                 "show_description_composite": show_description_composite, "show_description_as_link_composite": show_description_as_link_composite}
     if object_name != None:
-        new_so["object_name"] = object_name
-        new_so["object_description"] = object_description
-        new_so["object_type"] = object_type
-        new_so["is_published"] = is_published
-        new_so["show_description"] = show_description
-        if owner_id is not None:
-            new_so["owner_id"] = owner_id
-        new_so["object_data"] = object_data
+        default_values = get_test_object(object_id, object_type=object_type, object_name=object_name)
+        for attr in subobject_object_attributes:
+            if attr in optional_subobject_object_attributes:
+                if subobject_object_attribute_values[attr] is not None:
+                    new_so[attr] = subobject_object_attribute_values[attr]
+            else:
+                new_so[attr] = subobject_object_attribute_values[attr] if subobject_object_attribute_values[attr] is not None else default_values[attr]
 
     composite["object_data"]["subobjects"].append(new_so)
 
@@ -226,6 +257,8 @@ incorrect_object_values = [
     ("object_name", 123), ("object_name", ""), ("object_name", "a"*256),
     ("object_description", 1),
     ("is_published", 1), ("is_published", "str"), ("is_published", None),
+    ("display_in_feed", 1), ("display_in_feed", "str"), ("display_in_feed", None),
+    ("feed_timestamp", 1), ("feed_timestamp", True), ("feed_timestamp", None), ("feed_timestamp", "wrong str"), ("feed_timestamp", "99999-01-01"),
     ("show_description", 1), ("show_description", "str"), ("show_description", None),
     ("owner_id", -1), ("owner_id", "str"), ("owner_id", True),
     ("object_data", None), ("object_data", ""), ("object_data", 1)
@@ -261,13 +294,18 @@ def insert_objects(objects, db_cursor):
     """
     Inserts a list of objects into objects table.
     """
-    field_names = ("object_id", "object_type", "created_at", "modified_at", "object_name", "object_description", "is_published", "show_description", "owner_id")
+    field_names = ("object_id", "object_type", "created_at", "modified_at", "object_name", "object_description", "is_published",
+        "display_in_feed", "feed_timestamp", "show_description", "owner_id")
     query = "INSERT INTO %s" + str(field_names).replace("'", '"') + " VALUES " \
-        + ", ".join(("(%s, %s, %s, %s, %s, %s, %s, %s, %s)" for _ in range(len(objects))))
+        + ", ".join(("(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" for _ in range(len(objects))))
     params = [AsIs("objects")]
     for o in objects:
         for field in field_names:
-            params.append(o[field])
+            if field == "feed_timestamp":
+                value = parse_iso_timestamp(o[field], allow_empty_string=True)
+                params.append(value)
+            else:
+                params.append(o[field])
     db_cursor.execute(query, params)
 
 
