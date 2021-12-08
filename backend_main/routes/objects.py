@@ -106,6 +106,7 @@ async def view(request):
         # Attributes
         for row in await view_objects(request, object_ids):
             object_attrs[row["object_id"]] = row_proxy_to_dict(row)
+            object_attrs[row["object_id"]]["feed_timestamp"] = object_attrs[row["object_id"]]["feed_timestamp"] or "" # replace empty feed timestamps with an empty string
             object_attrs[row["object_id"]]["current_tag_ids"] = []
         
         # Tag IDs

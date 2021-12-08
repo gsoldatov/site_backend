@@ -1,3 +1,5 @@
+from datetime import datetime
+
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -28,7 +30,8 @@ async def test_view_non_existing_objects_as_admin(cli):
 
 async def test_view_existing_objects_as_admin(cli, db_cursor):
     # Insert mock values
-    insert_objects(get_objects_attributes_list(1, 10), db_cursor)
+    obj_list = get_objects_attributes_list(1, 10)
+    insert_objects(obj_list, db_cursor)
     insert_links(links_data_list, db_cursor)
     
     # Correct request (object_ids only)
@@ -43,6 +46,13 @@ async def test_view_existing_objects_as_admin(cli, db_cursor):
 
     check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request as admin, object_ids only")
+
+    mock_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(obj_list, key=lambda o: o["object_id"])))
+    response_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(data["objects"], key=lambda o: o["object_id"])))
+
+    for i in range(len(mock_feed_timestamps)):  # Check empty & non-empty `feed_timestamp` values
+        if mock_feed_timestamps[i] == "": assert response_feed_timestamps[i] == ""
+        else: assert datetime.fromisoformat(mock_feed_timestamps[i][:-1]) == datetime.fromisoformat(response_feed_timestamps[i]).replace(tzinfo=None)
     
     # Correct request (object_data_ids only) is checked type-specific tests
 
