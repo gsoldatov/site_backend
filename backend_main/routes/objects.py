@@ -42,6 +42,7 @@ async def add(request):
     record = (await add_objects(request, [data["object"]]))[0]
     response_data = row_proxy_to_dict(record)
     object_id = record["object_id"]
+    response_data["feed_timestamp"] = response_data["feed_timestamp"] or "" # replace empty feed timestamp with an empty string
 
     # Call handler to add object-specific data
     specific_data = [{"object_id": object_id, "object_data": object_data}]
@@ -74,6 +75,7 @@ async def update(request):
     # Update general object data
     object_id = data["object"]["object_id"]
     response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
+    response_data["feed_timestamp"] = response_data["feed_timestamp"] or "" # replace empty feed timestamp with an empty string
 
     # Validate object_data property and call handler to update object-specific data
     validate(instance=object_data, schema=get_object_data_update_schema(response_data["object_type"]))

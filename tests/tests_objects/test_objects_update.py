@@ -94,8 +94,16 @@ async def test_correct_update_with_set_owner_id_as_admin(cli, db_cursor, owner_i
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
+    resp_object = (await resp.json())["object"]
+    assert datetime.fromisoformat(obj["feed_timestamp"][:-1]) == datetime.fromisoformat(resp_object["feed_timestamp"]).replace(tzinfo=None)
     db_cursor.execute(f"SELECT object_name, owner_id FROM objects WHERE object_id = 1")
     assert db_cursor.fetchone() == (updated_name, owner_id)
+
+    # Update object again (check empty feed timestamp case)
+    obj["feed_timestamp"] = ""
+    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+    assert resp.status == 200
+    assert (await resp.json())["object"]["feed_timestamp"] == ""
 
 
 async def test_correct_update_as_anonymous(cli, db_cursor):
