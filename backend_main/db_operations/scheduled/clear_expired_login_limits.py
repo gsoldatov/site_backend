@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from psycopg2.extensions import cursor as CursorClass
 
 import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(sys.path[0])))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))))
 
 from backend_main.config import get_config
 from backend_main.db.init_db import connect, disconnect
