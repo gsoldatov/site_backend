@@ -165,7 +165,7 @@ composite_object_data = {
 
         "display_mode": {
             "type": "string",
-            "enum": ["basic", "multicolumn", "chapters"]
+            "enum": ["basic", "multicolumn", "grouped_links", "chapters"]
         },
 
         "numerate_chapters": {"type": "boolean"}

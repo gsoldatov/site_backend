@@ -331,7 +331,9 @@ async def test_add_subobject_with_a_non_existing_owner_id_as_admin(cli, db_curso
     assert resp.status == 400
 
 
-async def test_add_correct_object_without_subobject_updates_as_admin(cli, db_cursor):
+# Run the test for each possible `display_mode` vlue
+@pytest.mark.parametrize("display_mode", ["basic", "multicolumn", "grouped_links", "chapters"])
+async def test_add_correct_object_without_subobject_updates_as_admin(cli, db_cursor, display_mode):
     # Insert objects
     obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(5)]
     insert_objects(obj_list, db_cursor)
@@ -339,6 +341,7 @@ async def test_add_correct_object_without_subobject_updates_as_admin(cli, db_cur
     # Add a composite object without subobjects update
     composite = get_test_object(10, pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
+    composite["object_data"]["display_mode"] = display_mode
     add_composite_subobject(composite, object_id=100)
     add_composite_subobject(composite, object_id=101)
     add_composite_subobject(composite, object_id=102)
@@ -548,7 +551,9 @@ async def test_update_correct_object_without_subobject_updates_as_admin(cli, db_
     assert sorted([r[0] for r in db_cursor.fetchall()]) == sorted([o["object_id"] for o in composite["object_data"]["subobjects"]])
 
 
-async def test_update_correct_object_with_subobject_full_and_not_full_delete_as_admin(cli, db_cursor):
+# Run the test for each possible `display_mode` vlue
+@pytest.mark.parametrize("display_mode", ["basic", "multicolumn", "grouped_links", "chapters"])
+async def test_update_correct_object_with_subobject_full_and_not_full_delete_as_admin(cli, db_cursor, display_mode):
     # Insert objects
     obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 4 subobjects
     obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
@@ -557,6 +562,7 @@ async def test_update_correct_object_with_subobject_full_and_not_full_delete_as_
     # Insert composite data (10: 100, 101, 102, 103; 11: 103)
     composite_data = get_test_object_data(10, object_type="composite")
     composite_data["object_data"]["subobjects"] = []
+    composite_data["object_data"]["display_mode"] = display_mode
     for i in range(4):
         add_composite_subobject(composite_data, object_id=100 + i)
     insert_composite([composite_data], db_cursor)
