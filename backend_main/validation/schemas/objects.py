@@ -159,3 +159,12 @@ objects_update_tags_schema = {  # Detailed property checks are performed in upda
         "removed_tag_ids": removed_tag_ids
     }
 }
+
+objects_view_composite_hierarchy_elements_schema = {
+    "type": "object",
+    "required": ["object_id"],
+    "additionalProperties": False,
+    "properties": {
+        "object_id": object_id
+    }
+}

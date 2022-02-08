@@ -54,6 +54,7 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor):
 async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
     # Insert mock data
     obj_list = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(100, 102)]
+    obj_list.append(get_test_object(99999, object_type="composite", owner_id=1, pop_keys=["object_data"]))
     l_list = [get_test_object_data(i, object_type="link") for i in range(100, 102)]
     insert_objects(obj_list, db_cursor)
     insert_links(l_list, db_cursor)
@@ -79,6 +80,7 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
             "pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}},
         "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},
         "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
+        "/objects/view_composite_hierarchy_elements": {"POST": {"object_id": 99999}},
 
         "/settings/update": {"PUT": {"settings": {"non_admin_registration_allowed": False}}},
         "/settings/view": {"POST": {"view_all": True}},
@@ -103,7 +105,7 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
 
         # Check if correct access_token_expiration_time was returned in the request field
         resp = await client_method(url, json=request_body, headers=headers_admin_token)
-        assert resp.status == 200
+        assert resp.status == 200, f"Received a non 200 reponse code for route '{url}' and method '{route.method}'"
         data = await resp.json()
         assert "auth" in data
 

@@ -7,7 +7,9 @@
             "password": "password",
             "username": "Admin"
         },
-        "token_lifetime": 604800
+        "token_lifetime": 604800,
+
+        "composite_hierarchy_max_depth": 6
     },
 
     "cors_urls": ["http://localhost:8080"],

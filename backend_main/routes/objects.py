@@ -7,11 +7,11 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema, objects_delete_schema,\
-    objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema
+    objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
-    get_page_object_ids_data, search_objects, set_modified_at
+    get_page_object_ids_data, search_objects, get_elements_in_composite_hierarchy, set_modified_at
 from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json, serialize_datetime_to_str
@@ -188,6 +188,15 @@ async def update_tags(request):
     return response_data
 
 
+async def view_composite_hierarchy_elements(request):
+    # Validate request data
+    data = await request.json()
+    validate(instance=data, schema=objects_view_composite_hierarchy_elements_schema)
+
+    # Get and return response
+    return await get_elements_in_composite_hierarchy(request, data["object_id"])
+    
+
 def get_object_data_update_schema(object_type):
     return globals()[f"{object_type}_object_data"]
 
@@ -201,6 +210,7 @@ def get_subapp():
                     web.delete("/delete", delete, name="delete"),
                     web.post("/get_page_object_ids", get_page_object_ids, name="get_page_object_ids"),
                     web.post("/search", search, name="search"),
-                    web.put("/update_tags", update_tags, name="update_tags")
+                    web.put("/update_tags", update_tags, name="update_tags"),
+                    web.post("/view_composite_hierarchy_elements", view_composite_hierarchy_elements, name="view_composite_hierarchy_elements")
                 ])
     return app

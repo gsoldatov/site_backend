@@ -313,8 +313,66 @@ async def search_objects(request, query):
         object_ids.append(row["object_id"])
     
     if len(object_ids) == 0:
-        raise web.HTTPNotFound(text = error_json("No objects found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("No objects found."), content_type="application/json")
     return object_ids
+
+
+async def get_elements_in_composite_hierarchy(request, object_id):
+    """
+    Returns all object IDs in the composite hierarchy, which starts from `object_id`.
+    Maximum depth of hierarchy, which is checked, is limited by `composite_hierarchy_max_depth` configuration setting.
+
+    If `object_id` can't be viewed with the current auth level, raises 404.
+    If `object_id` does not belong to a composite object, raises 400.
+    """
+    objects = request.config_dict["tables"]["objects"]
+    composite = request.config_dict["tables"]["composite"]
+
+    # Check if object is composite and can be viewed by request sender
+    auth_filter_clause = get_objects_auth_filter_clause(request)
+    result = await request["conn"].execute(
+        select([objects.c.object_type])
+        .where(and_(
+            auth_filter_clause,
+            objects.c.object_id == object_id
+        ))
+    )
+
+    row = await result.fetchone()
+    # Throw 404 if object can't be viewed
+    if not row: raise web.HTTPNotFound(text=error_json("Object not found."), content_type="application/json")
+
+    # Throw 400 if root object is not composite
+    if row[0] != "composite": raise web.HTTPBadRequest(text=error_json("Cannot loop through a hierarchy of a non-composite object."), content_type="application/json")
+
+    # Build a hierarchy
+    parent_object_ids = [object_id]
+    all_composite, all_non_composite = set([object_id]), set()
+    current_depth = 1
+
+    while len(parent_object_ids) > 0 and current_depth < request.config_dict["config"]["app"]["composite_hierarchy_max_depth"]:
+        # Query all subobjects of current parents
+        result = await request["conn"].execute(
+            select([composite.c.subobject_id, objects.c.object_type])
+            .select_from(composite.join(objects, composite.c.subobject_id == objects.c.object_id))
+            .where(composite.c.object_id.in_(parent_object_ids))    # Do not apply auth filter here (it will be applied when objects' attributes & data are fetched)
+        )
+
+        # Get sets with new composite & non-composite object ids
+        new_composite, new_non_composite = set(), set()
+        for row in await result.fetchall():
+            s = new_composite if row["object_type"] == "composite" else new_non_composite
+            s.add(row["subobject_id"])
+        
+        # Combine new & total sets of object IDs and exit the loop if there is no new composite objects, which were not previously fetched in the loop
+        all_non_composite.update(new_non_composite)
+
+        non_fetched_composite = new_composite.difference(all_composite)
+        all_composite.update(non_fetched_composite)
+        parent_object_ids = non_fetched_composite
+        current_depth += 1
+    
+    return {"composite": list(all_composite), "non_composite": list(all_non_composite)}
 
 
 async def set_modified_at(request, object_ids, modified_at = None):
