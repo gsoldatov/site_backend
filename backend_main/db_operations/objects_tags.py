@@ -11,6 +11,7 @@ from sqlalchemy.sql import and_
 from backend_main.db_operations.auth import check_if_user_owns_objects, \
     check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause
 
+from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException
 
 
@@ -268,7 +269,7 @@ async def auth_check_for_tags_update(request, objects_tags_data):
     If `remove_all_objects` flag is passed in `objects_tags_data`, checks all objects to be untagged.
     """
     if "remove_all_objects" in objects_tags_data:
-        await check_if_user_owns_all_tagged_objects(request, objects_tags_tags["tag_ids"])
+        await check_if_user_owns_all_tagged_objects(request, objects_tags_data["tag_ids"])
     else:
         object_ids = [o for o in objects_tags_data["added_object_ids"]] if "added_object_ids" in objects_tags_data else []
         object_ids.extend(objects_tags_data.get("removed_object_ids", []))
