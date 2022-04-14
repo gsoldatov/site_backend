@@ -1,10 +1,11 @@
 from sqlalchemy import (
     MetaData, Table, Column, ForeignKey, Index, text,
-    DateTime, Integer, String, Text, Boolean
+    DateTime, Integer, String, Text, Boolean, Computed
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import FetchedValue
 from sqlalchemy.sql.expression import false
+
 
 def get_tables(config):
     """ Return a dictionary with SA tables and a metadata object. """
@@ -147,6 +148,30 @@ def get_tables(config):
             Column("is_expanded", Boolean, nullable=False),
             Column("show_description_composite", Text, nullable=False),
             Column("show_description_as_link_composite", Text, nullable=False)
+        ),
+
+        "searchables": Table(
+            "searchables",
+            meta,
+            Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
+            Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE")),
+            Column("modified_at", DateTime, nullable=False),
+            Column("text_a", Text),
+            Column("text_b", Text),
+            Column("text_c", Text),
+            Column("searchable_tsv_russian", postgresql.TSVECTOR, Computed(_get_tsv_expression("russian"))),
+            Column("searchable_tsv_english", postgresql.TSVECTOR, Computed(_get_tsv_expression("english"))),
+            Index("ix_searchable_russian", "searchable_tsv_russian", postgresql_using="gin"),
+            Index("searchable_tsv_english", "searchable_tsv_english", postgresql_using="gin")
         )
     } \
     , meta
+
+
+def _get_tsv_expression(language):
+    """ Returns expression used to compute tsvector values in `searchables` table. """
+    return (
+        f"setweight(to_tsvector('{language}', COALESCE(text_a, '')), 'A') || "
+        + f"setweight(to_tsvector('{language}', COALESCE(text_b, '')), 'B') || "
+        + f"setweight(to_tsvector('{language}', COALESCE(text_c, '')), 'C')"
+    )
