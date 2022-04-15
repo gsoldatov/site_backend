@@ -10,6 +10,7 @@ from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to
     upsert_login_rate_limit, delete_login_rate_limits
 from backend_main.db_operations.sessions import add_session, delete_sessions
 from backend_main.db_operations.users import add_user, get_user_by_credentials
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.validation.schemas.auth import register_schema, login_schema
 
@@ -81,6 +82,9 @@ async def login(request):
         # If user can't login, raise 403
         if not user_data.can_login:
             raise web.HTTPForbidden(text=error_json("User is not allowed to login."), content_type="application/json")
+        
+        # Start a transaction
+        await start_transaction(request)
         
         # Create a session
         session = await add_session(request, user_data.user_id)

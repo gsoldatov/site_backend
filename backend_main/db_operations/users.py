@@ -8,6 +8,7 @@ from sqlalchemy.sql import text
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 
 from backend_main.db_operations.sessions import delete_sessions
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
 from backend_main.util.json import error_json
@@ -79,6 +80,9 @@ async def update_user(request, data):
     # Check if token owner submitted a correct password
     if await get_user_by_credentials(request, user_id=request.user_info.user_id, password=data["token_owner_password"]) is None:
         raise web.HTTPBadRequest(text=error_json(f"Token owner password is incorrect."), content_type="application/json")
+    
+    # Ensure a transaction is started
+    await start_transaction(request)
     
     # Update user
     users = request.config_dict["tables"]["users"]

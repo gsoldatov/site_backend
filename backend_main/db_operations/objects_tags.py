@@ -4,12 +4,12 @@
 from datetime import datetime
 
 from aiohttp import web
-from jsonschema import validate
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
 from backend_main.db_operations.auth import check_if_user_owns_objects, \
     check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException
@@ -57,6 +57,9 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
 
     NOTE: tag update case is also not properly tested for correctness of auth checks & updates made.
     """
+    # Ensure a transaction is started
+    await start_transaction(request)
+
     # Update tags for objects
     if "object_ids" in objects_tags_data:
         # Check if user can update objects
@@ -82,6 +85,10 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
 
     
 async def _add_tags_for_objects(request, objects_tags_data):
+    """
+    NOTE: check if a transaction is needed if this function is used outside of `update_objects_tags`
+    """
+
     if len(objects_tags_data.get("added_tags", [])) == 0:
         return []
     
@@ -196,6 +203,10 @@ async def _remove_tags_for_objects(request, objects_tags_data):
 
 
 async def _add_objects_for_tags(request, objects_tags_data):
+    """
+    NOTE: check if a transaction is needed if this function is used outside of `update_objects_tags`
+    """
+    
     added_object_ids = set(objects_tags_data.get("added_object_ids", []))
     if len(added_object_ids) == 0:
         return []

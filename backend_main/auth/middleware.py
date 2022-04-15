@@ -1,8 +1,6 @@
 """
     Auth middleware.
 """
-import json
-
 from aiohttp import web
 
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info

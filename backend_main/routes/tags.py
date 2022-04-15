@@ -1,3 +1,4 @@
+from backend_main.middlewares.connection import start_transaction
 from datetime import datetime
 
 from aiohttp import web
@@ -5,6 +6,7 @@ from jsonschema import validate
 
 from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
 from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
+from backend_main.middlewares.connection import start_transaction
 from backend_main.validation.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
     tags_get_page_tag_ids_schema, tags_search_schema
 from backend_main.util.json import row_proxy_to_dict
@@ -20,6 +22,9 @@ async def add(request):
     data["tag"]["created_at"] = current_time
     data["tag"]["modified_at"] = current_time
     added_object_ids = data["tag"].pop("added_object_ids", [])
+
+    # Start a transaction
+    await start_transaction(request)
 
     # Add the tag
     tag = row_proxy_to_dict(await add_tag(request, data["tag"]))
@@ -39,6 +44,9 @@ async def update(request):
     data["tag"]["modified_at"] = datetime.utcnow()
     added_object_ids = data["tag"].pop("added_object_ids", [])
     removed_object_ids = data["tag"].pop("removed_object_ids", [])
+
+    # Start a transaction
+    await start_transaction(request)
 
     # Update the tag
     tag_id = data["tag"]["tag_id"]

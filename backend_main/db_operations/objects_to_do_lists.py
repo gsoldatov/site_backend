@@ -5,9 +5,11 @@ from aiohttp import web
 from sqlalchemy import select
 
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.validation.db_operations.object_data import validate_to_do_list
+
 
 async def add_to_do_lists(request, obj_ids_and_data):
     to_do_lists = request.config_dict["tables"]["to_do_lists"]
@@ -31,6 +33,9 @@ async def add_to_do_lists(request, obj_ids_and_data):
             "indent": item["indent"],
             "is_expanded": item["is_expanded"]
         } for item in object_data["items"]))
+    
+    # Ensure a transaction is started
+    await start_transaction(request)
 
     # Insert to-do list general object data
     await request["conn"].execute(
@@ -64,6 +69,9 @@ async def update_to_do_lists(request, obj_ids_and_data):
             "indent": item["indent"],
             "is_expanded": item["is_expanded"]
         } for item in object_data["items"]]
+
+        # Ensure a transaction is started
+        await start_transaction(request)
 
         # Update to-do list general object data
         result = await request["conn"].execute(

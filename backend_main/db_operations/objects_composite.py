@@ -7,6 +7,7 @@ from sqlalchemy.sql import and_
 
 from backend_main.db_operations.auth import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json
 from backend_main.validation.db_operations.object_data import validate_composite
@@ -84,6 +85,10 @@ async def view_composite(request, object_ids):
 async def _add_update_composite(request, obj_ids_and_data):
     """ Full add/update logic for composite objects with subobject data. """
     _validate(request, obj_ids_and_data)
+
+    # Ensure a transaction is started
+    await start_transaction(request)
+
     id_mapping = await _add_new_subobjects(request, obj_ids_and_data)
     await _update_existing_subobjects(request, obj_ids_and_data)
     await _update_composite_properties(request, obj_ids_and_data)
@@ -100,6 +105,10 @@ def _validate(request, obj_ids_and_data):
 
 
 async def _add_new_subobjects(request, obj_ids_and_data):
+    """
+    NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
+    """
+
     # Get new subobjects' attributes and data
     new_objects_attributes = {}
     new_data = {object_type: {} for object_type in object_type_func_name_mapping}
@@ -162,7 +171,11 @@ async def _add_new_subobjects(request, obj_ids_and_data):
     return id_mapping
 
 
-async def _update_existing_subobjects(request, obj_ids_and_data):    
+async def _update_existing_subobjects(request, obj_ids_and_data):
+    """
+    NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
+    """
+    
     # Get existing subobjects' attributes and data
     updated_objects_attributes = []
     updated_ids_and_data = {object_type: [] for object_type in object_type_func_name_mapping}
@@ -203,7 +216,11 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
 
 
 async def _update_composite_properties(request, obj_ids_and_data):
-    """ Upserts properties of composite objects into `composite_properties` table. """
+    """ 
+    Upserts properties of composite objects into `composite_properties` table.
+
+    NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
+    """
     composite_properties = request.config_dict["tables"]["composite_properties"]
 
     # Prepare data for insertion
@@ -230,6 +247,10 @@ async def _update_composite_properties(request, obj_ids_and_data):
 
 
 async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
+    """
+    NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
+    """
+    
     objects = request.config_dict["tables"]["objects"]
     composite = request.config_dict["tables"]["composite"]
 
