@@ -175,7 +175,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     )
 
     if not await result.fetchone():
-        raise web.HTTPNotFound(text=error_json("Objects(s) not found."), content_type="application/json")
+        raise web.HTTPNotFound(text=error_json("Object(s) not found."), content_type="application/json")
 
 
 async def get_page_object_ids_data(request, pagination_info):
