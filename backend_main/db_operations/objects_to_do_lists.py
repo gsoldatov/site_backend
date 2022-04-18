@@ -8,6 +8,7 @@ from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import row_proxy_to_dict, error_json
+from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.validation.db_operations.object_data import validate_to_do_list
 
 
@@ -48,6 +49,9 @@ async def add_to_do_lists(request, obj_ids_and_data):
         to_do_list_items.insert()
         .values(new_to_do_list_items)
     )
+
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in obj_ids_and_data])
 
 
 async def update_to_do_lists(request, obj_ids_and_data):
@@ -95,6 +99,9 @@ async def update_to_do_lists(request, obj_ids_and_data):
             to_do_list_items.insert()
             .values(new_to_do_list_items)
         )
+
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in obj_ids_and_data])
 
 
 async def view_to_do_lists(request, object_ids):

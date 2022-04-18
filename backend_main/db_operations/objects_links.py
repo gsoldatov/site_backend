@@ -7,6 +7,7 @@ from sqlalchemy import select
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 
 from backend_main.util.json import link_data_row_proxy_to_dict, error_json
+from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.validation.db_operations.object_data import validate_link
 
 
@@ -24,6 +25,9 @@ async def add_links(request, obj_ids_and_data):
         links.insert()
         .values(new_links)
     )
+
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in obj_ids_and_data])
 
 
 async def update_links(request, obj_ids_and_data):
@@ -46,6 +50,9 @@ async def update_links(request, obj_ids_and_data):
         # Raise an error if object data does not exist
         if not await result.fetchone():
             raise web.HTTPBadRequest(text=error_json(f"Failed to update data of object with object_id '{o['object_id']}': object_id does not belong to a link object."), content_type="application/json")
+        
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in obj_ids_and_data])
 
 
 async def view_links(request, object_ids):

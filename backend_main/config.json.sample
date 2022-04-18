@@ -25,5 +25,9 @@
         "db_database": "dbname",
         "db_username": "dbuser",
         "db_password": "dbpassword"
+    },
+
+    "auxillary": {
+        "enable_searchables_updates": true
     }
 }

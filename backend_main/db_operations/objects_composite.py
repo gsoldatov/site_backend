@@ -1,6 +1,7 @@
 """
     Composite object database operations.
 """
+from backend_main.util.searchables import add_searchable_updates_for_objects
 from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.sql import and_
@@ -167,6 +168,9 @@ async def _add_new_subobjects(request, obj_ids_and_data):
             
                 handler = get_object_type_route_handler("add", object_type)
                 await handler(request, new_object_ids_and_data)
+        
+        # Add subobjects as pending for `searchables` update
+        add_searchable_updates_for_objects(request, sorted_new_subobject_ids)
     
     return id_mapping
 
@@ -213,6 +217,9 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
             if len(updated_ids_and_data[object_type]) > 0:
                 handler = get_object_type_route_handler("update", object_type)
                 await handler(request, updated_ids_and_data[object_type])
+        
+        # Add subobjects as pending for `searchables` update
+        add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
 
 
 async def _update_composite_properties(request, obj_ids_and_data):

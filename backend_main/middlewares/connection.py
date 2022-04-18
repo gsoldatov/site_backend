@@ -1,5 +1,7 @@
 """
-    Database connection handling middleware.
+    Middleware for handling asynchronous connection pooling & transaction completion.
+
+    NOTE: threaded_pool connections are being dispatched in `threading` middleware.
 """
 from aiohttp import web
 

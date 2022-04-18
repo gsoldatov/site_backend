@@ -6,6 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
 from backend_main.util.json import error_json
+from backend_main.util.searchables import add_searchable_updates_for_tags
 
 
 async def add_tag(request, tag_attributes):
@@ -21,7 +22,13 @@ async def add_tag(request, tag_attributes):
                 tags.c.tag_name, tags.c.tag_description)
         .values(tag_attributes)
     )
-    return await result.fetchone()
+
+    record = await result.fetchone()
+
+    # Add tag as pending for `searchables` update
+    add_searchable_updates_for_tags(request, [record["tag_id"]])
+     
+    return record 
 
 
 async def update_tag(request, tag_attributes):
@@ -43,7 +50,11 @@ async def update_tag(request, tag_attributes):
     
     record = await result.fetchone()
     if not record:
-        raise web.HTTPNotFound(text = error_json(f"tag_id '{tag_id}' not found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json(f"tag_id '{tag_id}' not found."), content_type="application/json")
+    
+    # Add tag as pending for `searchables` update
+    add_searchable_updates_for_tags(request, [record["tag_id"]])
+
     return record
 
 
@@ -61,7 +72,7 @@ async def view_tags(request, tag_ids):
 
     result = await rows.fetchall()
     if len(result) == 0:
-        raise web.HTTPNotFound(text = error_json("Requested tags not found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("Requested tags not found."), content_type="application/json")
     
     return result
 
@@ -79,7 +90,7 @@ async def delete_tags(request, tag_ids):
     )
 
     if not await result.fetchone():
-        raise web.HTTPNotFound(text = error_json("Tag(s) not found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("Tag(s) not found."), content_type="application/json")
 
 
 async def get_page_tag_ids_data(request, pagination_info):
@@ -116,7 +127,7 @@ async def get_page_tag_ids_data(request, pagination_info):
         tag_ids.append(row["tag_id"])
     
     if len(tag_ids) == 0:
-        raise web.HTTPNotFound(text = error_json("No tags found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("No tags found."), content_type="application/json")
 
     # Get tag count
     result = await request["conn"].execute(
@@ -163,5 +174,5 @@ async def search_tags(request, query):
         tag_ids.append(row["tag_id"])
     
     if len(tag_ids) == 0:
-        raise web.HTTPNotFound(text = error_json("No tags found."), content_type = "application/json")
+        raise web.HTTPNotFound(text=error_json("No tags found."), content_type="application/json")
     return tag_ids

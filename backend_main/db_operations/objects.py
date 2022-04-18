@@ -14,6 +14,7 @@ from backend_main.db_operations.auth import check_if_user_owns_objects, get_obje
 from backend_main.db_operations.users import check_if_user_ids_exist
 
 from backend_main.util.json import error_json
+from backend_main.util.searchables import add_searchable_updates_for_objects
 
 
 async def add_objects(request, objects_attributes):
@@ -30,7 +31,7 @@ async def add_objects(request, objects_attributes):
     user_ids = list({o["owner_id"] for o in objects_attributes})
     await check_if_user_ids_exist(request, user_ids)
 
-    # Insert and return new objects
+    # Insert new objects
     objects = request.config_dict["tables"]["objects"]
 
     result = await request["conn"].execute(
@@ -40,8 +41,13 @@ async def add_objects(request, objects_attributes):
                 objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id)
         .values(objects_attributes)
         )
+    
+    added_object_attributes = list(await result.fetchall())
 
-    return list(await result.fetchall())
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in added_object_attributes])
+
+    return added_object_attributes
 
 
 async def update_objects(request, objects_attributes):
@@ -82,6 +88,9 @@ async def update_objects(request, objects_attributes):
         if not record:
             raise web.HTTPBadRequest(text=error_json(f"Failed to update object with object_id '{object_id}': object_id does not exist."), content_type="application/json")
         records.append(record)
+    
+    # Add objects as pending for `searchables` update
+    add_searchable_updates_for_objects(request, [o["object_id"] for o in records])
     
     return records
 
@@ -393,6 +402,6 @@ async def set_modified_at(request, object_ids, modified_at = None):
     objects = request.config_dict["tables"]["objects"]
     await request["conn"].execute(objects.update()
         .where(objects.c.object_id.in_(object_ids))
-        .values(modified_at = modified_at)
+        .values(modified_at=modified_at)
     )
     return modified_at

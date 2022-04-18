@@ -12,6 +12,7 @@ from backend_main.db_operations.auth import check_if_user_owns_objects, \
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import error_json
+from backend_main.util.searchables import add_searchable_updates_for_tags
 from backend_main.validation.util import RequestValidationException
 
 
@@ -129,7 +130,6 @@ async def _add_tags_for_objects(request, objects_tags_data):
                 new_tag_names.append(name)
                 lowered_existing_tag_names.add(name.lower())
         tag_names = new_tag_names
-
     
     # Create new tags for non-existing tag_names
     if len(tag_names) > 0:
@@ -138,6 +138,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
             raise web.HTTPForbidden(text=error_json("Users are not allowed to add new tags."), content_type="application/json")
 
         current_time = datetime.utcnow()
+        new_tag_ids = []
 
         result = await request["conn"].execute(
             tags.insert()
@@ -147,11 +148,15 @@ async def _add_tags_for_objects(request, objects_tags_data):
                 "tag_description": "",
                 "created_at": current_time,
                 "modified_at": current_time
-            } for name in tag_names ])
+            } for name in tag_names])
         )
 
         for row in await result.fetchall():
+            new_tag_ids.append(row["tag_id"])
             tag_ids_for_tag_names.add(row["tag_id"])
+        
+        # Add new tags as pending for `searchables` update
+        add_searchable_updates_for_tags(request, new_tag_ids)
     
     ## Update objects_tags table
     tag_ids.update(tag_ids_for_tag_names)
