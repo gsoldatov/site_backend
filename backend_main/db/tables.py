@@ -160,9 +160,9 @@ def get_tables(config):
             Column("text_b", Text),
             Column("text_c", Text),
             Column("searchable_tsv_russian", postgresql.TSVECTOR, Computed(_get_tsv_expression("russian"))),
-            Column("searchable_tsv_english", postgresql.TSVECTOR, Computed(_get_tsv_expression("english"))),
-            Index("ix_searchable_russian", "searchable_tsv_russian", postgresql_using="gin"),
-            Index("searchable_tsv_english", "searchable_tsv_english", postgresql_using="gin")
+            # Column("searchable_tsv_english", postgresql.TSVECTOR, Computed(_get_tsv_expression("english"))),
+            Index("ix_searchable_russian", "searchable_tsv_russian", postgresql_using="gin")
+            # Index("searchable_tsv_english", "searchable_tsv_english", postgresql_using="gin")
         )
     } \
     , meta

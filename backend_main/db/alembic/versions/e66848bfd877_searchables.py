@@ -26,15 +26,15 @@ def upgrade():
     sa.Column('text_b', sa.Text(), nullable=True),
     sa.Column('text_c', sa.Text(), nullable=True),
     sa.Column('searchable_tsv_russian', postgresql.TSVECTOR(), sa.Computed("setweight(to_tsvector('russian', COALESCE(text_a, '')), 'A') || setweight(to_tsvector('russian', COALESCE(text_b, '')), 'B') || setweight(to_tsvector('russian', COALESCE(text_c, '')), 'C')", ), nullable=True),
-    sa.Column('searchable_tsv_english', postgresql.TSVECTOR(), sa.Computed("setweight(to_tsvector('english', COALESCE(text_a, '')), 'A') || setweight(to_tsvector('english', COALESCE(text_b, '')), 'B') || setweight(to_tsvector('english', COALESCE(text_c, '')), 'C')", ), nullable=True),
+    # sa.Column('searchable_tsv_english', postgresql.TSVECTOR(), sa.Computed("setweight(to_tsvector('english', COALESCE(text_a, '')), 'A') || setweight(to_tsvector('english', COALESCE(text_b, '')), 'B') || setweight(to_tsvector('english', COALESCE(text_c, '')), 'C')", ), nullable=True),
     sa.ForeignKeyConstraint(['object_id'], ['objects.object_id'], name=op.f('fk_searchables_object_id_objects'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['tag_id'], ['tags.tag_id'], name=op.f('fk_searchables_tag_id_tags'), ondelete='CASCADE')
     )
     op.create_index('ix_searchable_russian', 'searchables', ['searchable_tsv_russian'], unique=False, postgresql_using='gin')
-    op.create_index('ix_searchable_english', 'searchables', ['searchable_tsv_english'], unique=False, postgresql_using='gin')
+    # op.create_index('ix_searchable_english', 'searchables', ['searchable_tsv_english'], unique=False, postgresql_using='gin')
 
 
 def downgrade():
-    op.drop_index('ix_searchable_english', table_name='searchables')
+    # op.drop_index('ix_searchable_english', table_name='searchables')
     op.drop_index('ix_searchable_russian', table_name='searchables')
     op.drop_table('searchables')
