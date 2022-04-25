@@ -3,7 +3,7 @@ class SearchableItem:
     Data class for accumulating searchable text of an item.
     Stores item ID and searchable texts of A, B & C search weight levels.
     """
-    def __init__(self, item_id, text_a = "", text_b = "", text_c = ""):
+    def __init__(self, item_id = None, text_a = "", text_b = "", text_c = ""):
         self.item_id = item_id
         self.text_a = text_a
         self.text_b = text_b
@@ -23,6 +23,13 @@ class SearchableItem:
             return SearchableItem(self.item_id, new_text_a, new_text_b, new_text_c)
         
         return NotImplemented
+    
+    def __str__(self):
+        return f"<SearchableItem id = {self.item_id}>" + \
+            f"\ntext_a = '{self.text_a}'" + \
+            f"\ntext_b = '{self.text_b}'" + \
+            f"\ntext_c = '{self.text_c}'"
+
 
 
 class SearchableCollection:
