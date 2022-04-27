@@ -45,7 +45,7 @@ class SearchableCollection:
             raise TypeError("Provided items are not iterable.")
 
         for item in items:
-            if type(item) !=  SearchableItem: raise TypeError(f"Item {item} is not a <SearchableItem>.")
+            if type(item) != SearchableItem: raise TypeError(f"Item {item} is not a <SearchableItem>.")
             self.items[item.item_id] = item
     
     def __add__(self, x):

@@ -16,8 +16,8 @@ def process_object_ids(conn, object_ids):
     with conn:
         cursor = conn.cursor()
         
-        # Process attributes
-        searchables = _process_objects_attributes(cursor, object_ids)
+        # Process objects
+        searchables = _process_objects(cursor, object_ids)
 
         if len(searchables) > 0:
             # Delete existing searchable data
@@ -35,20 +35,58 @@ def process_object_ids(conn, object_ids):
         cursor.close()
 
 
-def _process_objects_attributes(cursor, object_ids):
+def _process_objects(cursor, object_ids):
     """
     Returns searchable text from `objects` table for the provided `object_ids`.
     """
-    query = "SELECT object_id, object_name, object_description FROM objects WHERE object_id IN %(object_ids)s"
+    # Process attributes and get `object_type` for each `object_id`
+    query = "SELECT object_id, object_name, object_description, object_type FROM objects WHERE object_id IN %(object_ids)s"
     cursor.execute(query, {"object_ids": object_ids})
     result = SearchableCollection()
 
-    for r in cursor: 
-        object_id, object_name, object_description = r
+    types = {"link": [], "markdown": [], "to_do_list": []}
 
+    for r in cursor: 
+        object_id, object_name, object_description, object_type = r
+        
         item = SearchableItem(object_id, text_a=object_name)
         item += markdown_to_searchable_item(object_description, item_id=object_id)
-        
         result.add_item(item)
+
+
+        if object_type in types: types[object_type].append(object_id)
+    
+    # Process `link` object data
+    if len(types["link"]) > 0:
+        query = "SELECT object_id, link FROM links WHERE object_id IN %(object_ids)s"
+        cursor.execute(query, {"object_ids": tuple(types["link"])})
+
+        for r in cursor:
+            object_id, link = r
+            item = SearchableItem(object_id, text_b=link)
+            result.add_item(item)
+    
+    # Process `markdown` object data
+    if len(types["markdown"]) > 0:
+        query = "SELECT object_id, raw_text FROM markdown WHERE object_id IN %(object_ids)s"
+        cursor.execute(query, {"object_ids": tuple(types["markdown"])})
+
+        for r in cursor:
+            object_id, raw_text = r
+            item = markdown_to_searchable_item(raw_text, item_id=object_id)
+            result.add_item(item)
+    
+    # Process `to_do_list` object data
+    if len(types["to_do_list"]) > 0:
+        query = "SELECT object_id, item_text, commentary FROM to_do_list_items WHERE object_id IN %(object_ids)s"
+        cursor.execute(query, {"object_ids": tuple(types["to_do_list"])})
+        tdl_searchables = SearchableCollection()
+
+        for r in cursor:
+            object_id, item_text, commentary = r
+            item = SearchableItem(object_id, text_b=item_text, text_c=commentary)
+            tdl_searchables.add_item(item)
+        
+        result += tdl_searchables
     
     return result
