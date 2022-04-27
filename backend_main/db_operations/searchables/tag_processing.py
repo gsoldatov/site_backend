@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
+from backend_main.db_operations.searchables.markdown import markdown_to_searchable_item
 
 
 def process_tag_ids(conn, tag_ids):
@@ -46,15 +47,7 @@ def _process_tags_attributes(cursor, tag_ids):
         tag_id, tag_name, tag_description = r
 
         item = SearchableItem(tag_id, text_a=tag_name)
-
-        # TODO add tag_description to item
-        # ```
-        # markdown_important, markdown_regular = process_markdown(tag_description)
-        # item += process_markdown(tag_id, text_b = markdown_important)
-        # item += process_markdown(tag_id, text_b = markdown_regular)
-        # ```
-        # where `process_markdown` returns a tuple with important (headers, ???) and regular text (other + link URLs)
-        # both important and regular texts are then added with the weight B for the description
+        item += markdown_to_searchable_item(tag_description, item_id=tag_id)
         
         result.add_item(item)
     
