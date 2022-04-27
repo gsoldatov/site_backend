@@ -1,19 +1,18 @@
 """
 Utilities for markdown parsing.
 """
-import re
 from urllib.parse import urlparse
-import xml.etree.ElementTree as etree
 
 from markdown import Markdown
 from markdown.extensions.tables import TableExtension
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
-from markdown.blockprocessors import BlockProcessor
-from markdown.inlinepatterns import InlineProcessor
-from markdown.util import AtomicString
+from markdown.util import HTML_PLACEHOLDER_RE
 
 from backend_main.db_operations.searchables.data_classes import SearchableItem
+from backend_main.db_operations.searchables.markdown.block_processing import BlockFormulaProcessor, PatchedOListProcessor, PatchedUListProcessor
+from backend_main.db_operations.searchables.markdown.inline_processing import InlineFormulaProcessor, INLINE_FORMULA_RE, \
+    PatchedHtmlInlineProcessor, HTML_RE, ENTITY_RE
 
 
 def get_markdown_processor(item_id, important_weight, regular_weight):
@@ -28,64 +27,6 @@ def get_markdown_processor(item_id, important_weight, regular_weight):
     ])
 
     return md
-
-
-class BlockFormulaProcessor(BlockProcessor):
-    """ 
-    Block formulae processor.
-    """
-
-    # RE = re.compile(r"\$\$((\\\$|[^\$])+?)\$\$") # not catching escaped dollar-sign at the beginning
-    # RE = re.compile(r"[^\\|\^]\$\$((\\\$|[^\$])+?)\$\$") # working, including 1 excess symbols at the start
-    # RE = re.compile(r"(?<!\\)\$\$((\\\$|[^\$])+?)\$\$")  # wrong processing for $$...\$$ case
-    RE = re.compile(r"(?<!\\)\$\$([^\$]+)(?<!\\)\$\$")
-    # TODO block formula must be at the beginning of the block
-
-    def test(self, parent, block):
-        """ Checks text `block` for the presence of a formula. """
-        return bool(self.RE.search(block))
-    
-    def run(self, parent, blocks):
-        """ Gets the first block from `blocks` list with the block-formula, parses the texts before & after the block and the formula. """
-        block = blocks.pop(0)
-        m = self.RE.search(block)
-
-        if m:
-            before = block[:m.start()]
-            after = block[m.end():]
-
-            # Process symblos before formula
-            if before: self.parser.parseBlocks(parent, [before])
-
-            # Create formula paragraph
-            p = etree.SubElement(parent, "p")
-            p.text = AtomicString(m.group(1))
-            p.set("is_block_formula", "true")
-            
-            # Insert remaining lines as first block for future parsing.
-            if after: blocks.insert(0, after)
-
-
-# INLINE_FORMULA_RE = r"[^\\|\^]\$((\\\$|[^\$\n])+)\$"  # doesn't exclude pattern preceded by backslash
-# INLINE_FORMULA_RE = r"([^\\]|^)\$((\\\$|[^\$\n])+)\$" # doesn't exclude escaped ending dollar-sign
-INLINE_FORMULA_RE = r"(?<!\\)\$((\\\$|[^\$\n])+)(?<!\\)\$"
-
-    
-class InlineFormulaProcessor(InlineProcessor):
-    """
-    Inline formula processor.
-    """
-    def handleMatch(self, m, data):
-        """ Generate element + start & end positions from the match in the string. """
-        el = etree.Element("span")
-        el.text = AtomicString(m.group(1))
-        el.set("is_inline_formula", "true")
-
-        # First symbol in the pattern can be a string start or a backslash
-        # The latter should be left for further processing
-        start = m.start(0) # + (1 if len(m.group(1)) > 0 else 0)
-
-        return el, start, m.end(0)
 
 
 IMPORTANT_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6")
@@ -108,17 +49,32 @@ class SearchableMarkdown(Markdown):
         self.item_attr_important = f"text_{important_weight}"
         self.item_attr_regular = f"text_{regular_weight}"
 
-        # Replace serializer func
+        # Replace serializer func set by parent's constructor
         self.serializer = self._serializer
 
-        # Disable parsed text processing
+        # Disable parsed text processing to avoid errors
         self.stripTopLevelTags = False
 
         # Setup block & inline formula parsing
         self.parser.blockprocessors.register(BlockFormulaProcessor(self.parser), "formula", 81)          # higher priority over code block processor
         self.inlinePatterns.register(InlineFormulaProcessor(INLINE_FORMULA_RE), "inline_formula", 191)   # higher priority over inline code processor
+
+        # Setup patched ordered & unordered list parsing
+        self.parser.blockprocessors.deregister("olist")
+        self.parser.blockprocessors.deregister("ulist")
+        self.parser.blockprocessors.register(PatchedOListProcessor(self.parser), "olist", 40)
+        self.parser.blockprocessors.register(PatchedUListProcessor(self.parser), "ulist", 30)
+
+        # Setup patched inline HTML processors
+        self.inlinePatterns.deregister("html")
+        self.inlinePatterns.deregister("entity")
+        self.inlinePatterns.register(PatchedHtmlInlineProcessor(HTML_RE, self), "html", 90)
+        self.inlinePatterns.register(PatchedHtmlInlineProcessor(ENTITY_RE, self), "entity", 80)
     
     def _serializer(self, element):
+        """ 
+        Serializes provided XML Element `element` into `SearchableItem`.
+        """
         # Check how element should be procecced
         item_attr = self.item_attr_important if element.tag in IMPORTANT_TAGS else self.item_attr_regular
         process_inner_content = not (
@@ -129,12 +85,12 @@ class SearchableMarkdown(Markdown):
 
         # Process text before child elements
         if element.text and process_inner_content:
-            self.searchable_item += {item_attr: element.text}
+            self.searchable_item += {item_attr: SearchableMarkdown.remove_html_placeholders(element.text)}
         
         # Process URLs from <a> tags
         if element.tag == "a":
-            if URL_is_absolute(element.href):
-                self.searchable_item += {item_attr: element.href}
+            if URL_is_absolute(element.get("href")):
+                self.searchable_item += {item_attr: element.get("href")}
 
         # Process child elements 
         if process_inner_content:
@@ -143,7 +99,10 @@ class SearchableMarkdown(Markdown):
         
         # Process text after child elements
         if element.tail:
-            self.searchable_item += {item_attr: element.tail}
+            self.searchable_item += {item_attr: SearchableMarkdown.remove_html_placeholders(element.tail)}
         
         # Return empty text for further processing by markdown lib
         return ""
+    
+    def remove_html_placeholders(s):
+        return HTML_PLACEHOLDER_RE.sub("", s)
