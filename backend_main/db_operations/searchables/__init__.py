@@ -2,7 +2,7 @@ from backend_main.db_operations.searchables.tag_processing import process_tag_id
 from backend_main.db_operations.searchables.object_processing import process_object_ids
 
 
-def searchables_update_manager(conn, tag_ids = tuple(), object_ids = tuple()):
+def update_searchables(conn, tag_ids = tuple(), object_ids = tuple()):
     """
     Performs batched update of searchable data for the provided tag and object IDs.
     Arguments:

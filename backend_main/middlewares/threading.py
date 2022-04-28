@@ -5,7 +5,7 @@
 from aiohttp import web
 from threading import Thread
 
-from backend_main.db_operations.searchables import searchables_update_manager
+from backend_main.db_operations.searchables import update_searchables
 
 
 @web.middleware
@@ -30,7 +30,7 @@ def dispatch_searchables_update(request):
         try:
             tag_ids = tuple((_ for _ in request.get("searchable_updates_tag_ids", set())))
             object_ids = tuple((_ for _ in request.get("searchable_updates_object_ids", set())))
-            searchables_update_manager(conn, tag_ids, object_ids)
+            update_searchables(conn, tag_ids, object_ids)
         finally:
             app["threaded_pool"].putconn(conn)
 
