@@ -1,8 +1,6 @@
 """
 Auth-related database operations and SQLAlchemy constructs.
 """
-from datetime import datetime, timedelta
-
 from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_, or_
