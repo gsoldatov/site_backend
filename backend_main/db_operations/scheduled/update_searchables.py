@@ -67,9 +67,7 @@ def get_ids(conn, mode):
         if not cursor.closed: cursor.close()
 
 
-def main(config = None):
-    args = parse_args()
-
+def main(mode, config = None):
     try:
         # Get app config and connect to the database
         config = config or get_config()
@@ -82,7 +80,7 @@ def main(config = None):
                             user=db_config["db_username"], password=db_config["db_password"])
         
         # Get IDs of tags & objects, which should be updated
-        tag_ids, object_ids = get_ids(conn, args.mode)
+        tag_ids, object_ids = get_ids(conn, mode)
 
         # Update searchables
         update_searchables(conn, tag_ids, object_ids)
@@ -94,4 +92,5 @@ def main(config = None):
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args.mode)

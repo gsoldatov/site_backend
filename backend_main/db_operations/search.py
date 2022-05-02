@@ -1,5 +1,5 @@
 from aiohttp import web
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.sql import and_, or_
 
 from backend_main.db_operations.auth import get_objects_auth_filter_clause
@@ -18,6 +18,7 @@ async def search_items(request, query):
     Raises a 404 error if no items match the query.
     """
     searchables = request.config_dict["tables"]["searchables"]
+    objects = request.config_dict["tables"]["objects"]
     query_text = query["query_text"]
     items_per_page = query["items_per_page"]
     offset = (query["page"] - 1) * items_per_page
@@ -29,14 +30,15 @@ async def search_items(request, query):
     result = await request["conn"].execute(
         select([searchables.c.tag_id, searchables.c.object_id, \
             # set bit flags for ts_rank function to normalize ranks (2 divides the rank by the document length; 32 divides the rank by itself + 1)
-            func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")])
+            func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")]) \
+        .select_from(searchables.outerjoin(objects, searchables.c.object_id == objects.c.object_id)) \
         .where(and_(
             auth_filter_clause,
             searchables.c.searchable_tsv_russian.op("@@")(func.websearch_to_tsquery("russian", query_text))
-        ))
-        .order_by("rank DESC")
-        .limit(items_per_page)
-        .offset(offset)
+        )) \
+        .order_by(text("rank DESC")) \
+        .limit(items_per_page) \
+        .offset(offset)   
     )
 
     items = [{
@@ -47,10 +49,23 @@ async def search_items(request, query):
     # Handle 404 case
     if len(items) == 0: raise web.HTTPNotFound(text=error_json("No results found."), content_type="application/json")
 
+    # Query total number of items
+    result = await request["conn"].execute(
+        select([func.count()])
+        .select_from(searchables.outerjoin(objects, searchables.c.object_id == objects.c.object_id))
+        .where(and_(
+            auth_filter_clause,
+            searchables.c.searchable_tsv_russian.op("@@")(func.websearch_to_tsquery("russian", query_text))
+        ))
+    )
+    
+    total_items = (await result.fetchone())[0]
+
     # Preparse and rerutn response
     return {
         "query_text": query_text,
         "page": query["page"],
         "items_per_page": query["items_per_page"],
-        "items": items
+        "items": items,
+        "total_items": total_items
     }

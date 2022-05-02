@@ -20,6 +20,6 @@ async def search(request):
 def get_subapp():
     app = web.Application()
     app.add_routes([
-                    web.post("/", search, name="search")
+                    web.post("", search, name="search")
                 ])
     return app

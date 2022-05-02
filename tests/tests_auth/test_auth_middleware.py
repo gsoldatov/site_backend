@@ -6,6 +6,7 @@ if __name__ == "__main__":
 
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_links
 from tests.fixtures.tags import get_test_tag, insert_tags
+from tests.fixtures.searchables import get_test_searchable, insert_searchables
 from tests.fixtures.sessions import headers_admin_token, admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
@@ -62,6 +63,8 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
     tag_list = [get_test_tag(i) for i in range(100, 102)]
     insert_tags(tag_list, db_cursor)
 
+    insert_searchables([get_test_searchable(object_id=101, text_a="word")], db_cursor)
+
     # Correct request bodies
     # NOTE: correct request body for new non-auth route handlers must be included in the dict below
     correct_request_bodies = {
@@ -86,7 +89,9 @@ async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
         "/settings/view": {"POST": {"view_all": True}},
 
         "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config["app"]["default_user"]["password"]}},
-        "/users/view": {"POST": {"user_ids": [1]}}
+        "/users/view": {"POST": {"user_ids": [1]}},
+
+        "/search": {"POST": {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}}
     }
 
     # Check token prolongation on successful requests for all non-auth routes

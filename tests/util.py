@@ -1,4 +1,5 @@
 import pytest
+import time
 from datetime import datetime
 from copy import deepcopy
 
@@ -32,3 +33,20 @@ def parse_iso_timestamp(s, allow_empty_string = False):
     if allow_empty_string and len(s) == 0: return None
     if s.endswith("Z"): s = s[:-1] # remove Zulu timezone if present to avoid parsing failure
     return datetime.fromisoformat(s)
+
+
+def wait_for(fn, timeout = 1, interval = 0.1, msg = "Timeout expired.", *args, **kwargs):
+    """
+    Runs function `fn` until it returns True with a specified `interval` between calls.
+    Raises an error if `timeout` is reached before successful function execution.
+    """
+    end_time = time.time() + timeout
+
+    while time.time() < end_time:
+        result = fn(*args, **kwargs)
+
+        if result: return
+
+        time.sleep(interval)
+    
+    raise TimeoutError(msg)

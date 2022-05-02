@@ -5,14 +5,21 @@ from psycopg2.extensions import AsIs
 
 __all__ = ["get_test_tag", "incorrect_tag_values", "tag_list", "insert_tags", "delete_tags"]
 
-def get_test_tag(i, name = None, pop_keys = []):
+def get_test_tag(i, tag_name = None, tag_description = None, created_at = None, modified_at = None, pop_keys = []):
     """
     Returns a new dictionary for tags table with attributes specified in pop_keys popped from it.
     If name is not provided, uses one of the default values (which are bound to specific IDs).
     """
-    name = name or _tag_names.get(i, f"tag name {i}")
+    tag_name = tag_name if tag_name is not None else _tag_names.get(i, f"tag name {i}")
+    tag_description = tag_description if tag_description is not None else f"Everything Related to {tag_name}"
+
     curr_time = datetime.utcnow()
-    tag = {"tag_id": i, "created_at": curr_time, "modified_at": curr_time, "tag_name": name, "tag_description": f"Everything Related to {name}"}
+    created_at = created_at if created_at is not None else curr_time
+    modified_at = modified_at if modified_at is not None else curr_time   
+
+    
+    curr_time = datetime.utcnow()
+    tag = {"tag_id": i, "created_at": created_at, "modified_at": modified_at, "tag_name": tag_name, "tag_description": tag_description}
     for k in pop_keys:
         tag.pop(k, None)
     return tag

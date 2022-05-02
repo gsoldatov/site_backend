@@ -2,6 +2,7 @@ import os, sys
 import json
 from datetime import datetime, timedelta
 from uuid import uuid4
+from copy import deepcopy
 
 import psycopg2
 import pytest
@@ -69,6 +70,13 @@ def config(config_path, test_uuid):
         config["db"]["db_username"] = get_test_name(config["db"]["db_username"], test_uuid)
 
         return config
+
+
+@pytest.fixture(scope="module")
+def config_with_search(config):
+    config_with_search = deepcopy(config)
+    config_with_search["auxillary"]["enable_searchables_updates"] = True
+    return config_with_search
 
 
 @pytest.fixture(scope="module")
@@ -168,6 +176,7 @@ def insert_data(config, db_cursor):
     db_cursor.execute(f"""INSERT INTO sessions (user_id, access_token, expiration_time)
                         VALUES ({default_user_id}, '{admin_token}', '{expiration_time}')""")
 
+
 @pytest.fixture
 async def app(loop, config, db_cursor, insert_data):
     """
@@ -184,3 +193,21 @@ async def app(loop, config, db_cursor, insert_data):
 async def cli(loop, aiohttp_client, app):
     """ Test client object. """
     return await aiohttp_client(app)
+
+
+@pytest.fixture
+async def app_with_search(loop, config_with_search, db_cursor, insert_data):
+    """
+    aiohttp web.Application object with its own configured test database.
+    """
+    app = await create_app(config=config_with_search)
+    yield app
+
+    for table in app["tables"]:
+        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
+
+
+@pytest.fixture
+async def cli_with_search(loop, aiohttp_client, app_with_search):
+    """ Test client object. """
+    return await aiohttp_client(app_with_search)
