@@ -5,6 +5,7 @@ if __name__ == "__main__":
 import asyncio
 
 from aiohttp import web
+from psycopg2.errors import OperationalError
 
 from backend_main.config import get_config
 from backend_main.cors import setup_cors
@@ -19,18 +20,26 @@ from backend_main.routes import setup_routes
 
 
 async def create_app(config_file = None, config = None):
-    app = web.Application(middlewares=[error_middleware, threading_middleware, connection_middleware, auth_middleware])
-    app["config"] = config if config and type(config) == dict else get_config(config_file)
-    
-    await setup_connection_pools(app)
-    
-    app["tables"] = get_tables(app["config"])[0]
+    try:
+        app = web.Application(middlewares=[error_middleware, threading_middleware, connection_middleware, auth_middleware])
+        app["config"] = config if config and type(config) == dict else get_config(config_file)
+        
+        await setup_connection_pools(app)
+        
+        app["tables"] = get_tables(app["config"])[0]
 
-    setup_routes(app)
-    
-    setup_cors(app)
-    
-    return app
+        setup_routes(app)
+        
+        setup_cors(app)
+
+        # TODO log app start
+        return app
+    except OperationalError:
+        print("Failed to setup database connection pools.")    # TODO log connection pool setup error
+        raise web.GracefulExit()    # Close the app gracefully
+    except Exception:
+        print("Unhandled exception during app setup.")  # TODO log exception
+        raise
 
 
 def main():

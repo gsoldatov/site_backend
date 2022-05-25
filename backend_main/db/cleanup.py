@@ -6,3 +6,5 @@ async def close_connection_pools(app):
         app["threaded_pool"].closeall()
     
     return app
+
+    # TODO log connection pools closing

@@ -29,3 +29,5 @@ async def setup_connection_pools(app):
 
     # Close connection pools on cleanup
     app.on_cleanup.append(close_connection_pools)
+
+    # TODO log connection pools acquiring
