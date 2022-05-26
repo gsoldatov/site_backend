@@ -20,9 +20,20 @@ def main(config = None):
         cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
                             user=db_config["db_username"], password=db_config["db_password"])
         
-        # Delete sessions with `expiration_time` < current_time
+        # Delete sessions, which are expired or belong to users who can't login
         current_time = datetime.utcnow()
-        cursor.execute(f"DELETE FROM sessions WHERE expiration_time < '{current_time}'")
+        cursor.execute(f"""
+            DELETE FROM sessions
+            WHERE access_token IN (
+                SELECT sessions.access_token
+                FROM sessions
+                LEFT JOIN users
+                ON users.user_id = sessions.user_id
+                WHERE 
+                    sessions.expiration_time < '{current_time}'
+                    OR users.can_login = FALSE
+            )
+        """)
     finally:
         if type(cursor) == CursorClass:
             disconnect(cursor)

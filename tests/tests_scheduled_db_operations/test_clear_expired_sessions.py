@@ -18,13 +18,21 @@ def test_clear_expired_sessions(db_cursor, config, app):
     db_cursor.execute("TRUNCATE TABLE sessions")
     
     # Insert another users and sessions
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor)
+    insert_users([
+        get_test_user(2, pop_keys=["password_repeat"]),     # another user
+        get_test_user(3, can_login=False, pop_keys=["password_repeat"])     # user who can't login
+    ], db_cursor)
 
     sessions = [
+        # Sessions of active users
         get_test_session(1, access_token="-1", expiration_time=datetime.utcnow() + timedelta(seconds=-1)),
         get_test_session(2, access_token="-2", expiration_time=datetime.utcnow() + timedelta(seconds=-120)),
         get_test_session(1, access_token="1", expiration_time=datetime.utcnow() + timedelta(seconds=10)),
-        get_test_session(2, access_token="2", expiration_time=datetime.utcnow() + timedelta(seconds=20))
+        get_test_session(2, access_token="2", expiration_time=datetime.utcnow() + timedelta(seconds=20)),
+
+        # Sessions of user who can't login
+        get_test_session(3, access_token="-3", expiration_time=datetime.utcnow() + timedelta(seconds=-10)),
+        get_test_session(3, access_token="3", expiration_time=datetime.utcnow() + timedelta(seconds=10))
     ]
 
     insert_sessions(sessions, db_cursor)
@@ -32,7 +40,9 @@ def test_clear_expired_sessions(db_cursor, config, app):
     # Run clear operation
     clear_expired_sessions(config)
 
-    # Check if sessions were correctly removed
+    # Check if sessions were correctly removed:
+    # - active users still have their non-expired sessions;
+    # - user, who can't login have all of his sessions deleted.
     db_cursor.execute("SELECT access_token FROM sessions")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == ["1", "2"]
 
