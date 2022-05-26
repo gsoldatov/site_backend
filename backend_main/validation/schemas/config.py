@@ -1,11 +1,12 @@
 config_schema = {
     "type": "object",
-    "required": ["app", "cors_urls", "db"],
+    "required": ["app", "cors_urls", "db", "auxillary"],
     "properties": {
         "app": {
             "type": "object",
-            "required": ["host", "port", "default_user", "token_lifetime"],
-            "properties":{
+            "additionalProperties": False,
+            "required": ["host", "port", "default_user", "token_lifetime", "composite_hierarchy_max_depth"],
+            "properties": {
                 "host": {
                     "type": "string",
                     "minLength": 1
@@ -19,6 +20,7 @@ config_schema = {
 
                 "default_user": {
                     "type": "object",
+                    "additionalProperties": False,
                     "required": ["login", "password", "username"],
                     "properties": {
                         "login": {
@@ -41,6 +43,12 @@ config_schema = {
                     "type": "integer",
                     "minimum": 1 * 1 * 1 * 60,      # 1 min
                     "maximum": 90 * 24 * 60 * 60    # 90 days
+                },
+
+                "composite_hierarchy_max_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
                 }
             }
         },
@@ -49,23 +57,18 @@ config_schema = {
             "type": "array",
             "minItems": 1,
             "items" : {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
             }
         },
 
         "db": {
             "type": "object",
-            "required": [
-                "db_host", 
-                "db_port", 
-                "db_init_database", 
-                "db_init_username", 
-                "db_init_password", 
-                "db_database"
+            "additionalProperties": False,
+            "required": ["db_host", "db_port", 
+                "db_init_database", "db_init_username",  "db_init_password", 
+                "db_database", "db_password", "db_username"
             ],
-            "dependencies": {
-                "db_username": ["db_password"]
-            },
             "properties": {
                 "db_host": {
                     "type": "string",
@@ -99,6 +102,17 @@ config_schema = {
                 "db_password": {
                     "type": "string",
                     "minLength": 1
+                }
+            }
+        },
+
+        "auxillary": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["enable_searchables_updates"],
+            "properties": {
+                "enable_searchables_updates": {
+                    "type": "boolean"
                 }
             }
         }

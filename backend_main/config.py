@@ -29,14 +29,6 @@ def _read_config(config_file):
 def _validate_and_set_values(config):
     if config:
         validate(instance=config, schema=config_schema)
-
-        if config["db"].get("db_username"):
-            config["db"]["create_user_required"] = True
-        else:
-            config["db"]["create_user_required"] = False
-            config["db"]["db_username"] = config["db"]["db_init_username"]
-            config["db"]["db_password"] = config["db"]["db_init_password"]
-        
         return config
     else:
         raise ValueError("No config data provided.")

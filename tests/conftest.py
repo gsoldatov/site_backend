@@ -22,29 +22,9 @@ from tests.fixtures.sessions import admin_token
 @pytest.fixture
 def base_config():
     """ Dictionary for config parsing testing. """
-    return {
-        "app": {
-            "host": "localhost",
-            "port": 55555,
-            "default_user": {
-                "login": "admin",
-                "password": "password",
-                "username": "Admin"
-            },
-            "token_lifetime": 10 * 60
-        },
-        "cors_urls": ["http://localhost:8080"],
-        "db": {
-            "db_host": "localhost",
-            "db_port": 5432,
-            "db_init_database": "init_db",
-            "db_init_username": "username",
-            "db_init_password": "pwd123",
-            "db_database": "db",
-            "db_username": "username",
-            "db_password": "pwd456"
-    }
-}
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend_main/config.json.sample"))
+    with open(path, "r") as stream:
+        return json.load(stream)
 
 
 @pytest.fixture(scope="module")
