@@ -35,11 +35,11 @@ if test_uuid is not None:
     app_config["db"]["db_username"] = get_test_name(app_config["db"]["db_username"], test_uuid)
 
 # Set connection string
-username = urllib.parse.quote(app_config['db']['db_username']).replace("%", "%%") # encode special characters in username and password;
-password = urllib.parse.quote(app_config['db']['db_password']).replace("%", "%%") # after quoting, '%' chars must also be escaped to avoid "ValueError: invalid interpolation syntax" exception
+username = urllib.parse.quote(app_config["db"]["db_username"].value).replace("%", "%%") # encode special characters in username and password;
+password = urllib.parse.quote(app_config["db"]["db_password"].value).replace("%", "%%") # after quoting, '%' chars must also be escaped to avoid "ValueError: invalid interpolation syntax" exception
 
 config.set_main_option("sqlalchemy.url", f"postgresql://{username}:{password}"
-                        f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database']}")
+                        f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database'].value}")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -13,6 +13,7 @@ import alembic.config
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
+from backend_main.config import hide_config_values
 
 from tests.util import get_test_name
 from tests.fixtures.sessions import admin_token
@@ -69,6 +70,8 @@ def config(config_path, test_uuid):
         config["db"]["db_database"] = get_test_name(config["db"]["db_database"], test_uuid)
         config["db"]["db_username"] = get_test_name(config["db"]["db_username"], test_uuid)
 
+        hide_config_values(config)
+
         return config
 
 
@@ -82,10 +85,9 @@ def config_with_search(config):
 @pytest.fixture(scope="module")
 def init_db_cursor(config):
     """ psycopg2.Cursor object for creating and dropping test user and database. """
-    db_config = config["db"]
-    connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
-                    database=db_config["db_init_database"], user=db_config["db_init_username"], 
-                    password=db_config["db_init_password"])
+    connection = psycopg2.connect(host=config["db"]["db_host"], port=config["db"]["db_port"], 
+                    database=config["db"]["db_init_database"].value, user=config["db"]["db_init_username"].value, 
+                    password=config["db"]["db_init_password"].value)
     connection.set_session(autocommit=True)
     cursor = connection.cursor()
     yield cursor
@@ -97,21 +99,20 @@ def init_db_cursor(config):
 @pytest.fixture(scope="module")
 def db_and_user(config, init_db_cursor):
     """ Temporary user and database for running tests. """
-    db_config = config["db"]
-    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"]}""")
-    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"]}""")
-    init_db_cursor.execute(f"""CREATE USER {config["db"]["db_username"]} PASSWORD \'{config["db"]["db_password"]}\' LOGIN;""")
-    init_db_cursor.execute(f"""CREATE DATABASE {config["db"]["db_database"]} ENCODING 'UTF-8' OWNER {config["db"]["db_username"]} TEMPLATE template0;""")
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"].value}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"].value}""")
+    init_db_cursor.execute(f"""CREATE USER {config["db"]["db_username"].value} PASSWORD \'{config["db"]["db_password"].value}\' LOGIN;""")
+    init_db_cursor.execute(f"""CREATE DATABASE {config["db"]["db_database"].value} ENCODING 'UTF-8' OWNER {config["db"]["db_username"].value} TEMPLATE template0;""")
     yield
 
     init_db_cursor.execute(f"""
                     SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
-                    WHERE pg_stat_activity.datname = '{config["db"]["db_database"]}'
+                    WHERE pg_stat_activity.datname = '{config["db"]["db_database"].value}'
                     AND pid <> pg_backend_pid();
     """)
-    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"]}""")
-    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"]}""")
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"].value}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"].value}""")
 
 
 @pytest.fixture(scope="module")
@@ -140,10 +141,9 @@ def migrate(config_path, test_uuid, db_and_user, migrate_as_superuser):
 @pytest.fixture(scope="module")
 def db_cursor(config, migrate):
     """ psycopg2.cursor object for performing queries against the test database. """
-    db_config = config["db"]
-    connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
-                    database=db_config["db_database"], user=db_config["db_username"], 
-                    password=db_config["db_password"])
+    connection = psycopg2.connect(host=config["db"]["db_host"], port=config["db"]["db_port"], 
+                    database=config["db"]["db_database"].value, user=config["db"]["db_username"].value, 
+                    password=config["db"]["db_password"].value)
     connection.set_session(autocommit=True)
     cursor = connection.cursor()
     yield cursor
@@ -163,8 +163,8 @@ def insert_data(config, db_cursor):
 
     # Insert admin
     current_time = datetime.utcnow()
-    login = config["app"]["default_user"]["login"]
-    password = config["app"]["default_user"]["password"]
+    login = config["app"]["default_user"]["login"].value
+    password = config["app"]["default_user"]["password"].value
     username = config["app"]["default_user"]["username"]
     db_cursor.execute(f"""INSERT INTO users (registered_at, login, password, username, user_level, can_login, can_edit_objects)
                    VALUES ('{current_time}', '{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE, TRUE)""")

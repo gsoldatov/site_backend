@@ -11,9 +11,9 @@ async def setup_connection_pools(app):
     app["engine"] = await create_engine(
         host=db_config["db_host"], 
         port=db_config["db_port"], 
-        database=db_config["db_database"],
-        user=db_config["db_username"],
-        password=db_config["db_password"]
+        database=db_config["db_database"].value,
+        user=db_config["db_username"].value,
+        password=db_config["db_password"].value
     )
 
     # psycopg2 connection pool with threading support for auxiallary tasks performed in separate threads 
@@ -22,9 +22,9 @@ async def setup_connection_pools(app):
         app["threaded_pool"] = ThreadedConnectionPool(1, 5,
             host=db_config["db_host"], 
             port=db_config["db_port"], 
-            database=db_config["db_database"],
-            user=db_config["db_username"],
-            password=db_config["db_password"]
+            database=db_config["db_database"].value,
+            user=db_config["db_username"].value,
+            password=db_config["db_password"].value
         )
 
     # Close connection pools on cleanup

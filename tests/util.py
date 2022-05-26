@@ -3,6 +3,8 @@ import time
 from datetime import datetime
 from copy import deepcopy
 
+from backend_main.config import HiddenValue
+
 
 def check_ids(expected, received, message = "Expected ids check"):
     expected = deepcopy(expected)
@@ -18,8 +20,14 @@ def check_ids(expected, received, message = "Expected ids check"):
 
 
 def get_test_name(name, test_uuid):
-    """Returns `name` with concatenated `TEST_POSTFIX` and `test_uuid`."""
-    return name + TEST_POSTFIX + test_uuid
+    """
+    Returns `name` with concatenated `TEST_POSTFIX` and `test_uuid`.
+    If `name` is an instance of `HiddenValue`, returns a new `HiddenValue`. Otherwise return a string.
+    """
+    if type(name) == HiddenValue:
+        return HiddenValue(name.value + TEST_POSTFIX + test_uuid, replacement_string=name._replacement_string)
+    else:
+        return name + TEST_POSTFIX + test_uuid
 
 
 TEST_POSTFIX = "_test_"

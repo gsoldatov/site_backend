@@ -32,8 +32,8 @@ def drop_user_and_db(cursor, db_config, force):
     # Validate `db_database` and `db_username` values
     print("Removing existing user and database...")
     print("Validating db_config.")
-    db_init_username, db_init_database = db_config["db_init_username"], db_config["db_init_database"]
-    db_username, db_database = db_config["db_username"], db_config["db_database"]
+    db_init_username, db_init_database = db_config["db_init_username"], db_config["db_init_database"].value
+    db_username, db_database = db_config["db_username"].value, db_config["db_database"].value
     
     if db_init_database == db_database: raise InitDBException("db_init_database and db_database cannot be equal.")    
     if db_database == "template0": raise InitDBException("db_database cannot be equal to 'template0'.")
@@ -68,7 +68,7 @@ def drop_user_and_db(cursor, db_config, force):
         cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname NOT IN ('template0', '{db_init_database}')")
         for (database_name, ) in cursor.fetchall():
             database_cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=database_name,
-                user=db_init_username, password=db_config["db_init_password"])
+                user=db_init_username, password=db_config["db_init_password"].value)
             database_cursor.execute(f"""REASSIGN OWNED BY {db_username} TO {db_init_username}; DROP OWNED BY {db_username};""")
             disconnect(database_cursor)
         print(f"Finished clearing ownership & privileges in existing databases.")
@@ -121,8 +121,8 @@ def revision(message = ""):
 def migrate_as_superuser(db_config):
     """Additional migration commands which require as superuser privilege."""
     print("Running migrations as superuser...")
-    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
-                                user=db_config["db_init_username"], password=db_config["db_init_password"])
+    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"].value,
+                            user=db_config["db_init_username"].value, password=db_config["db_init_password"].value)
     try:
         # Create extension for password storing
         cursor.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")

@@ -17,8 +17,8 @@ def main(config = None):
     try:
         # Get app config and connect to the database
         db_config = (config or get_config())["db"]
-        cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
-                            user=db_config["db_username"], password=db_config["db_password"])
+        cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"].value,
+                            user=db_config["db_username"].value, password=db_config["db_password"].value)
         
         # Delete sessions, which are expired or belong to users who can't login
         current_time = datetime.utcnow()

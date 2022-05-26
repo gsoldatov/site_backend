@@ -21,12 +21,12 @@ def clear_test_users_and_databases():
     db_config = get_config(config_file=config_file)["db"]
 
     # Connect to maintenance database
-    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"],
-                                user=db_config["db_init_username"], password=db_config["db_init_password"])
+    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"].value,
+                                user=db_config["db_init_username"].value, password=db_config["db_init_password"].value)
     
     try:
         # Loop through temp databases and delete them
-        pattern = db_config["db_database"] + TEST_POSTFIX + "%"
+        pattern = db_config["db_database"].value + TEST_POSTFIX + "%"
         cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname LIKE '{pattern}'")
         databases = [r[0] for r in cursor.fetchall()]
         for database in databases:
@@ -40,7 +40,7 @@ def clear_test_users_and_databases():
             cursor.execute(f"DROP DATABASE {database};")
         
         # Loop through temp users and delete them
-        pattern = db_config["db_username"] + TEST_POSTFIX + "%"
+        pattern = db_config["db_username"].value + TEST_POSTFIX + "%"
         cursor.execute(f"SELECT usename FROM pg_user WHERE usename LIKE '{pattern}'")
 
         usernames = [r[0] for r in cursor.fetchall()]

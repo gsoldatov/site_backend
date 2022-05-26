@@ -6,7 +6,6 @@ Updates `searchables` table.
 """
 import argparse
 
-from psycopg2.extensions import cursor as CursorClass
 from psycopg2 import connect
 
 import os, sys
@@ -76,8 +75,8 @@ def main(mode, config = None):
 
         if not enable_searchables_updates: return
 
-        conn = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"],
-                            user=db_config["db_username"], password=db_config["db_password"])
+        conn = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"].value,
+                            user=db_config["db_username"].value, password=db_config["db_password"].value)
         
         # Get IDs of tags & objects, which should be updated
         tag_ids, object_ids = get_ids(conn, mode)

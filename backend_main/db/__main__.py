@@ -46,16 +46,16 @@ def main():
         try:
             # Get app config and connect to the default database
             db_config = get_config()["db"]
-            cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"],
-                                user=db_config["db_init_username"], password=db_config["db_init_password"])
+            cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"].value,
+                                user=db_config["db_init_username"].value, password=db_config["db_init_password"].value)
             
             # Drop existing user and database
             drop_user_and_db(cursor, db_config, args.force)
 
             # Create user and database
             if db_config["create_user_required"]:
-                create_user(cursor=cursor, user=db_config["db_username"], password=db_config["db_password"])
-            create_db(cursor=cursor, db_name=db_config["db_database"], db_owner=db_config["db_username"])
+                create_user(cursor=cursor, user=db_config["db_username"].value, password=db_config["db_password"].value)
+            create_db(cursor=cursor, db_name=db_config["db_database"].value, db_owner=db_config["db_username"].value)
             
             # Apply migrations
             migrate_as_superuser(db_config)

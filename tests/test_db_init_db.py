@@ -15,8 +15,8 @@ def test_connect_disconnect(config):
     try:
         db_config = config["db"]
         cursor = connect(host=db_config["db_host"], port=db_config["db_port"], 
-                    database=db_config["db_init_database"], user=db_config["db_init_username"], 
-                    password=db_config["db_init_password"])
+                    database=db_config["db_init_database"].value, user=db_config["db_init_username"].value, 
+                    password=db_config["db_init_password"].value)
         cursor.execute("SELECT 1")
         assert cursor.fetchone() == (1,)
 
@@ -29,25 +29,25 @@ def test_connect_disconnect(config):
 
 def test_create_user(config, init_db_cursor):
     db_config = config["db"]
-    create_user(init_db_cursor, db_config["db_username"], db_config["db_password"])
-    init_db_cursor.execute(f"SELECT usename FROM pg_user where usename = \'{db_config['db_username']}\'")
-    assert init_db_cursor.fetchone() == (db_config["db_username"],)
+    create_user(init_db_cursor, db_config["db_username"].value, db_config["db_password"].value)
+    init_db_cursor.execute(f"SELECT usename FROM pg_user where usename = \'{db_config['db_username'].value}\'")
+    assert init_db_cursor.fetchone() == (db_config["db_username"].value,)
 
 
 def test_create_db(config, init_db_cursor):
     db_config = config["db"]
-    create_db(init_db_cursor, db_config["db_database"], db_config["db_username"])
-    init_db_cursor.execute(f"SELECT datname FROM pg_database where datname = \'{db_config['db_database']}\'")
-    assert init_db_cursor.fetchone() == (db_config["db_database"],)
+    create_db(init_db_cursor, db_config["db_database"].value, db_config["db_username"].value)
+    init_db_cursor.execute(f"SELECT datname FROM pg_database where datname = \'{db_config['db_database'].value}\'")
+    assert init_db_cursor.fetchone() == (db_config["db_database"].value,)
 
     init_db_cursor.execute(f"""
                     SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
-                    WHERE pg_stat_activity.datname = '{db_config["db_database"]}'
+                    WHERE pg_stat_activity.datname = '{db_config["db_database"].value}'
                     AND pid <> pg_backend_pid();
     """)
-    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {db_config["db_database"]}""")
-    init_db_cursor.execute(f"""DROP USER IF EXISTS {db_config["db_username"]}""")
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {db_config["db_database"].value}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {db_config["db_username"].value}""")
 
 
 def test_migrate(config_path, test_uuid, config, db_and_user):
@@ -56,8 +56,8 @@ def test_migrate(config_path, test_uuid, config, db_and_user):
     migrate(config_file=config_path, test_uuid=test_uuid)
 
     connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
-                    database=db_config["db_database"], user=db_config["db_username"], 
-                    password=db_config["db_password"])
+                    database=db_config["db_database"].value, user=db_config["db_username"].value, 
+                    password=db_config["db_password"].value)
     connection.set_session(autocommit=True)
     cursor = connection.cursor()
 

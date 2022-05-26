@@ -15,13 +15,13 @@ async def test_incorrect_request_body_at_top_level_as_admin(cli, config):
 
     # Required attributes missing
     for attr in ("user", "token_owner_password"):
-        body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+        body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
         body.pop(attr)
         resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed attributes
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["unallowed"] = "unallowed"
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -29,7 +29,7 @@ async def test_incorrect_request_body_at_top_level_as_admin(cli, config):
     # # Incorrect values for general attributes
     for (key, value) in [("user", False), ("user", 123), ("user", "str"), ("token_owner_password", False), ("token_owner_password", 123), 
         ("token_owner_password", "a"*7), ("token_owner_password", "a"*73)]:
-        body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+        body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
         body[key] = value
         resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
@@ -37,24 +37,24 @@ async def test_incorrect_request_body_at_top_level_as_admin(cli, config):
 
 async def test_incorrect_request_body_at_user_level_as_admin(cli, config):
     # Missing user_id
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"].pop("user_id")
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # No updated attributes are passed
-    body = get_update_user_request_body(user={"user_id": 1}, token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(user={"user_id": 1}, token_owner_password=config["app"]["default_user"]["password"].value)
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Password is passed without repeat
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"].pop("password_repeat")
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Unallowed attribute
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"]["unallowed"] = "unallowed"
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -65,7 +65,7 @@ async def test_incorrect_request_body_at_user_level_as_admin(cli, config):
 
     for attr in incorrect_attributes:
         for value in incorrect_attributes[attr]:
-            body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+            body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
             body["user"][attr] = value
             if attr == "password": body["user"]["password_repeat"] = value
             resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
@@ -74,7 +74,7 @@ async def test_incorrect_request_body_at_user_level_as_admin(cli, config):
 
 async def test_incorrect_body_attribute_values_as_admin(cli, config):
     # Password is not correctly repeated
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"]["password_repeat"] = "another password value"
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -85,14 +85,14 @@ async def test_incorrect_body_attribute_values_as_admin(cli, config):
     assert resp.status == 400
 
     # Updated user does not exist
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"]["user_id"] = 1000
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
 async def test_correct_update_as_anonymous(cli, config):
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     resp = await cli.put("/users/update", json=body)
     assert resp.status == 401
 
@@ -110,7 +110,7 @@ async def test_correct_update_of_a_single_attribute_of_another_user_as_admin(cli
         user = {"user_id": user_id, attr: value}
         if attr == "password": user["password_repeat"] = value
 
-        body = get_update_user_request_body(user, token_owner_password=config["app"]["default_user"]["password"])
+        body = get_update_user_request_body(user, token_owner_password=config["app"]["default_user"]["password"].value)
         resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
         assert resp.status == 200
 
@@ -140,7 +140,7 @@ async def test_correct_update_of_multiple_attributes_of_the_same_user_as_admin(c
     updated_user_data = get_test_user(1, login="updated login", username="updated username", password="updated_password", user_level="user",
         can_login=False, can_edit_objects=False, pop_keys=["registered_at"])
     
-    body = get_update_user_request_body(user=updated_user_data, token_owner_password=config["app"]["default_user"]["password"])
+    body = get_update_user_request_body(user=updated_user_data, token_owner_password=config["app"]["default_user"]["password"].value)
     resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
