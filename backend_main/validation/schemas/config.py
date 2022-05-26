@@ -5,7 +5,7 @@ config_schema = {
         "app": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["host", "port", "default_user", "token_lifetime", "composite_hierarchy_max_depth"],
+            "required": ["host", "port", "debug", "default_user", "token_lifetime", "composite_hierarchy_max_depth"],
             "properties": {
                 "host": {
                     "type": "string",
@@ -17,6 +17,8 @@ config_schema = {
                     "minimum": 1025,
                     "maximum": 65535
                 },
+
+                "debug": { "type": "boolean" },
 
                 "default_user": {
                     "type": "object",

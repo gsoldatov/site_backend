@@ -33,6 +33,7 @@ def test_app_config(base_config):
     incorrect_app_setting_values = {
         "host": ("", 0, True),
         "port": (1024, 65536, "str", True),
+        "debug": (1, "str"),
         "default_user": (1, "str", True),
         "token_lifetime": (0, 90 * 24 * 60 * 60 + 1, "str", True),
         "composite_hierarchy_max_depth": (0, 11, "str", True)
