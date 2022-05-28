@@ -11,12 +11,12 @@ sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.db.tables import get_tables
 
 
-def test_get_tables(config, db_cursor):
+def test_get_tables(db_cursor):
     """
     Checks that SQLAlchemy objects match the state of the database after migrations applied to it.
     """
     # Get SQL Alchemy tables
-    sa_tables = get_tables(config)[0]
+    sa_tables = get_tables()[0]
 
     # Check if SA and DB tables match + check that all objects returned by get_tables belong to SQLAlchemy Table class
     db_cursor.execute(f"SELECT tablename FROM pg_tables WHERE schemaname = current_schema() AND tablename <> 'alembic_version'")

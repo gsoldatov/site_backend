@@ -26,7 +26,7 @@ async def create_app(config_file = None, config = None):
         
         await setup_connection_pools(app)
         
-        app["tables"] = get_tables(app["config"])[0]
+        app["tables"] = get_tables()[0]
 
         setup_routes(app)
         

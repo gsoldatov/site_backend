@@ -7,7 +7,7 @@ from sqlalchemy.schema import FetchedValue
 from sqlalchemy.sql.expression import false
 
 
-def get_tables(config):
+def get_tables():
     """ Return a dictionary with SA tables and a metadata object. """
     meta = MetaData(naming_convention={
         "ix": "ix_%(column_0_name)s",

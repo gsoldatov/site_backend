@@ -49,7 +49,7 @@ fileConfig(config.config_file_name, disable_existing_loggers=False)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = get_tables(app_config)[1]
+target_metadata = get_tables()[1]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
