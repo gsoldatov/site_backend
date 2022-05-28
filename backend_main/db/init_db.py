@@ -163,7 +163,7 @@ def migrate(config, config_file = None, test_uuid = None):
     alembic_dir = os.path.dirname(__file__)
     os.chdir(alembic_dir)
 
-    # Run revision command
+    # Run migrate command
     alembic_args = []
     if config_file is not None: alembic_args.extend(["-x", f'app_config_path="{config_file}"'])
     if test_uuid is not None: alembic_args.extend(["-x", f'test_uuid="{test_uuid}"'])

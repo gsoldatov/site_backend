@@ -41,7 +41,7 @@ def main():
     # Get config and logger
     config = get_config()
     logger = get_logger("main", config)
-    logger.error(f"DB utility is starting with args {str(args)}...")
+    logger.info(f"DB utility is starting with args {str(args)}...")
 
     # Revision
     if args.revision:

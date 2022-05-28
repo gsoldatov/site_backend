@@ -5,13 +5,13 @@ import logging.handlers
 
 PROJECT_ROOT_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-def get_logger(name, config):
+def get_logger(name, config, level = logging.DEBUG):
     # Create logger with a specified name
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(level)
     
     # Set handler based on the logging mode
-    handler = get_handler(config)
+    handler = get_handler(config, level)
     if handler is not None:
         logger.addHandler(handler)
     
@@ -19,7 +19,7 @@ def get_logger(name, config):
     return logger
 
 
-def get_handler(config):
+def get_handler(config, level):
     """ 
     Returns an appropriate handler, based on the `config` > logging > db_mode value. 
     If logging is disabled, returns None.
@@ -27,14 +27,14 @@ def get_handler(config):
     db_mode = config["logging"]["db_mode"]
 
     if db_mode == "file":
-        return _get_singleton_file_handler(config)
+        return _get_singleton_file_handler(config, level)
     elif db_mode == "stdout":
-        return _get_singleton_stream_handler()
+        return _get_singleton_stream_handler(level)
     else:
         return None
 
 
-def _get_singleton_file_handler(config):
+def _get_singleton_file_handler(config, level):
     """ 
     Singleton, which produces and returns a `FileHandler`, which writes into
     the specified inside `config` folder.
@@ -56,11 +56,12 @@ def _get_singleton_file_handler(config):
         # Initialize and set handler
         _file_handler = logging.FileHandler(filename, encoding="utf-8")
         _file_handler.setFormatter(_formatter)
+        _file_handler.setLevel(level)
 
     return _file_handler
 
 
-def _get_singleton_stream_handler():
+def _get_singleton_stream_handler(level):
     """ 
     Singleton, which produces and returns a `StreamHandler`, which writes into
     the specified inside `config` folder.
@@ -69,7 +70,7 @@ def _get_singleton_stream_handler():
 
     if _stream_handler is None:
         _stream_handler = logging.StreamHandler(sys.stdout)
-        _stream_handler.setLevel(logging.DEBUG)
+        _stream_handler.setLevel(level)
         _stream_handler.setFormatter(_formatter)
 
     return _stream_handler

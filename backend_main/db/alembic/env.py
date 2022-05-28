@@ -1,5 +1,6 @@
 from logging.config import fileConfig
 
+import logging
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -12,6 +13,7 @@ sys.path.insert(0, root_folder)
 import urllib.parse
 
 from backend_main.config import get_config
+from backend_main.db.logger import get_logger
 from backend_main.db.tables import get_tables
 from tests.util import get_test_name
 
@@ -41,9 +43,12 @@ password = urllib.parse.quote(app_config["db"]["db_password"].value).replace("%"
 config.set_main_option("sqlalchemy.url", f"postgresql://{username}:{password}"
                         f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database'].value}")
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name, disable_existing_loggers=False)
+# Set up loggers
+# fileConfig(config.config_file_name, disable_existing_loggers=False) # from alembic.ini
+get_logger("sqlalchemy.engine", app_config, level=logging.WARNING)
+# NOTE: running `alembic` commands directly does not output log messages in stdout, 
+# although running via db utility does so
+get_logger("alembic", app_config, level=logging.INFO)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
