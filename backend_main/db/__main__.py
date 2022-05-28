@@ -12,7 +12,7 @@ if __name__ == "__main__":
     from backend_main.db.init_db import InitDBException, connect, disconnect, \
         drop_user_and_db, create_user, create_db, revision, migrate_as_superuser, migrate
     
-    from backend_main.db.logger import get_logger
+    from backend_main.logging.loggers.db import get_logger
 
 
 def parse_args():
