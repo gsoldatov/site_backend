@@ -1,6 +1,9 @@
+_logging_mode_enum = ["file", "stdout", "off"]
+
 config_schema = {
     "type": "object",
-    "required": ["app", "cors_urls", "db", "auxillary"],
+    "additionalProperties": False,
+    "required": ["app", "cors_urls", "db", "auxillary", "logging"],
     "properties": {
         "app": {
             "type": "object",
@@ -115,6 +118,19 @@ config_schema = {
             "properties": {
                 "enable_searchables_updates": {
                     "type": "boolean"
+                }
+            }
+        },
+
+        "logging": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["folder", "db_mode"],
+            "properties": {
+                "folder": { "type": "string" },
+                "db_mode": {
+                    "type": "string",
+                    "enum": _logging_mode_enum
                 }
             }
         }

@@ -29,14 +29,14 @@ def test_connect_disconnect(config):
 
 def test_create_user(config, init_db_cursor):
     db_config = config["db"]
-    create_user(init_db_cursor, db_config["db_username"].value, db_config["db_password"].value)
+    create_user(config, init_db_cursor)
     init_db_cursor.execute(f"SELECT usename FROM pg_user where usename = \'{db_config['db_username'].value}\'")
     assert init_db_cursor.fetchone() == (db_config["db_username"].value,)
 
 
 def test_create_db(config, init_db_cursor):
     db_config = config["db"]
-    create_db(init_db_cursor, db_config["db_database"].value, db_config["db_username"].value)
+    create_db(config, init_db_cursor)
     init_db_cursor.execute(f"SELECT datname FROM pg_database where datname = \'{db_config['db_database'].value}\'")
     assert init_db_cursor.fetchone() == (db_config["db_database"].value,)
 
@@ -52,8 +52,8 @@ def test_create_db(config, init_db_cursor):
 
 def test_migrate(config_path, test_uuid, config, db_and_user):
     db_config = config["db"]
-    migrate_as_superuser(db_config)
-    migrate(config_file=config_path, test_uuid=test_uuid)
+    migrate_as_superuser(config)
+    migrate(config, config_file=config_path, test_uuid=test_uuid)
 
     connection = psycopg2.connect(host=db_config["db_host"], port=db_config["db_port"], 
                     database=db_config["db_database"].value, user=db_config["db_username"].value, 

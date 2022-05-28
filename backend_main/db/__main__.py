@@ -11,6 +11,8 @@ if __name__ == "__main__":
     from backend_main.config import get_config
     from backend_main.db.init_db import InitDBException, connect, disconnect, \
         drop_user_and_db, create_user, create_db, revision, migrate_as_superuser, migrate
+    
+    from backend_main.db.logger import get_logger
 
 
 def parse_args():
@@ -23,49 +25,73 @@ def parse_args():
     parser.add_argument("--message", help="Message to add to the revision.")
     parser.add_argument("--migrate", help="Apply migrations to the database only.",
                         action="store_true")
-    parser.set_defaults(force=False, revision=False, message="", migrate=False)
-    return parser.parse_args()
+    parser.set_defaults(force=False, revision=False, migrate=False)
+    args = parser.parse_args()
+
+    if args.revision and (args.message is None):
+        parser.error("--revision argument must be specified with --message.")
+    
+    return args
 
 
 def main():
+    # Parse args
     args = parse_args()
+
+    # Get config and logger
+    config = get_config()
+    logger = get_logger("main", config)
+    logger.error(f"DB utility is starting with args {str(args)}...")
 
     # Revision
     if args.revision:
-        revision(message=args.message)
+        logger.info(f"Starting database revision...")
+        revision(config, args.message)
     
     # Migrations only
     elif args.migrate:
-        db_config  = get_config()["db"]
-        migrate_as_superuser(db_config)
-        migrate()
+        logger.info(f"Starting database migration...")
+        migrate_as_superuser(config)
+        migrate(config)
     
     # Create user and database, then apply migrations
     else:
         cursor = None
         try:
+            logger.info(f"Starting database initialization...")
+
             # Get app config and connect to the default database
-            db_config = get_config()["db"]
-            cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"].value,
-                                user=db_config["db_init_username"].value, password=db_config["db_init_password"].value)
+            cursor = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_init_database"].value,
+                                user=config["db"]["db_init_username"].value, password=config["db"]["db_init_password"].value)
+            logger.info(f"Connected to the default database.")
             
             # Drop existing user and database
-            drop_user_and_db(cursor, db_config, args.force)
+            drop_user_and_db(config, cursor, args.force)
 
             # Create user and database
-            if db_config["create_user_required"]:
-                create_user(cursor=cursor, user=db_config["db_username"].value, password=db_config["db_password"].value)
-            create_db(cursor=cursor, db_name=db_config["db_database"].value, db_owner=db_config["db_username"].value)
+            create_user(config, cursor)
+            create_db(config, cursor)
             
             # Apply migrations
-            migrate_as_superuser(db_config)
-            migrate()
+            migrate_as_superuser(config)
+            migrate(config)
+
+            logger.info(f"Database initialization finished.")
+        
         except InitDBException as e:
-            print(e)
-            print("Database initialization aborted.")
+            logger.warning(e)
+            logger.warning("Database initialization aborted.")
+        
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            raise
+        
         finally:
             if type(cursor) == CursorClass:
                 disconnect(cursor)
+                logger.info(f"Disconnected from the default database.")
+    
+    logger.info(f"DB utility finished running.")
 
 
 if __name__ == "__main__":

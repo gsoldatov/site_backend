@@ -98,7 +98,7 @@ def db_and_user(config, init_db_cursor):
 @pytest.fixture(scope="module")
 def migrate_as_superuser(config, db_and_user):
     """ Migration commands which require superuser privilege. """
-    migrate_as_superuser_(config["db"])
+    migrate_as_superuser_(config)
 
 
 @pytest.fixture(scope="module")

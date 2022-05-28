@@ -12,7 +12,7 @@ from backend_main.config import _validate_and_set_values
 
 
 def test_top_level(base_config):
-    top_level_keys = ["app", "cors_urls", "db", "auxillary"]
+    top_level_keys = ["app", "cors_urls", "db", "auxillary", "logging"]
 
     # Check if all top-level setting names are present
     assert sorted(top_level_keys) == sorted(base_config.keys()), "Expected and received top-level config setting names do not match."
@@ -137,6 +137,30 @@ def test_auxillary_config(base_config):
             config = deepcopy(base_config)
             config["auxillary"][k] = v
             _assert_validation_exception(config, f"Validation unexpectedly passed with incorrect auxillary setting '{k}' value '{v}'")
+
+
+def test_logging_config(base_config):
+    # Incorrect settings for `logging` config part
+    incorrect_logging_config_values = {
+        "folder": (1, True),
+        "db_mode": (1, True, "wrong str")
+    }
+
+    # Check if expected and received logging setting names match
+    assert sorted(incorrect_logging_config_values.keys()) == sorted(base_config["logging"].keys()), "Expected and received logging setting names do not match."
+    
+    # Check lack of required auxillary settings
+    for k in incorrect_logging_config_values:
+        config = deepcopy(base_config)
+        config["logging"].pop(k)
+        _assert_validation_exception(config, f"Validation unexpectedly passed with missing logging setting '{k}'")
+    
+    # Check incorrect setting values
+    for k in incorrect_logging_config_values:
+        for v in incorrect_logging_config_values[k]:
+            config = deepcopy(base_config)
+            config["logging"][k] = v
+            _assert_validation_exception(config, f"Validation unexpectedly passed with incorrect logging setting '{k}' value '{v}'")
 
 
 def test_correct_config(base_config):

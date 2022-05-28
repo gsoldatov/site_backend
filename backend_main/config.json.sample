@@ -30,5 +30,10 @@
 
     "auxillary": {
         "enable_searchables_updates": true
+    },
+
+    "logging": {
+        "folder": "logs",
+        "db_mode": "stdout"
     }
 }
