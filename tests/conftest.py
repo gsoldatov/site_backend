@@ -12,7 +12,7 @@ import alembic.config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from backend_main.main import create_app
-from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_
+from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_, migrate as migrate_
 from backend_main.config import hide_config_values
 
 from tests.util import get_test_name
@@ -102,20 +102,9 @@ def migrate_as_superuser(config, db_and_user):
 
 
 @pytest.fixture(scope="module")
-def migrate(config_path, test_uuid, db_and_user, migrate_as_superuser):
+def migrate(config, config_path, test_uuid, db_and_user, migrate_as_superuser):
     """ Run migrations against the test database. `migrate_as_superuser` is called first. """
-    # Set current working directory
-    cwd = os.getcwd()
-    alembic_dir = os.path.join(os.path.dirname(__file__), "..", "backend_main/db")
-    os.chdir(alembic_dir)
-
-    # Run revision command
-    # Add test config file location and `test_uuid` as x-arguments for Alembic to get info on database connection
-    alembic_args = ["-x", f'app_config_path="{config_path}"', "-x", f'test_uuid="{test_uuid}"', "upgrade", "head"]
-    alembic.config.main(argv=alembic_args)
-
-    # Restore current working directory
-    os.chdir(cwd)
+    migrate_(config, config_file=config_path, test_uuid=test_uuid)
 
 
 @pytest.fixture(scope="module")
