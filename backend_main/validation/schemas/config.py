@@ -125,10 +125,18 @@ config_schema = {
         "logging": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["folder", "db_mode"],
+            "required": ["folder", "app_mode", "db_mode", "scheduled_mode"],
             "properties": {
                 "folder": { "type": "string" },
+                "app_mode": {
+                    "type": "string",
+                    "enum": _logging_mode_enum
+                },
                 "db_mode": {
+                    "type": "string",
+                    "enum": _logging_mode_enum
+                },
+                "scheduled_mode": {
                     "type": "string",
                     "enum": _logging_mode_enum
                 }

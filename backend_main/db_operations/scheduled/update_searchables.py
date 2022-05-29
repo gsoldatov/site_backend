@@ -12,8 +12,11 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))))
 
 from backend_main.config import get_config
-
+from backend_main.logging.loggers.scheduled import get_logger
 from backend_main.db_operations.searchables import update_searchables
+
+
+logger = None
 
 
 def parse_args():
@@ -68,26 +71,39 @@ def get_ids(conn, mode):
 
 def main(mode, config = None):
     try:
-        # Get app config and connect to the database
+        # Get app config and logger
         config = config or get_config()
-        db_config = config["db"]
+        global logger 
+        logger = get_logger("update_searchables", config)
         enable_searchables_updates = config["auxillary"]["enable_searchables_updates"]
 
-        if not enable_searchables_updates: return
+        # Exit if search is disabled
+        if not enable_searchables_updates:
+            logger.warning("Searchable updates are disabled in the configuration file, exiting.")
+            return
 
-        conn = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_database"].value,
-                            user=db_config["db_username"].value, password=db_config["db_password"].value)
+        # Connect to the database
+        conn = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_database"].value,
+                            user=config["db"]["db_username"].value, password=config["db"]["db_password"].value)
+        logger.info("Connected to the database.")
         
         # Get IDs of tags & objects, which should be updated
+        logger.info(f"Starting update in {mode} mode.")
         tag_ids, object_ids = get_ids(conn, mode)
 
         # Update searchables
+        logger.info(f"Updating searchables for {len(tag_ids)} tags and {len(object_ids)} objects...")
         update_searchables(conn, tag_ids, object_ids)
+        logger.info("Finished updating searchables.")
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise
     finally:
         # Close connection, if it was opened
         if enable_searchables_updates:
             if not conn.closed: 
                 conn.close()
+                logger.info("Disonnected from the database.")
 
 
 if __name__ == "__main__":
