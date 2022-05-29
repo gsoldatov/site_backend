@@ -2,70 +2,42 @@ import os, sys
 from datetime import datetime
 import logging
 
-root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+from backend_main.logging.handlers.file_handler import get_file_handler
+from backend_main.logging.handlers.stream import get_stream_handler
+from backend_main.logging.formatters.multiline import MultilineFormatter
 
-from backend_main.logging.formatters.db import file_db_formatter, stdout_db_formatter
+
+root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_file_handler = None
 
 
 def get_handler(config, level):
-    """ 
-    Returns an appropriate handler, based on the `config` > logging > db_mode value. 
-    If logging is disabled, returns None.
-
-    Returns the same object in each subsequent excecution, which ensures that file handler 
-    writes into the same file throughout the run of the db utility.
+    """
+    Returns a handler based on the `config` settings with the provided log `level`.
+    Possible options, based on config > logging > db_mode setting:
+    - `file` => singleton FileHandler, which writes into config > logging > folder;
+    - `stdout` => StreamHandler, which writes to stdout;
+    - `off` => no handler is returned.
     """
     db_mode = config["logging"]["db_mode"]
 
     if db_mode == "file":
-        return _get_singleton_file_handler(config, level)
-    elif db_mode == "stdout":
-        return _get_singleton_stream_handler(level)
-    else:
-        return None
+        global _file_handler
+        if _file_handler: return _file_handler
 
-
-def _get_singleton_file_handler(config, level):
-    """ 
-    Singleton, which produces and returns a `FileHandler`, which writes into
-    the specified inside `config` folder.
-    """
-    global _file_handler
-
-    if _file_handler is None:
-        # Get log folder and create if it doesn't exist
-        log_folder = config["logging"]["folder"] if os.path.isabs(config["logging"]["folder"]) \
+        # Log folder (can be absolute or relative to project root folder)
+        folder = config["logging"]["folder"] if os.path.isabs(config["logging"]["folder"]) \
             else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
         
-        if not os.path.exists(log_folder):
-            os.makedirs(log_folder)
-        
-        # Get log file name
-        timestamp = datetime.strftime(datetime.now(), "%Y_%m_%d_%H_%M_%S")
-        filename = os.path.join(log_folder, f"db_module_{timestamp}.log")
+        # Formatter instance
+        formatter = MultilineFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
 
-        # Initialize and set handler
-        _file_handler = logging.FileHandler(filename, encoding="utf-8")
-        _file_handler.setFormatter(file_db_formatter)
-        _file_handler.setLevel(level)
-
-    return _file_handler
-
-
-def _get_singleton_stream_handler(level):
-    """ 
-    Singleton, which produces and returns a `StreamHandler`, which writes into
-    the specified inside `config` folder.
-    """
-    global _stream_handler
-
-    if _stream_handler is None:
-        _stream_handler = logging.StreamHandler(sys.stdout)
-        _stream_handler.setLevel(level)
-        _stream_handler.setFormatter(stdout_db_formatter)
-
-    return _stream_handler
-
-
-_file_handler = None
-_stream_handler = None
+        # Create and return handler
+        _file_handler = get_file_handler(folder, "db_module", level, formatter)
+        return _file_handler
+    
+    elif db_mode == "stdout":
+        formatter = logging.Formatter("%(levelname)s %(name)s %(message)s")
+        return get_stream_handler(level, formatter)
+    
+    return None
