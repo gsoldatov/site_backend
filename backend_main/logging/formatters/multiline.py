@@ -26,9 +26,12 @@ class MultilineFormatter(logging.Formatter):
         # Get a separate record for each line
         records_text = []
         for line in lines:
+            # Replace separator char
+            msg = line.replace(";", ",")
+
             # Pass existing record params, except for `exc_info`, which was processed into `lines` items earlier
             line_record = logging.LogRecord(record.name, record.levelno, record.pathname, record.lineno,
-                line, record.args, None, record.funcName, record.stack_info)
+                msg, record.args, None, record.funcName, record.stack_info)
             
             records_text.append(super().format(line_record))
         

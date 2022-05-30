@@ -25,14 +25,16 @@ def get_handler(name, config, level):
             else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
         
         # Formatter instance
-        formatter = MultilineFormatter("%(asctime)s %(levelname)s %(message)s")
+        fmt = ";".join(["%(asctime)s", "%(levelname)s", "%(message)s"])
+        formatter = MultilineFormatter(fmt)
 
         # Create and return handler
         _file_handler = get_file_handler(folder, name, level, formatter)
         return _file_handler
     
     elif db_mode == "stdout":
-        formatter = logging.Formatter("%(levelname)s %(message)s")
+        fmt = " ".join(["%(levelname)s", "%(message)s"])
+        formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     
     return None
