@@ -172,6 +172,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, sorted_new_subobject_ids)
     
+    request.log_event("INFO", "db_operation", "Added new objects as composite subobjects", details=f"object_ids = {list(id_mapping.values())}")
     return id_mapping
 
 
@@ -220,6 +221,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
         
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
+        request.log_event("INFO", "db_operation", "Updated existing objects as composite subobjects", details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
 
 
 async def _update_composite_properties(request, obj_ids_and_data):
@@ -287,7 +289,9 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     existing_subobject_ids = [row[0] for row in await result.fetchall()]
     non_existing_subobject_ids = set(new_subobject_ids).difference(set(existing_subobject_ids))
     if len(non_existing_subobject_ids) > 0:
-        raise web.HTTPBadRequest(text=error_json(f"Subobjects with IDs {non_existing_subobject_ids} do not exist."), content_type="application/json")
+        msg = "Subobjects do not exist."
+        request.log_event("WARNING", "db_operation", msg, details=f"object_ids = {non_existing_subobject_ids}")
+        raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Delete existing & insert new composite object data
     object_ids = [obj_id_and_data["object_id"] for obj_id_and_data in obj_ids_and_data]
@@ -327,3 +331,4 @@ async def _delete_subobjects(request, obj_ids_and_data):
         # Delete subobjects not present in other composite subobjects
         if len(deletable_ids) > 0:
             await delete_objects(request, deletable_ids)
+            request.log_event("INFO", "db_operation", "Fully deleted subobjects.", details=f"object_ids = {deletable_ids}")

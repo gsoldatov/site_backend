@@ -15,6 +15,7 @@ async def setup_connection_pools(app):
         user=db_config["db_username"].value,
         password=db_config["db_password"].value
     )
+    app.log_event("INFO", "app_start", "Created main connection pool.")
 
     # psycopg2 connection pool with threading support for auxiallary tasks performed in separate threads 
     # (e.g. `searchables` table update)
@@ -26,8 +27,7 @@ async def setup_connection_pools(app):
             user=db_config["db_username"].value,
             password=db_config["db_password"].value
         )
+        app.log_event("INFO", "app_start", "Created threaded connection pool.")
 
     # Close connection pools on cleanup
     app.on_cleanup.append(close_connection_pools)
-
-    # TODO log connection pools acquiring

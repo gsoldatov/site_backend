@@ -47,7 +47,10 @@ async def search_items(request, query):
     } for row in await result.fetchall()]
 
     # Handle 404 case
-    if len(items) == 0: raise web.HTTPNotFound(text=error_json("Nothing was found."), content_type="application/json")
+    if len(items) == 0: 
+        msg = "Nothing was found."
+        request.log_event("WARNING", "db_operation", msg)
+        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Query total number of items
     result = await request["conn"].execute(

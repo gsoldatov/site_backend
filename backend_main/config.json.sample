@@ -34,7 +34,7 @@
 
     "logging": {
         "folder": "logs",
-        "app_mode": "file",
+        "app_event_log_mode": "file",
         "db_mode": "stdout",
         "scheduled_mode": "off"
     }

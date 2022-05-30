@@ -16,10 +16,13 @@ async def update(request):
     data = await request.json()
     validate(instance=data, schema=settings_update_schema)
     if len(data["settings"]) == 0:
-        raise web.HTTPBadRequest(text=error_json(f"At least one setting must be passed for updating."), content_type="application/json")
+        msg = "At least one setting must be passed for updating."
+        request.log_event("WARNING", "route_handler", msg)
+        raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Update settings
     await update_settings(request, data["settings"])
+    request.log_event("INFO", "route_handler", "Updated settings.", details=f"{data['settings']}")
 
     # Return an empty response body
     return {}
@@ -36,8 +39,11 @@ async def view(request):
 
     # Handle 404
     if len(deserialized_settings) == 0:
-        raise web.HTTPNotFound(text=error_json(f"Setting(-s) not found."), content_type="application/json")
+        msg = "Setting(-s) not found."
+        request.log_event("WARNING", "route_handler", msg, details=f"{setting_names}")
+        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
+    request.log_event("INFO", "route_handler", "Returning settings.")
     return {"settings": deserialized_settings}
 
 

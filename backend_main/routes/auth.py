@@ -29,13 +29,17 @@ async def register(request):
 
     # Check password
     if data["password"] != data["password_repeat"]:
-        raise web.HTTPBadRequest(text=error_json(f"Password is not correctly repeated."), content_type="application/json")
+        msg = "Password is not correctly repeated."
+        request.log_event("WARNING", "route_handler", msg)
+        raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
     # Check if non-admins are not trying to set privileges
     if request.user_info.user_level != "admin":
         for attr in forbidden_non_admin_user_modify_attributes:
             if attr in data:
-                raise web.HTTPForbidden(text=error_json(f"User privileges can only be set by admins."), content_type="application/json")
+                msg = "User privileges can only be set by admins."
+                request.log_event("WARNING", "route_handler", msg)
+                raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
     # Set default values
     data.pop("password_repeat")
@@ -46,17 +50,23 @@ async def register(request):
 
     # Add the user
     result = await add_user(request, data)
+    user = row_proxy_to_dict(result)
+    request.log_event("INFO", "route_handler", f"Registered user {user['user_id']}.")
 
     # Don't send user info if admin token was not provided (registration form processing case)
     if request.user_info.user_level != "admin": return web.Response()
 
     # Return new user's data in case of admin registration
-    return web.json_response({"user": row_proxy_to_dict(result)})
+    return web.json_response({"user": user})
 
 
 async def login(request):
     # Check and get login rate limits
-    await add_login_rate_limit_to_request(request)
+    try:
+        await add_login_rate_limit_to_request(request)
+    except web.HTTPTooManyRequests:
+        request.log_event("WARNING", "route_handler", "Log in rate limit is exceeded.")
+        raise
 
     # Validate request schema
     data = await request.json()
@@ -75,13 +85,16 @@ async def login(request):
         await upsert_login_rate_limit(request, lrli)
 
         # Raise 401 with committing database changes
+        request.log_event("WARNING", "route_handler", f"Incorrect user credentials.")
         raise IncorrectCredentialsException()
     
     # User was found
     else:
         # If user can't login, raise 403
         if not user_data.can_login:
-            raise web.HTTPForbidden(text=error_json("User is not allowed to login."), content_type="application/json")
+            msg = "User is not allowed to login."
+            request.log_event("WARNING", "route_handler", msg)
+            raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
         
         # Start a transaction
         await start_transaction(request)
@@ -93,6 +106,7 @@ async def login(request):
         await delete_login_rate_limits(request, [request.remote])
 
         # Return access token
+        request.log_event("INFO", "route_handler", f"User {user_data.user_id} logged in.")
         return web.json_response({"auth": {
             "access_token": session["access_token"],
             "access_token_expiration_time": serialize_datetime_to_str(session["expiration_time"]),
@@ -104,6 +118,7 @@ async def login(request):
 async def logout(request):
     # Delete session (if it does not exist, return 200 anyway)
     await delete_sessions(request, access_tokens=[request.user_info.access_token])
+    request.log_event("INFO", "route_handler", f"User {request.user_info.user_id} logged out.")
     return web.Response()
 
 

@@ -72,6 +72,8 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
         tag_updates = {}
 
         tag_updates["removed_tag_ids"] = await _remove_tags_for_objects(request, objects_tags_data)
+        if len(tag_updates["removed_tag_ids"]) > 0: # Log here instead of _remove_tags_for_objects to avoid logging updates as deletions
+            request.log_event("INFO", "db_operation", "Removed objects' tags.", details=f"object_ids = {objects_tags_data['object_ids']}, tag_ids = {tag_updates['removed_tag_ids']}")
         tag_updates["added_tag_ids"] = await _add_tags_for_objects(request, objects_tags_data)
         return tag_updates
     # Update objects for tags
@@ -81,6 +83,8 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
 
         object_updates = {}
         object_updates["removed_object_ids"] = await _remove_objects_for_tags(request, objects_tags_data)
+        if len(object_updates["removed_object_ids"]) > 0: # Log here instead of _remove_tags_for_objects to avoid logging updates as deletions
+            request.log_event("INFO", "db_operation", "Removed tags' objects.", details=f"tag_ids = {objects_tags_data['tag_ids']}, object_ids = {object_updates['removed_object_ids']}")
         object_updates["added_object_ids"] = await _add_objects_for_tags(request, objects_tags_data)
         return object_updates
 
@@ -106,7 +110,9 @@ async def _add_tags_for_objects(request, objects_tags_data):
         existing_tag_ids = {row["tag_id"] for row in await result.fetchall()}
         non_existing_tag_ids = tag_ids.difference(existing_tag_ids)
         if len(non_existing_tag_ids) > 0:
-            raise RequestValidationException(f"Tag IDs {non_existing_tag_ids} do not exist.")
+            msg = "Attempted to and non-existing tag(-s) to objects."
+            request.log_event("WARNING", "db_operation", msg, details=f"tag_ids = {non_existing_tag_ids}")
+            raise RequestValidationException(msg)
     
     ## Handle tag_names passed in "added_tags"
     tag_names = [name for name in objects_tags_data["added_tags"] if type(name) == str]
@@ -135,7 +141,9 @@ async def _add_tags_for_objects(request, objects_tags_data):
     if len(tag_names) > 0:
         # Raise 403 if not an admin and trying to add new tags
         if request.user_info.user_level != "admin":
-            raise web.HTTPForbidden(text=error_json("Users are not allowed to add new tags."), content_type="application/json")
+            msg = "Attempted to and new tags as a non-admin."
+            request.log_event("WARNING", "db_operation", msg)
+            raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
         current_time = datetime.utcnow()
         new_tag_ids = []
@@ -156,6 +164,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
             tag_ids_for_tag_names.add(row["tag_id"])
         
         # Add new tags as pending for `searchables` update
+        request.log_event("INFO", "db_operation", "Added new tags during objects' tag update.", details=f"tag_ids = {new_tag_ids}")
         add_searchable_updates_for_tags(request, new_tag_ids)
     
     ## Update objects_tags table
@@ -173,6 +182,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         .values(pairs)
     )
 
+    request.log_event("INFO", "db_operation", "Updated objects' tags.", details=f"object_ids = {objects_tags_data['object_ids']} tag_ids = {tag_ids}")
     return list(tag_ids)
     
 
@@ -231,6 +241,7 @@ async def _add_objects_for_tags(request, objects_tags_data):
         .values(pairs)
     )
 
+    request.log_event("INFO", "db_operation", "Updated tags' objects.", details=f"tag_ids = {objects_tags_data['tag_ids']} object_ids = {added_object_ids}")
     return list(added_object_ids)
 
 
@@ -276,7 +287,9 @@ async def _check_object_ids(request, checked_object_ids):
     existing_object_ids = {row["object_id"] for row in await result.fetchall()}
     non_existing_object_ids = checked_object_ids.difference(existing_object_ids)
     if len(non_existing_object_ids) > 0:
-        raise RequestValidationException(f"Object IDs {non_existing_object_ids} do not exist.")
+        msg = "Objects do not exist."
+        request.log_event("WARNING", "db_operation", msg, details=f"object_ids = {non_existing_object_ids}")
+        raise RequestValidationException(msg)
 
 
 async def auth_check_for_tags_update(request, objects_tags_data):

@@ -14,7 +14,9 @@ async def search(request):
     validate(instance=data, schema=search_schema)
 
     # Query search results
-    return await search_items(request, data["query"])
+    result = await search_items(request, data["query"])
+    request.log_event("INFO", "route_handler", "Returning search results.")
+    return result
 
 
 def get_subapp():

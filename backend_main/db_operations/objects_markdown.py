@@ -38,7 +38,9 @@ async def update_markdown(request, obj_ids_and_data):
 
         # Raise an error if object data does not exist
         if not await result.fetchone():
-            raise web.HTTPBadRequest(text=error_json(f"Failed to update data of object with object_id '{o['object_id']}': object_id does not belong to a Markdown object."), content_type="application/json")
+            msg = "Attempted to update a non-markdown object as a markdown."
+            request.log_event("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
+            raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         
     # Add objects as pending for `searchables` update
     add_searchable_updates_for_objects(request, [o["object_id"] for o in obj_ids_and_data])

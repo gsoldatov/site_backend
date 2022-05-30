@@ -3,6 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(sys.path[0]))
 
 import asyncio
+from sys import exc_info
 
 from aiohttp import web
 from psycopg2.errors import OperationalError
@@ -10,6 +11,8 @@ from psycopg2.errors import OperationalError
 from backend_main.config import get_config
 from backend_main.cors import setup_cors
 from backend_main.db.setup import setup_connection_pools
+from backend_main.db.cleanup import close_connection_pools
+from backend_main.logging.loggers.app import setup_loggers, cleanup_loggers
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
 from backend_main.middlewares.connection import connection_middleware
@@ -23,6 +26,8 @@ async def create_app(config_file = None, config = None):
     try:
         app = web.Application(middlewares=[error_middleware, threading_middleware, connection_middleware, auth_middleware])
         app["config"] = config if config and type(config) == dict else get_config(config_file)
+
+        setup_loggers(app)
         
         await setup_connection_pools(app)
         
@@ -32,13 +37,18 @@ async def create_app(config_file = None, config = None):
         
         setup_cors(app)
 
-        # TODO log app start
+        app.log_event("INFO", "app_start", "Finished app setup.")
         return app
+    
     except OperationalError:
-        print("Failed to setup database connection pools.")    # TODO log connection pool setup error
+        app.log_event("CRITICAL", "app_start", "Failed to setup database connection pools.")
         raise web.GracefulExit()    # Close the app gracefully
+    
     except Exception:
-        print("Unhandled exception during app setup.")  # TODO log exception
+        if getattr(app, "log_event", None):
+            app.log_event("CRITICAL", "app_start", "Unhandled exception during app setup.", exc_info=True)
+        await close_connection_pools(app)   # Ensure connection pools and loggers are cleaned up
+        await cleanup_loggers(app)
         raise
 
 

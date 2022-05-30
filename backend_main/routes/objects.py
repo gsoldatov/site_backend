@@ -59,6 +59,7 @@ async def add(request):
     response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
+    request.log_event("INFO", "route_handler", f"Finished adding object.", details=f"object_id = {object_id}.")
     return {"object": response_data}
 
 
@@ -97,6 +98,7 @@ async def update(request):
         {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
+    request.log_event("INFO", "route_handler", f"Finished updating object.", details=f"object_id = {object_id}.")
     return {"object": response_data}
 
 
@@ -141,8 +143,10 @@ async def view(request):
             object_data.extend(object_type_data)
     
     if len(object_attrs) == 0 and len(object_data) == 0:
+        request.log_event("WARNING", "route_handler", "Object IDs are not found or can't be viewed.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
         raise web.HTTPNotFound(text=error_json("Objects not found."), content_type="application/json")
 
+    request.log_event("INFO", "route_handler", "Returning object attributes and data.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
     return {"objects": object_attrs, "object_data": object_data}
 
 
@@ -157,6 +161,7 @@ async def delete(request):
     await delete_objects(request, object_ids, delete_subobjects)
 
     # Send response
+    request.log_event("INFO", "route_handler", "Deleted objects.", details=f"object_ids = {object_ids}, delete_subobjects = {delete_subobjects}")
     return {"object_ids": object_ids}
 
 
@@ -165,7 +170,9 @@ async def get_page_object_ids(request):
     data = await request.json()
     validate(instance=data, schema=objects_get_page_object_ids_schema)
     
-    return await get_page_object_ids_data(request, data["pagination_info"])
+    result = await get_page_object_ids_data(request, data["pagination_info"])
+    request.log_event("INFO", "route_handler", "Returning page object IDs.")
+    return result
 
 
 async def search(request):
@@ -176,6 +183,7 @@ async def search(request):
     # Search objects
     object_ids = await search_objects(request, data["query"])
 
+    request.log_event("INFO", "route_handler", "Returning object IDs which match search query.")
     return {"object_ids": object_ids}
 
 
@@ -192,6 +200,7 @@ async def update_tags(request):
     # Set objects' modified_at time
     response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
 
+    request.log_event("INFO", "route_handler", "Updated tags for objects.")
     return response_data
 
 
@@ -201,7 +210,9 @@ async def view_composite_hierarchy_elements(request):
     validate(instance=data, schema=objects_view_composite_hierarchy_elements_schema)
 
     # Get and return response
-    return await get_elements_in_composite_hierarchy(request, data["object_id"])
+    result = await get_elements_in_composite_hierarchy(request, data["object_id"])
+    request.log_event("INFO", "route_handler", "Returning composite hierarchy.")
+    return result
     
 
 def get_object_data_update_schema(object_type):

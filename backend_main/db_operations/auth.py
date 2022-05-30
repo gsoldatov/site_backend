@@ -33,7 +33,9 @@ async def check_if_user_owns_objects(request, object_ids):
         not_owned_objects = [o[0] for o in await result.fetchall() if o[1] != user_id]
 
         if len(not_owned_objects) > 0:
-            raise web.HTTPForbidden(text=error_json(f"User ID '{user_id} does not own object_ids {not_owned_objects}."), content_type="application/json")
+            msg = "User does not own object(-s)."
+            request.log_event("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+            raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
 async def check_if_user_owns_all_tagged_objects(request, tag_ids):
@@ -64,7 +66,9 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
         not_owned_objects = [o[0] for o in await result.fetchall() if o[1] != user_id]
 
         if len(not_owned_objects) > 0:
-            raise web.HTTPForbidden(text=error_json(f"User ID '{user_id} does not own object_ids {not_owned_objects}."), content_type="application/json")
+            msg = "User does not own object(-s)."
+            request.log_event("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+            raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
 def get_objects_auth_filter_clause(request):
@@ -121,5 +125,6 @@ async def check_if_non_admin_can_register(request):
     non_admin_registration_allowed = (await view_settings(request, ["non_admin_registration_allowed"]))["non_admin_registration_allowed"]
 
     if not non_admin_registration_allowed:
-        raise web.HTTPForbidden(text=error_json(f"Registration is currently unavailable."), content_type="application/json")
-    
+        msg = "Registration is disabled."
+        request.log_event("WARNING", "auth", msg)
+        raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")

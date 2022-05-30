@@ -1,43 +1,58 @@
 """
     Error handling middleware.
 """
+from sys import exc_info
 from aiohttp import web
 from json.decoder import JSONDecodeError
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation, OperationalError
 
+from backend_main.logging.loggers.app import setup_request_event_logging
 from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException
 
 
 @web.middleware
 async def error_middleware(request, handler):
+    # Setup request logging function
+    setup_request_event_logging(request)
+
     try:
-        # TODO log request processing end
+        request.log_event("INFO", "request", f"Processing request to {request.rel_url}.")
         return await handler(request)
+
     except JSONDecodeError:
-        # TODO log validation error
+        request.log_event("WARNING", "request", "Failed to process JSON in request body.")
         raise web.HTTPBadRequest(text=error_json("Request body must be a valid JSON document."), content_type="application/json")
+
     except ValidationError as e:
-        # TODO log validation error
         path = "JSON root" if len(e.absolute_path) == 0 else f"""'{"' > '".join(map(str, e.absolute_path))}'"""
         msg = f"JSON validation error at {path}: {e.message}"
+        request.log_event("WARNING", "request", "Request body was not validated.", details=msg)
         raise web.HTTPBadRequest(text = error_json(msg), content_type="application/json")
+
     except RequestValidationException as e:
-        # TODO log validation error
+        request.log_event("WARNING", "request", "Invalid data in request body.", details=str(e))
         raise web.HTTPBadRequest(text=error_json(e), content_type="application/json")
+
     except UniqueViolation as e:
-        # TODO log validation error
-        raise web.HTTPBadRequest(text=error_json(_get_uv_msg(e)), content_type="application/json")
+        msg = _get_uv_msg(e)
+        request.log_event("WARNING", "request", "Invalid data in request body.", details=msg)
+        raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
+
     except OperationalError as e:
-        # TODO log db connection failure
+        request.log_event("ERROR", "request", "Failed to connect to the database.")
         _raise_500(request, e)
+
     except web.HTTPException:
-        # TODO log aiohttp.web HTTP exceptions (status & response body)
         raise
+
     except Exception as e:
-        # TODO log unexpected error
+        request.log_event("ERROR", "request", "Unexpected error during request processing.", exc_info=True)
         _raise_500(request, e)
+    
+    finally:
+        request.log_event("INFO", "request", "Finished processing request.")
 
 
 def _raise_500(request, exception):

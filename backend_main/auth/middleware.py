@@ -21,10 +21,22 @@ async def auth_middleware(request, handler):
     parse_access_token(request)
 
     # Validate and prolong token, add user info to the request
-    await prolong_access_token_and_get_user_info(request)
+    try:
+        await prolong_access_token_and_get_user_info(request)
+        # ui.user_id, ui.user_level, ui.can_edit_objects
+        user_info = "anonymous" if request.user_info.is_anonymous else \
+            f"user_id = {request.user_info.user_id}, user_level = {request.user_info.user_level}"
+        request.log_event("INFO", "auth", f"Request issued by {user_info}.")
+    except web.HTTPUnauthorized:
+        request.log_event("WARNING", "auth", f"Received invalid access token.")
+        raise
 
     # Check route access
-    check_route_access(request)
+    try:
+        check_route_access(request)
+    except web.HTTPException:
+        request.log_event("WARNING", "auth", f"Route access is denied.")
+        raise
 
     # Call next handler
     response = await handler(request)
@@ -58,6 +70,7 @@ def parse_access_token(request):
         if access_token.find("Bearer ") == 0 and len(access_token) > 7:
             request.user_info = UserInfo(access_token[7:])
         else:
+            request.log_event("WARNING", "auth", f"Invalid Authorization header.")
             raise web.HTTPUnauthorized(text=error_json("Incorrect token format."), content_type="application/json")
 
 

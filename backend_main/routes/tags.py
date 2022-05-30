@@ -32,6 +32,7 @@ async def add(request):
     # Tag objects with the new tag
     tag["object_updates"] = await update_objects_tags(request, {"tag_ids": [tag["tag_id"]], "added_object_ids": added_object_ids})
 
+    request.log_event("INFO", "route_handler", f"Finished adding tag.", details=f"tag_id = {tag['tag_id']}.")
     return {"tag": tag}
 
 
@@ -55,7 +56,8 @@ async def update(request):
     # Update object's tags
     tag["object_updates"] = await update_objects_tags(request, 
         {"tag_ids": [tag_id], "added_object_ids": added_object_ids, "removed_object_ids": removed_object_ids})
-
+    
+    request.log_event("INFO", "route_handler", f"Finished updating tag.", details=f"tag_id = {tag['tag_id']}.")
     return {"tag": tag}
 
 
@@ -80,6 +82,7 @@ async def view(request):
             tags[row["tag_id"]]["current_object_ids"].append(row["object_id"])
     
     response = {"tags": [tags[k] for k in tags]}
+    request.log_event("INFO", "route_handler", "Returning tags.", details=f"tag_ids = {tag_ids}")
     return response
 
 
@@ -93,6 +96,7 @@ async def delete(request):
     await delete_tags(request, tag_ids)
     
     # Send response
+    request.log_event("INFO", "route_handler", "Deleted tags.", details=f"object_ids = {tag_ids}")
     response = {"tag_ids": tag_ids}
     return response
 
@@ -102,7 +106,9 @@ async def get_page_tag_ids(request):
     data = await request.json()
     validate(instance = data, schema = tags_get_page_tag_ids_schema)
     
-    return await get_page_tag_ids_data(request, data["pagination_info"])
+    result = await get_page_tag_ids_data(request, data["pagination_info"])
+    request.log_event("INFO", "route_handler", "Returning page tag IDs.")
+    return result
         
 
 async def search(request):
@@ -112,24 +118,8 @@ async def search(request):
 
     # Search tags
     tag_ids = await search_tags(request, data["query"])
-
+    request.log_event("INFO", "route_handler", "Returning tag IDs which match search query.")
     return {"tag_ids": tag_ids}
-
-
-# async def merge(request):
-#     pass
-
-
-# async def link(request):
-#     pass
-
-
-# async def unlink(request):
-#     pass
-
-
-# async def get_linked(request):
-#     pass
 
 
 def get_subapp():
@@ -140,10 +130,6 @@ def get_subapp():
                     web.post("/view", view, name = "view"),
                     web.delete("/delete", delete, name = "delete"),
                     web.post("/get_page_tag_ids", get_page_tag_ids, name = "get_page_tag_ids"),
-                    web.post("/search", search, name = "search")#,
-                    # web.put("/merge", merge, name = "merge"),
-                    # web.post("/link/{type}", link, name = "link"),
-                    # web.delete("/unlink/{type}", unlink, name = "unlink"),
-                    # web.get("/get_linked/{id}", get_linked, name="get_linked")
+                    web.post("/search", search, name = "search")
                 ])
     return app

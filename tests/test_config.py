@@ -143,7 +143,7 @@ def test_logging_config(base_config):
     # Incorrect settings for `logging` config part
     incorrect_logging_config_values = {
         "folder": (1, True),
-        "app_mode": (1, True, "wrong str"),
+        "app_event_log_mode": (1, True, "wrong str"),
         "db_mode": (1, True, "wrong str"),
         "scheduled_mode": (1, True, "wrong str")
     }
