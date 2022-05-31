@@ -32,6 +32,7 @@ class MultilineFormatter(logging.Formatter):
             # Pass existing record params, except for `exc_info`, which was processed into `lines` items earlier
             line_record = logging.LogRecord(record.name, record.levelno, record.pathname, record.lineno,
                 msg, record.args, None, record.funcName, record.stack_info)
+            line_record.__dict__ = record.__dict__  # pass `extra` dict to new records
             
             records_text.append(super().format(line_record))
         
