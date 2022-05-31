@@ -144,6 +144,7 @@ def test_logging_config(base_config):
     incorrect_logging_config_values = {
         "folder": (1, True),
         "app_event_log_mode": (1, True, "wrong str"),
+        "app_event_log_file_mode_interval": (True, "wrong str", 0),
         "db_mode": (1, True, "wrong str"),
         "scheduled_mode": (1, True, "wrong str")
     }

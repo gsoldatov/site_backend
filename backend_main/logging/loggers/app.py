@@ -5,8 +5,9 @@ from backend_main.logging.handlers.app import get_event_logger_handler
 
 
 def setup_loggers(app):
-    # TODO docstring
-    
+    """
+    Sets up access and event loggers in the app.
+    """
     # Setup application event logging
     setup_app_event_logging(app)
 
@@ -16,20 +17,23 @@ def setup_loggers(app):
 
 async def cleanup_loggers(app):
     """
+    Clean loggers on application exit.
+
     NOTE: function must be async to be added to `app` on_cleanup list.
     """
-    # TODO add file handler teardown or remove
-    pass
+    if app["config"]["logging"]["app_event_log_mode"] == "file":
+        app["event_logger"].handlers[0].doRollover()    # Roll the current event log file over
 
 
 def setup_app_event_logging(app):
     """ Sets up event logger and logging function in the `app`. """
     # Set up event logger
     level = logging.INFO
+    delimiter = ";" if app["config"]["logging"]["app_event_log_mode"] == "file" else " "
     app["event_logger"] = logging.getLogger("backend")
     app["event_logger"].setLevel(level)
     
-    handler = get_event_logger_handler(app["config"], level)
+    handler = get_event_logger_handler(app["config"], level, delimiter)
     if handler is not None:
         app["event_logger"].addHandler(handler)
     
