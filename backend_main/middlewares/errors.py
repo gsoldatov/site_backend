@@ -1,7 +1,6 @@
 """
     Error handling middleware.
 """
-from sys import exc_info
 from aiohttp import web
 from json.decoder import JSONDecodeError
 from jsonschema.exceptions import ValidationError
@@ -14,11 +13,7 @@ from backend_main.validation.util import RequestValidationException
 
 @web.middleware
 async def error_middleware(request, handler):
-    # Setup request logging function
-    setup_request_event_logging(request)
-
     try:
-        request.log_event("INFO", "request", f"Processing request to {request.rel_url}.")
         return await handler(request)
 
     except JSONDecodeError:
@@ -50,9 +45,6 @@ async def error_middleware(request, handler):
     except Exception as e:
         request.log_event("ERROR", "request", "Unexpected error during request processing.", exc_info=True)
         _raise_500(request, e)
-    
-    finally:
-        request.log_event("INFO", "request", "Finished processing request.")
 
 
 def _raise_500(request, exception):

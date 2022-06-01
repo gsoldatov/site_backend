@@ -16,6 +16,7 @@ from backend_main.logging.loggers.app import setup_loggers, cleanup_loggers
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
 from backend_main.middlewares.connection import connection_middleware
+from backend_main.middlewares.logging import logging_middleware
 from backend_main.middlewares.threading import threading_middleware
 
 from backend_main.db.tables import get_tables
@@ -24,7 +25,7 @@ from backend_main.routes import setup_routes
 
 async def create_app(config_file = None, config = None):
     try:
-        app = web.Application(middlewares=[error_middleware, threading_middleware, connection_middleware, auth_middleware])
+        app = web.Application(middlewares=[logging_middleware, error_middleware, threading_middleware, connection_middleware, auth_middleware])
         app["config"] = config if config and type(config) == dict else get_config(config_file)
 
         setup_loggers(app)

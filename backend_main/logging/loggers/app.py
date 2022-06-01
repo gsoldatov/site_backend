@@ -1,14 +1,14 @@
 import logging
 from uuid import uuid4
 
-from backend_main.logging.handlers.app import get_event_logger_handler
+from backend_main.logging.handlers.app import get_access_logger_handler, get_event_logger_handler
 
 
 def setup_loggers(app):
     """
     Sets up access and event loggers in the app.
     """
-    # Setup application event logging
+    setup_app_access_logging(app)
     setup_app_event_logging(app)
 
     # Set up logger cleanup
@@ -23,6 +23,33 @@ async def cleanup_loggers(app):
     """
     if app["config"]["logging"]["app_event_log_mode"] == "file":
         app["event_logger"].handlers[0].doRollover()    # Roll the current event log file over
+    
+    if app["config"]["logging"]["app_access_log_mode"] == "file":
+        app["access_logger"].handlers[0].doRollover()    # Roll the current access log file over
+
+
+def setup_app_access_logging(app):
+    """ Sets up access logger and logging function in the `app`. """
+    # Set up access logger
+    level = logging.INFO
+    delimiter = ";" if app["config"]["logging"]["app_access_log_mode"] == "file" else " "
+    app["access_logger"] = logging.getLogger("app_access_logger")
+    app["access_logger"].setLevel(level)
+    
+    handler = get_access_logger_handler(app["config"], level, delimiter)
+    if handler is not None:
+        app["access_logger"].addHandler(handler)
+    
+    # Set up logging funciton    
+    def log_access(remote, path, method, status, elapsed_time, user_agent, referer):
+        # Don't emit log records if logging is in `off` mode to prevent captures by pytest
+        if app["config"]["logging"]["app_access_log_mode"] == "off": return
+
+        extra = {"remote": remote, "path": path, "method": method, "status": status, 
+            "elapsed_time": elapsed_time, "referer": referer, "user_agent": user_agent}
+        app["access_logger"].log(level, "", extra=extra)
+    
+    app.log_access = log_access
 
 
 def setup_app_event_logging(app):
@@ -30,7 +57,7 @@ def setup_app_event_logging(app):
     # Set up event logger
     level = logging.INFO
     delimiter = ";" if app["config"]["logging"]["app_event_log_mode"] == "file" else " "
-    app["event_logger"] = logging.getLogger("backend")
+    app["event_logger"] = logging.getLogger("app_event_logger")
     app["event_logger"].setLevel(level)
     
     handler = get_event_logger_handler(app["config"], level, delimiter)
@@ -38,7 +65,7 @@ def setup_app_event_logging(app):
         app["event_logger"].addHandler(handler)
     
     # Set up logging funciton    
-    def log(level, event_type, message, details = "", exc_info = None):
+    def log_event(level, event_type, message, details = "", exc_info = None):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if app["config"]["logging"]["app_event_log_mode"] == "off": return
 
@@ -46,7 +73,7 @@ def setup_app_event_logging(app):
         extra = {"event_type": event_type, "request_id": "", "details": details.replace("\n", " ")}
         app["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
-    app.log_event = log
+    app.log_event = log_event
 
 
 def setup_request_event_logging(request):
@@ -63,6 +90,7 @@ def setup_request_event_logging(request):
         request.config_dict["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
     request["request_id"] = str(uuid4())[:8]
+    request["start_time"] = request.loop.time() # Use monotonic timer instead of time.time()
     request.log_event = log
 
 
@@ -71,17 +99,3 @@ def _get_level(level):
     if type(level) == str:
         return getattr(logging, level.upper(), logging.INFO)
     return level
-
-
-
-
-
-    
-    
-
-
-
-# def log(level, message, extra = None):
-    # event_type, request_id, "%(remote)s", "%(message)s", "%(details)s"
-
-    # fmt = " ".join(["%(asctime)s", "%(level)s", "%(event_type)s", "%(request_id)s", "%(remote)s", "%(message)s", "%(details)s"])

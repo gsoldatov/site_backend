@@ -125,7 +125,8 @@ config_schema = {
         "logging": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["folder", "app_event_log_mode", "app_event_log_file_mode_interval", "db_mode", "scheduled_mode"],
+            "required": ["folder", "app_event_log_mode", "app_event_log_file_mode_interval", 
+                "app_access_log_mode", "app_access_log_file_mode_interval", "db_mode", "scheduled_mode"],
             "properties": {
                 "folder": { "type": "string" },
 
@@ -135,6 +136,16 @@ config_schema = {
                 },
 
                 "app_event_log_file_mode_interval": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+
+                "app_access_log_mode": {
+                    "type": "string",
+                    "enum": _logging_mode_enum
+                },
+
+                "app_access_log_file_mode_interval": {
                     "type": "integer",
                     "minimum": 1
                 },
