@@ -131,7 +131,24 @@ async def test_failed_login_attempts_limiting_as_anonymous(cli, db_cursor):
         assert rows[0][0] == lrl[0] + 1 # `failed_login_attempts`
         # `cant_login_until` ~= datetime.utcnow() + timeout after i+1 failed logins
         assert timedelta(seconds=0) <= datetime.utcnow() - (rows[0][1] - timedelta(seconds=_LOGIN_TIMEOUTS[i])) <= timedelta(seconds=1)
-            
+
+
+async def test_failed_login_attempts_limiting_forwarded_remote_as_anonymous(cli, db_cursor):
+    credentials = {"login": "wrong login", "password": "wrong password"}
+    ip_address = "1.1.1.1"
+    headers = {"Forwarded": f"for={ip_address}"}
+
+    db_cursor.execute(f"SELECT failed_login_attempts FROM login_rate_limits WHERE ip_address = '{ip_address}'")
+    assert not db_cursor.fetchone()
+
+    # Login with incorrect credentials
+    resp = await cli.post("/auth/login", json=credentials, headers=headers)
+    assert resp.status == 401
+
+    # Check if request.remote (which gives value for failed_login_attempts.ip_address) was correctly replaced by aiohttp-remotes middleware
+    db_cursor.execute(f"SELECT failed_login_attempts FROM login_rate_limits WHERE ip_address = '{ip_address}'")
+    assert db_cursor.fetchone() == (1,)
+
 
 async def test_login_with_a_user_who_cant_login_as_anonymous(cli, db_cursor):
     # Insert a user

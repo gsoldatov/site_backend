@@ -30,7 +30,7 @@ async def logging_middleware(request, handler):
         
         user_id = "anonymous"
         if hasattr(request, "user_info"):
-            if not request.user_info.is_anonymous: user_id = request.user_info.user_id
+            if request.user_info.user_id: user_id = request.user_info.user_id
 
         remote = request.remote
         user_agent = request.headers.get("User-Agent", "")

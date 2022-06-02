@@ -41,7 +41,6 @@ def setup_app_access_logging(app):
     
     # Set up logging funciton
     def log_access(request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer):
-    # def log_access(remote, path, method, status, elapsed_time, user_agent, referer):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if app["config"]["logging"]["app_access_log_mode"] == "off": return
 

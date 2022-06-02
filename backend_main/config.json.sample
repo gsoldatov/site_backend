@@ -2,6 +2,7 @@
     "app": {
         "host": "localhost",
         "port": 42002,
+        "use_forwarded": false,
         "debug": false,
         "default_user": {
             "login": "admin",
@@ -41,7 +42,7 @@
         "app_event_log_file_mode_interval": 86400,
         "app_access_log_mode": "file",
         "app_access_log_file_mode_interval": 86400,
-        
+
         "db_mode": "stdout",
         "scheduled_mode": "off"
     }
