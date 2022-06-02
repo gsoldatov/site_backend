@@ -23,10 +23,16 @@ async def logging_middleware(request, handler):
         raise
 
     finally:
-        remote = request.remote
+        request_id = request["request_id"]
         path = request.path
         method = request.method
         elapsed_time = round(request.loop.time() - request["start_time"], 3)
+        
+        user_id = "anonymous"
+        if hasattr(request, "user_info"):
+            if not request.user_info.is_anonymous: user_id = request.user_info.user_id
+
+        remote = request.remote
         user_agent = request.headers.get("User-Agent", "")
         referer = request.headers.get("Referer", "")
 
@@ -34,4 +40,4 @@ async def logging_middleware(request, handler):
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):
-            request.app.log_access(remote, path, method, status, elapsed_time, user_agent, referer)
+            request.app.log_access(request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)

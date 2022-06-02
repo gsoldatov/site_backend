@@ -27,14 +27,14 @@ def get_access_logger_handler(config, level):
         # Formatter
         separator = config["logging"]["file_separator"]
         separator_replacement = config["logging"]["file_separator_replacement"]
-        fmt = separator.join(["%(asctime)s", "%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
+        fmt = separator.join(["%(asctime)s", "%(request_id)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_id)s", "%(remote)s",  "%(user_agent)s", "%(referer)s"])
         formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 
         interval = config["logging"]["app_access_log_file_mode_interval"]
         return get_file_handler_with_timed_rotation(folder, "app_access_log", level, formatter, interval=interval)
     
     elif app_access_log_mode == "stdout":
-        fmt = " ".join(["%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
+        fmt = " ".join(["%(request_id)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_id)s", "%(remote)s",  "%(user_agent)s", "%(referer)s"])
         formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     

@@ -39,13 +39,14 @@ def setup_app_access_logging(app):
     if handler is not None:
         app["access_logger"].addHandler(handler)
     
-    # Set up logging funciton    
-    def log_access(remote, path, method, status, elapsed_time, user_agent, referer):
+    # Set up logging funciton
+    def log_access(request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer):
+    # def log_access(remote, path, method, status, elapsed_time, user_agent, referer):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if app["config"]["logging"]["app_access_log_mode"] == "off": return
 
-        extra = {"remote": remote, "path": path, "method": method, "status": status, 
-            "elapsed_time": elapsed_time, "referer": referer, "user_agent": user_agent}
+        extra = {"request_id": request_id, "path": path, "method": method, "status": status, "elapsed_time": elapsed_time, 
+            "user_id": user_id, "remote": remote, "referer": referer, "user_agent": user_agent}
         app["access_logger"].log(level, "", extra=extra)
     
     app.log_access = log_access
