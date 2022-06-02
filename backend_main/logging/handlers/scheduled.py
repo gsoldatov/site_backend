@@ -18,6 +18,7 @@ def get_handler(name, config, level):
     - `off` => no handler is returned.
     """
     db_mode = config["logging"]["scheduled_mode"]
+    delimiter = ";" if db_mode == "file" else " "
 
     if db_mode == "file":
         # Log folder (can be absolute or relative to project root folder)
@@ -25,7 +26,7 @@ def get_handler(name, config, level):
             else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
         
         # Formatter instance
-        fmt = ";".join(["%(asctime)s", "%(levelname)s", "%(message)s"])
+        fmt = delimiter.join(["%(asctime)s", "%(levelname)s", "%(message)s"])
         formatter = MultilineFormatter(fmt)
 
         # Create and return handler
@@ -33,7 +34,7 @@ def get_handler(name, config, level):
         return _file_handler
     
     elif db_mode == "stdout":
-        fmt = " ".join(["%(levelname)s", "%(message)s"])
+        fmt = delimiter.join(["%(levelname)s", "%(message)s"])
         formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     
