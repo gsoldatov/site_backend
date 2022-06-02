@@ -30,7 +30,7 @@ async def logging_middleware(request, handler):
         user_agent = request.headers.get("User-Agent", "")
         referer = request.headers.get("Referer", "")
 
-        request.log_event("INFO", "request", "Finished processing request.", details=f"status = ${status}")
+        request.log_event("INFO", "request", "Finished processing request.", details=f"status = {status}")
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):

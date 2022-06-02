@@ -125,10 +125,17 @@ config_schema = {
         "logging": {
             "type": "object",
             "additionalProperties": False,
-            "required": ["folder", "app_event_log_mode", "app_event_log_file_mode_interval", 
-                "app_access_log_mode", "app_access_log_file_mode_interval", "db_mode", "scheduled_mode"],
+            "required": ["folder", "file_separator", "file_separator_replacement",
+                "app_event_log_mode", "app_event_log_file_mode_interval", 
+                "app_access_log_mode", "app_access_log_file_mode_interval", 
+                "db_mode", 
+                "scheduled_mode"],
             "properties": {
                 "folder": { "type": "string" },
+
+                "file_separator": { "type": "string" },
+                
+                "file_separator_replacement": { "type": "string" },
 
                 "app_event_log_mode": {
                     "type": "string",

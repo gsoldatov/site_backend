@@ -9,7 +9,7 @@ from backend_main.logging.formatters.multiline import MultilineFormatter
 root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 
-def get_access_logger_handler(config, level, delimiter):
+def get_access_logger_handler(config, level):
     """
     Returns a handler based on the `config` settings with the provided log `level`.
     Possible options, based on config > logging > app_access_log_mode setting:
@@ -25,21 +25,23 @@ def get_access_logger_handler(config, level, delimiter):
         else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
 
         # Formatter
-        fmt = delimiter.join(["%(asctime)s", "%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
-        formatter = MultilineFormatter(fmt)
+        separator = config["logging"]["file_separator"]
+        separator_replacement = config["logging"]["file_separator_replacement"]
+        fmt = separator.join(["%(asctime)s", "%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
+        formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 
         interval = config["logging"]["app_access_log_file_mode_interval"]
         return get_file_handler_with_timed_rotation(folder, "app_access_log", level, formatter, interval=interval)
     
     elif app_access_log_mode == "stdout":
-        fmt = delimiter.join(["%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
+        fmt = " ".join(["%(remote)s", "%(path)s", "%(method)s", "%(status)s", "%(elapsed_time)s", "%(user_agent)s", "%(referer)s"])
         formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     
     return None
 
 
-def get_event_logger_handler(config, level, delimiter):
+def get_event_logger_handler(config, level):
     """
     Returns a handler based on the `config` settings with the provided log `level`.
     Possible options, based on config > logging > app_event_log_mode setting:
@@ -55,14 +57,16 @@ def get_event_logger_handler(config, level, delimiter):
         else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
 
         # Formatter
-        fmt = delimiter.join(["%(asctime)s", "%(request_id)s", "%(levelname)s", "%(event_type)s", "%(message)s", "%(details)s"])
-        formatter = MultilineFormatter(fmt)
+        separator = config["logging"]["file_separator"]
+        separator_replacement = config["logging"]["file_separator_replacement"]
+        fmt = separator.join(["%(asctime)s", "%(request_id)s", "%(levelname)s", "%(event_type)s", "%(message)s", "%(details)s"])
+        formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 
         interval = config["logging"]["app_event_log_file_mode_interval"]
         return get_file_handler_with_timed_rotation(folder, "app_event_log", level, formatter, interval=interval)
     
     elif app_event_log_mode == "stdout":
-        fmt = delimiter.join(["%(request_id)s", "%(levelname)s", "%(event_type)s", "%(message)s", "%(details)s"])
+        fmt = " ".join(["%(request_id)s", "%(levelname)s", "%(event_type)s", "%(message)s", "%(details)s"])
         formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     

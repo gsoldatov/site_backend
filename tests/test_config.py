@@ -143,6 +143,8 @@ def test_logging_config(base_config):
     # Incorrect settings for `logging` config part
     incorrect_logging_config_values = {
         "folder": (1, True),
+        "file_separator": (1, True),
+        "file_separator_replacement": (1, True),
         "app_event_log_mode": (1, True, "wrong str"),
         "app_event_log_file_mode_interval": (True, "wrong str", 0),
         "app_access_log_mode": (1, True, "wrong str"),

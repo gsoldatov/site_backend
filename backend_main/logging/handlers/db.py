@@ -19,7 +19,6 @@ def get_handler(config, level):
     - `off` => no handler is returned.
     """
     db_mode = config["logging"]["db_mode"]
-    delimiter = ";" if db_mode == "file" else " "
 
     if db_mode == "file":
         global _file_handler
@@ -30,15 +29,17 @@ def get_handler(config, level):
             else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
         
         # Formatter instance
-        fmt = delimiter.join(["%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"])
-        formatter = MultilineFormatter(fmt)
+        separator = config["logging"]["file_separator"]
+        separator_replacement = config["logging"]["file_separator_replacement"]
+        fmt = separator.join(["%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"])
+        formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 
         # Create and return handler
         _file_handler = get_file_handler(folder, "db_module", level, formatter)
         return _file_handler
     
     elif db_mode == "stdout":
-        fmt = delimiter.join(["%(levelname)s", "%(name)s", "%(message)s"])
+        fmt = " ".join(["%(levelname)s", "%(name)s", "%(message)s"])
         formatter = logging.Formatter(fmt)
         return get_stream_handler(level, formatter)
     

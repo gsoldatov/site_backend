@@ -32,11 +32,10 @@ def setup_app_access_logging(app):
     """ Sets up access logger and logging function in the `app`. """
     # Set up access logger
     level = logging.INFO
-    delimiter = ";" if app["config"]["logging"]["app_access_log_mode"] == "file" else " "
     app["access_logger"] = logging.getLogger("app_access_logger")
     app["access_logger"].setLevel(level)
     
-    handler = get_access_logger_handler(app["config"], level, delimiter)
+    handler = get_access_logger_handler(app["config"], level)
     if handler is not None:
         app["access_logger"].addHandler(handler)
     
@@ -56,11 +55,10 @@ def setup_app_event_logging(app):
     """ Sets up event logger and logging function in the `app`. """
     # Set up event logger
     level = logging.INFO
-    delimiter = ";" if app["config"]["logging"]["app_event_log_mode"] == "file" else " "
     app["event_logger"] = logging.getLogger("app_event_logger")
     app["event_logger"].setLevel(level)
     
-    handler = get_event_logger_handler(app["config"], level, delimiter)
+    handler = get_event_logger_handler(app["config"], level)
     if handler is not None:
         app["event_logger"].addHandler(handler)
     
@@ -70,7 +68,7 @@ def setup_app_event_logging(app):
         if app["config"]["logging"]["app_event_log_mode"] == "off": return
 
         level = _get_level(level)
-        extra = {"event_type": event_type, "request_id": "", "details": details.replace("\n", " ")}
+        extra = {"event_type": event_type, "request_id": "", "details": details}
         app["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
     app.log_event = log_event
@@ -86,7 +84,7 @@ def setup_request_event_logging(request):
         if request.method in ("OPTIONS", "HEAD"): return
 
         level = _get_level(level)
-        extra = {"event_type": event_type, "request_id": request["request_id"], "details": details.replace("\n", " ")}
+        extra = {"event_type": event_type, "request_id": request["request_id"], "details": details}
         request.config_dict["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
     request["request_id"] = str(uuid4())[:8]

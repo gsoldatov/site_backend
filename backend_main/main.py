@@ -3,7 +3,6 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(sys.path[0]))
 
 import asyncio
-from sys import exc_info
 
 from aiohttp import web
 from psycopg2.errors import OperationalError
