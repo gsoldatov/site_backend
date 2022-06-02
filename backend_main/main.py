@@ -12,11 +12,7 @@ from backend_main.cors import setup_cors
 from backend_main.db.setup import setup_connection_pools
 from backend_main.db.cleanup import close_connection_pools
 from backend_main.logging.loggers.app import setup_loggers, cleanup_loggers
-from backend_main.middlewares.auth import auth_middleware
-from backend_main.middlewares.errors import error_middleware
-from backend_main.middlewares.connection import connection_middleware
-from backend_main.middlewares.logging import logging_middleware
-from backend_main.middlewares.threading import threading_middleware
+from backend_main.middlewares.setup import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
@@ -24,17 +20,15 @@ from backend_main.routes import setup_routes
 
 async def create_app(config_file = None, config = None):
     try:
-        app = web.Application(middlewares=[logging_middleware, error_middleware, threading_middleware, connection_middleware, auth_middleware])
+        app = web.Application()
         app["config"] = config if config and type(config) == dict else get_config(config_file)
-
         setup_loggers(app)
-        
+        setup_middlewares(app)
+
         await setup_connection_pools(app)
-        
         app["tables"] = get_tables()[0]
 
         setup_routes(app)
-        
         setup_cors(app)
 
         app.log_event("INFO", "app_start", "Finished app setup.")
