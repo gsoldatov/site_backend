@@ -243,7 +243,7 @@ async def get_page_object_ids_data(request, pagination_info):
                 select([tags_filter_subquery.c.object_id])
                 .select_from(tags_filter_subquery)
                 .where(tags_filter_subquery.c.tags_count == len(tags_filter))
-            ).as_scalar()
+            ).scalar_subquery()
 
             tags_filter_clause = objects.c.object_id.in_(tags_filter_query)
         
