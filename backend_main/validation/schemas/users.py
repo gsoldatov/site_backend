@@ -29,8 +29,9 @@ users_update_schema = {
                 "can_login": { "type": "boolean" },
                 "can_edit_objects": { "type": "boolean" }
             },
-            "dependencies": {
-                "password": ["password_repeat"]
+            "dependentRequired": {
+                "password": ["password_repeat"],
+                "password_repeat": ["password"]
             }
         },
         
