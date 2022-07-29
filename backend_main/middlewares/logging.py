@@ -1,6 +1,7 @@
 """
     Logging middleware.
 """
+from asyncio import get_running_loop
 from aiohttp import web
 
 from backend_main.logging.loggers.app import setup_request_event_logging
@@ -26,7 +27,7 @@ async def logging_middleware(request, handler):
         request_id = request["request_id"]
         path = request.path
         method = request.method
-        elapsed_time = round(request.loop.time() - request["start_time"], 3)
+        elapsed_time = round(get_running_loop().time() - request["start_time"], 3)
         
         user_id = "anonymous"
         if hasattr(request, "user_info"):

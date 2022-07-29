@@ -1,3 +1,4 @@
+from asyncio import get_running_loop
 import logging
 from uuid import uuid4
 
@@ -88,7 +89,7 @@ def setup_request_event_logging(request):
         request.config_dict["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
     request["request_id"] = str(uuid4())[:8]
-    request["start_time"] = request.loop.time() # Use monotonic timer instead of time.time()
+    request["start_time"] = get_running_loop().time() # Use monotonic timer instead of time.time()
     request.log_event = log
 
 
