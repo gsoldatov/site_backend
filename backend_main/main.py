@@ -47,9 +47,10 @@ async def create_app(config_file = None, config = None):
 
 
 def main():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = loop.run_until_complete(create_app())
-    web.run_app(app, host=app["config"]["app"]["host"], port=app["config"]["app"]["port"])
+    web.run_app(app, host=app["config"]["app"]["host"], port=app["config"]["app"]["port"], loop=loop)
 
 
 if __name__ == "__main__":
