@@ -8,6 +8,7 @@ import pytest
 from jsonschema import ValidationError
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
+from tests.util import run_pytest_tests
 from backend_main.config import _validate_and_set_values
 
 
@@ -184,4 +185,4 @@ def _assert_validation_exception(config, msg):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

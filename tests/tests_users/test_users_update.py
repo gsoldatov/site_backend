@@ -3,6 +3,7 @@ from copy import deepcopy
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, get_update_user_request_body, incorrect_user_attributes, insert_users
@@ -163,4 +164,4 @@ async def test_correct_update_of_multiple_attributes_of_the_same_user_as_admin(c
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

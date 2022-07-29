@@ -9,6 +9,7 @@ import psycopg2
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.db.init_db import (connect, disconnect, create_user, create_db,
                         migrate_as_superuser, migrate)
+from tests.util import run_pytest_tests
 
 
 def test_connect_disconnect(config):
@@ -69,4 +70,4 @@ def test_migrate(config_path, test_uuid, config, db_and_user):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

@@ -2,13 +2,13 @@
 db/init_db.py tests
 """
 import os, sys
-import shutil
 
 import pytest
 from sqlalchemy import Table
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.db.tables import get_tables
+from tests.util import run_pytest_tests
 
 
 def test_get_tables(db_cursor):
@@ -73,4 +73,4 @@ def test_get_tables(db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

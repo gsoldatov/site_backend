@@ -68,7 +68,7 @@ def main():
         os.chdir(root_dir)
 
         # Run tests
-        os.system(f'pytest "tests" -n auto --dist=loadfile')
+        os.system(f'pytest "tests" -n auto --dist=loadfile --asyncio-mode=auto')
 
         # Restore current working directory
         os.chdir(cwd)

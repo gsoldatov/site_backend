@@ -4,6 +4,7 @@ Tests for link-specific operations.
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
+    from tests.util import run_pytest_tests
 
 
 from util import check_ids
@@ -162,4 +163,4 @@ async def test_delete_as_admin(cli, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

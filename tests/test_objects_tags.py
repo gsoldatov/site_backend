@@ -4,6 +4,7 @@ Tests for object tagging in /objects/... and /tags/... routes.
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
+    from tests.util import run_pytest_tests
 
 from datetime import datetime, timezone
 
@@ -465,4 +466,4 @@ async def test_objects_update_tags_route_as_anonymous(cli, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

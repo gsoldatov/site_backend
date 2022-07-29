@@ -1,6 +1,7 @@
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from tests.fixtures.sessions import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
 
@@ -36,4 +37,4 @@ async def test_logout_with_non_existing_token_as_admin(cli, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

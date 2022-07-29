@@ -4,6 +4,7 @@ Basic search, pagination and ranking tests.
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from random import shuffle
 
@@ -307,4 +308,4 @@ async def test_ranking_object_name_to_do_list_item_and_comment(cli_with_search, 
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

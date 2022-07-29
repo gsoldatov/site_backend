@@ -4,6 +4,7 @@ import pytest
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from tests.fixtures.tags import get_test_tag, tag_list, insert_tags, delete_tags
 from tests.fixtures.sessions import headers_admin_token
@@ -100,4 +101,4 @@ async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, headers):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users, incorrect_user_attributes
@@ -218,4 +217,4 @@ async def test_register_and_login_with_registered_credentials(cli, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

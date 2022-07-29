@@ -4,6 +4,7 @@ Tests for automatic object processing after route handler execution.
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests    
 
 from datetime import datetime
 
@@ -158,4 +159,4 @@ async def test_add_object_data_to_do_list(cli_with_search, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

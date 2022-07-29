@@ -1,9 +1,10 @@
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime
 
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+    from tests.util import run_pytest_tests
 
 from tests.fixtures.objects import get_test_object, incorrect_object_values
 from tests.fixtures.sessions import headers_admin_token
@@ -99,4 +100,4 @@ async def test_add_a_correct_object_as_anonymous(cli, db_cursor):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)

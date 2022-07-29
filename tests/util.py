@@ -1,7 +1,8 @@
-import pytest
+import os
 import time
 from datetime import datetime
 from copy import deepcopy
+import pytest
 
 from backend_main.config import HiddenValue
 
@@ -58,3 +59,8 @@ def wait_for(fn, timeout = 1, interval = 0.1, msg = "Timeout expired.", *args, *
         time.sleep(interval)
     
     raise TimeoutError(msg)
+
+
+def run_pytest_tests(file):
+    """Runs pytest tests in the provided `file`"""
+    os.system(f'pytest "{os.path.abspath(file)}" -v --asyncio-mode=auto')

@@ -5,6 +5,7 @@ import os, sys
 
 sys.path.insert(0, os.path.join(sys.path[0], '..'))
 from backend_main.db.cleanup import close_connection_pools
+from tests.util import run_pytest_tests
 
 
 async def test_cleanup_without_search(app):
@@ -19,4 +20,4 @@ async def test_cleanup_with_search(app_with_search):
 
 
 if __name__ == "__main__":
-    os.system(f'pytest "{os.path.abspath(__file__)}" -v')
+    run_pytest_tests(__file__)
