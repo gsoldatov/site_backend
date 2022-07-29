@@ -8,8 +8,7 @@ from backend_main.validation.schemas.config import config_schema
 
 def get_config(config_file = None):
     if not config_file:
-        config_file = os.path.dirname(os.path.abspath(__file__)) \
-            + "\config.json"
+        config_file = os.path.join(os.path.dirname(__file__), "config.json")
     
     config = _read_config(config_file)
     _validate_and_set_values(config)
