@@ -14,7 +14,10 @@ from backend_main.validation.util import RequestValidationException
 @web.middleware
 async def error_middleware(request, handler):
     try:
-        return await handler(request)
+        # return await handler(request)         # TODO remove test header
+        response = await handler(request)
+        response.headers.update({"X-debug": "1"})
+        return response
 
     except JSONDecodeError:
         request.log_event("WARNING", "request", "Failed to process JSON in request body.")
