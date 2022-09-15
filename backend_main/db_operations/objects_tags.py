@@ -110,7 +110,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         existing_tag_ids = {row["tag_id"] for row in await result.fetchall()}
         non_existing_tag_ids = tag_ids.difference(existing_tag_ids)
         if len(non_existing_tag_ids) > 0:
-            msg = "Attempted to and non-existing tag(-s) to objects."
+            msg = "Attempted to add non-existing tag(-s) to objects."
             request.log_event("WARNING", "db_operation", msg, details=f"tag_ids = {non_existing_tag_ids}")
             raise RequestValidationException(msg)
     

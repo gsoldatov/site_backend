@@ -366,7 +366,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
 
     # Throw 400 if root object is not composite
     if row[0] != "composite":
-        msg = "Attempted to lopp through a hierarchy of a non-composite object."
+        msg = "Attempted to loop through a hierarchy of a non-composite object."
         request.log_event("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
