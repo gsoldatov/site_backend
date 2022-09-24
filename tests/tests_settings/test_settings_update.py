@@ -6,7 +6,7 @@ if __name__ == "__main__":
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.put("/settings/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -28,7 +28,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_incorrect_setting_names_and_values_as_admin(cli):    
+async def test_incorrect_setting_names_and_values(cli):    
     # Incorrect setting name
     body = {"settings": {"incorrect name": True}}
     resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
@@ -39,15 +39,9 @@ async def test_incorrect_setting_names_and_values_as_admin(cli):
         body = {"settings": {name: value}}
         resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
-
-
-async def test_correct_update_as_anonymous(cli):
-    body = {"settings": {"non_admin_registration_allowed": True}}
-    resp = await cli.put("/settings/update", json=body)
-    assert resp.status == 401
     
 
-async def test_correct_update_as_admin(cli, db_cursor):
+async def test_correct_update(cli, db_cursor):
     for new_value in [True, False]:
         body = {"settings": {"non_admin_registration_allowed": new_value}}
         resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)

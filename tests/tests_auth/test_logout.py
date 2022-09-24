@@ -6,12 +6,7 @@ if __name__ == "__main__":
 from tests.fixtures.sessions import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
 
 
-async def test_logout_as_anonymous(cli):
-    resp = await cli.post("/auth/logout")
-    assert resp.status == 401
-
-
-async def test_logout_as_admin(cli, db_cursor):
+async def test_correct_logout(cli, db_cursor):
     # Check if token exists
     db_cursor.execute(f"SELECT user_id FROM sessions WHERE access_token = '{admin_token}'")
     rows = db_cursor.fetchall()
@@ -27,7 +22,7 @@ async def test_logout_as_admin(cli, db_cursor):
     assert not db_cursor.fetchone()
 
 
-async def test_logout_with_non_existing_token_as_admin(cli, db_cursor):
+async def test_logout_with_non_existing_token(cli, db_cursor):
     # Check if token does not exist
     db_cursor.execute(f"SELECT user_id FROM sessions WHERE access_token = '{non_existing_token}'")
     assert not db_cursor.fetchone()

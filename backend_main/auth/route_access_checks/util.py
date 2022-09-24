@@ -65,3 +65,11 @@ def debounce_non_admin_changing_object_owner(request, objects_attributes, is_obj
                         request.log_event("WARNING", "auth", "Non-admin user can't perform requested action(-s).")
                         raise web.HTTPForbidden(text=error_json("Users are not allowed to change object owners."), content_type="application/json")
 
+
+def debounce_non_admin_adding_non_published_tag(request, tag_attributes):
+    """
+    Raises 403 if 'user_level' != admin and `is_published` prop of tag attributes is not true.
+    """
+    if request.user_info.user_level != "admin" and not tag_attributes["is_published"]:
+        request.log_event("WARNING", "auth", "Non-admin user can't perform requested action(-s).")
+        raise web.HTTPForbidden(text=error_json("Users are not allowed to add non-published tags."), content_type="application/json")

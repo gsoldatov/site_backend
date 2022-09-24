@@ -1,5 +1,5 @@
 """
-Tests for operations with to-do lists.
+Tests for operations with to-do lists performed as admin.
 """
 if __name__ == "__main__":
     import os, sys
@@ -9,11 +9,11 @@ if __name__ == "__main__":
 
 from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    to_do_lists_data_list, insert_objects, insert_to_do_lists, insert_data_for_view_objects_as_anonymous
+    to_do_lists_data_list, insert_objects, insert_to_do_lists
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_add_as_admin(cli, db_cursor):
+async def test_add(cli, db_cursor):
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
     # Incorrect attributes
@@ -85,7 +85,7 @@ async def test_add_as_admin(cli, db_cursor):
     assert num_of_items == len(tdl["object_data"]["items"])
 
 
-async def test_update_as_admin(cli, db_cursor):
+async def test_update(cli, db_cursor):
     correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
 
     # Insert mock values
@@ -157,7 +157,7 @@ async def test_update_as_admin(cli, db_cursor):
     assert num_of_items == len(tdl["object_data"]["items"])
 
 
-async def test_view_as_admin(cli, db_cursor):
+async def test_view(cli, db_cursor):
     # Insert mock values
     insert_objects(get_objects_attributes_list(21, 30), db_cursor)
     insert_to_do_lists(to_do_lists_data_list, db_cursor)
@@ -189,20 +189,6 @@ async def test_view_as_admin(cli, db_cursor):
     # Check ids
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, to-do lists object_data_ids only")
-
-
-async def test_view_as_anonymous(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, object_type="to_do_list")
-
-    # Correct request (object_data_ids only, to-do lists, request all existing objects, receive only published)
-    requested_object_ids = [i for i in range(1, 11)]
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
-    assert resp.status == 200
-    data = await resp.json()
-
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request as anonymous, to-do lists object_data_ids only")
 
 
 if __name__ == "__main__":

@@ -6,12 +6,11 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.util import check_ids
-from tests.fixtures.objects import get_objects_attributes_list,\
-    links_data_list, insert_objects, insert_links, insert_data_for_view_objects_as_anonymous
+from tests.fixtures.objects import get_objects_attributes_list, links_data_list, insert_objects, insert_links
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/objects/view", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -23,13 +22,13 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_view_non_existing_objects_as_admin(cli):
+async def test_view_non_existing_objects(cli):
     for key in {"object_ids", "object_data_ids"}:
         resp = await cli.post("/objects/view", json={key: [999, 1000]}, headers=headers_admin_token)
         assert resp.status == 404
 
 
-async def test_view_existing_objects_as_admin(cli, db_cursor):
+async def test_view_existing_objects(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -70,35 +69,6 @@ async def test_view_existing_objects_as_admin(cli, db_cursor):
         "Objects view, correct request for both object attributes and data as admin, object_ids")
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_data_ids")
-
-
-async def test_view_existing_objects_as_anonymous(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
-    
-    # Correct request (object_ids only, published objects only are returned)
-    requested_object_ids = [i for i in range(1, 11)]
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_ids": requested_object_ids})
-    assert resp.status == 200
-    data = await resp.json()
-    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
-        "Objects view, correct request as anonymous, object_ids only")
-    
-    # Correct request (object_data_ids only) is checked type-specific tests
-
-    # Correct request (both types of data request, published objects only are returned)
-    requested_object_ids = [i for i in range(1, 11)]
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-    requested_object_data_ids = [i for i in range(3, 9)]
-    expected_object_data_ids = [i for i in range(3, 9) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_ids": requested_object_ids, "object_data_ids": requested_object_data_ids})
-    assert resp.status == 200
-    data = await resp.json()
-    
-    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
-        "Objects view, correct request for both object attributes and data as anonymous, object_ids")
-    check_ids(expected_object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request for both object attributes and data as anonymous, object_data_ids")
 
 
 if __name__ == "__main__":

@@ -6,12 +6,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_test_object, get_test_object_data, incorrect_object_values, insert_objects, insert_links
+from tests.fixtures.objects import get_test_object, incorrect_object_values, insert_data_for_update_tests
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.put("/objects/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -36,9 +36,9 @@ async def test_incorrect_request_body_as_admin(cli):
             assert resp.status == 400
 
 
-async def test_update_with_incorrect_data_as_admin(cli, db_cursor):
+async def test_update_with_incorrect_data(cli, db_cursor):
     # Insert mock values
-    _insert_mock_data_for_update_tests(cli, db_cursor)
+    insert_data_for_update_tests(db_cursor)
         
     # Non-existing object_id
     obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
@@ -52,9 +52,9 @@ async def test_update_with_incorrect_data_as_admin(cli, db_cursor):
     assert resp.status == 400
 
 
-async def test_update_with_duplicate_names_as_admin(cli, db_cursor):
+async def test_update_with_duplicate_names(cli, db_cursor):
     # Insert mock values
-    _insert_mock_data_for_update_tests(cli, db_cursor)
+    insert_data_for_update_tests(db_cursor)
 
     # Duplicate object_name
     obj = get_test_object(2, pop_keys=["created_at", "modified_at", "object_type"])
@@ -70,9 +70,9 @@ async def test_update_with_duplicate_names_as_admin(cli, db_cursor):
     assert resp.status == 200
 
 
-async def test_correct_update_as_admin(cli, db_cursor):
+async def test_correct_update(cli, db_cursor):
     # Insert mock values
-    _insert_mock_data_for_update_tests(cli, db_cursor)
+    insert_data_for_update_tests(db_cursor)
 
     # Correct update (general attributes)
     obj = get_test_object(3, is_published=True, show_description=True, pop_keys=["created_at", "modified_at", "object_type"])
@@ -84,9 +84,9 @@ async def test_correct_update_as_admin(cli, db_cursor):
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
-async def test_correct_update_with_set_owner_id_as_admin(cli, db_cursor, owner_id):
+async def test_correct_update_with_set_owner_id(cli, db_cursor, owner_id):
     # Insert mock values
-    _insert_mock_data_for_update_tests(cli, db_cursor)
+    insert_data_for_update_tests(db_cursor)
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor)
 
     # Correct update with set owner_id
@@ -105,26 +105,6 @@ async def test_correct_update_with_set_owner_id_as_admin(cli, db_cursor, owner_i
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     assert (await resp.json())["object"]["feed_timestamp"] == ""
-
-
-async def test_correct_update_as_anonymous(cli, db_cursor):
-    # Insert mock values
-    _insert_mock_data_for_update_tests(cli, db_cursor)
-
-    # Correct update (general attributes)
-    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
-    obj["object_id"] = 1
-    resp = await cli.put("/objects/update", json={"object": obj})
-    assert resp.status == 401
-    db_cursor.execute(f"SELECT object_name FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() != (obj["object_name"],)
-
-
-def _insert_mock_data_for_update_tests(cli, db_cursor):
-    obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"])]
-    l_list = [get_test_object_data(1), get_test_object_data(2)]
-    insert_objects(obj_list, db_cursor)
-    insert_links(l_list, db_cursor)
 
 
 if __name__ == "__main__":

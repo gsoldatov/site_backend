@@ -1,5 +1,3 @@
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -10,7 +8,7 @@ from tests.fixtures.tags import tag_list, insert_tags
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/tags/view", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -20,7 +18,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_view_non_existing_tags_as_admin(cli, db_cursor):
+async def test_view_non_existing_tags(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
     
@@ -28,15 +26,13 @@ async def test_view_non_existing_tags_as_admin(cli, db_cursor):
     assert resp.status == 404
 
 
-# Run the test twice for unauthorized & admin privilege levels
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_view_existing_tags_as_admin_and_anonymous(cli, db_cursor, headers):
+async def test_view_existing_tags(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
 
     # Correct request
     tag_ids = [_ for _ in range(1, 11)]
-    resp = await cli.post("/tags/view", json={"tag_ids": tag_ids}, headers=headers)
+    resp = await cli.post("/tags/view", json={"tag_ids": tag_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "tags" in data

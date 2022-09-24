@@ -7,7 +7,7 @@ from tests.fixtures.tags import get_test_tag, incorrect_tag_values
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/tags/add", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -34,7 +34,7 @@ async def test_incorrect_request_body_as_admin(cli):
             assert resp.status == 400
 
 
-async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor):
+async def test_add_a_correct_tag_and_a_duplicate(cli, db_cursor):
     # Write a correct tag
     tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
@@ -55,15 +55,6 @@ async def test_add_a_correct_tag_and_a_duplicate_as_admin(cli, db_cursor):
     # Add an existing tag_name
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
-
-
-async def test_add_a_correct_tag_as_anonymous(cli, db_cursor):
-    tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
-    resp = await cli.post("/tags/add", json={"tag": tag})
-    assert resp.status == 401
-
-    db_cursor.execute(f"SELECT tag_name FROM tags")
-    assert not db_cursor.fetchone()
 
 
 if __name__ == "__main__":

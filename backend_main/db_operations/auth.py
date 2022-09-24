@@ -71,50 +71,6 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
-def get_objects_auth_filter_clause(request):
-    """
-    Returns an SQLAlchemy where clause, which:
-    - filters non-published objects is user is anonymous;
-    - filters non-published objects of other users if user has 'user' level;
-    - 1 = 1 for 'admin' user level.
-    """
-    objects = request.config_dict["tables"]["objects"]
-    ui = request.user_info
-
-    if ui.is_anonymous:
-        return objects.c.is_published == True
-    
-    if ui.user_level == "admin":
-        return true()
-    
-    # user
-    return or_(objects.c.owner_id == ui.user_id, objects.c.is_published == True)
-
-
-def get_objects_data_auth_filter_clause(request, object_ids, object_id_column):
-    """
-    Returns and SQL Alchemy where clause with a subquery for a specified `object_data_table`, which:
-    - filters objects with provided `object_ids` if user has `admin` level;
-    - filters objects with provided `object_ids`, which are not published and belong to other users if user has 'user' level;
-    - filters objects with provided `object_ids`, which are not published if user is anonymous.
-    """
-    objects = request.config_dict["tables"]["objects"]
-    ui = request.user_info
-
-    if ui.user_level == "admin":
-        return object_id_column.in_(object_ids)
-    
-    auth_filter_clause = get_objects_auth_filter_clause(request)
-
-    return object_id_column.in_(
-        select([objects.c.object_id])
-        .where(and_(
-            auth_filter_clause,
-            objects.c.object_id.in_(object_ids)
-        ))
-    )
-
-
 async def check_if_non_admin_can_register(request):
     """
     Checks if non-admin registration is enabled.
@@ -128,3 +84,100 @@ async def check_if_non_admin_can_register(request):
         msg = "Registration is disabled."
         request.log_event("WARNING", "auth", msg)
         raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
+
+
+def get_objects_auth_filter_clause(request, object_ids = None, object_ids_subquery = None):
+    """
+    Returns an SQLAlchemy 'where' clause, which:
+    - filters non-published objects and objects with hidden tags if user is anonymous;
+    - filters non-published objects of other users and objects with hidden tags if user has 'user' level;
+    - 1 = 1 for 'admin' user level.
+
+    `object_ids` or `object_ids_subquery` are used to specify object IDs, which are checked for being marked with hidden tags.
+    """
+    objects = request.config_dict["tables"]["objects"]
+    ui = request.user_info
+
+    if ui.is_anonymous:
+        return and_(
+            objects.c.is_published == True,
+            get_objects_with_published_tags_only_clause(request, object_ids, object_ids_subquery)
+        )
+    
+    if ui.user_level == "admin":
+        return true()
+    
+    # user
+    return and_(
+        or_(objects.c.owner_id == ui.user_id, objects.c.is_published == True),
+        get_objects_with_published_tags_only_clause(request, object_ids, object_ids_subquery)
+    )
+
+
+def get_objects_data_auth_filter_clause(request, object_id_column, object_ids):
+    """
+    Returns an SQL Alchemy 'where' clause with a subquery for applying objects' auth filters for `object_id_column`.
+    """
+    objects = request.config_dict["tables"]["objects"]
+    ui = request.user_info
+
+    if ui.user_level == "admin":
+        return object_id_column.in_(object_ids)
+    
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
+
+    return object_id_column.in_(
+        select([objects.c.object_id])
+        .where(and_(
+            objects_auth_filter_clause,
+            objects.c.object_id.in_(object_ids)
+        ))
+    )
+
+
+def get_objects_with_published_tags_only_clause(request, object_ids = None, object_ids_subquery = None):
+    """
+    Returns an SQL Alchemy 'where' clause subquery, which:
+    - if user has admin level, does nothing;
+    - if user has non-admin level, filters `objects.object_id` column with a subquery, 
+      which filters out IDs with at least one hidden tag.
+    
+    To reduce the amount of objects' tags processing an iterable with object IDs `object_ids`
+    or a subquery, which returns a list of object IDs `object_ids_subquery` must be provided.
+    """
+    if object_ids is None and object_ids_subquery is None:
+        raise RuntimeError("Either `object_ids` or `object_ids_subquery` must be provided.")
+    
+    objects = request.config_dict["tables"]["objects"]
+    tags = request.config_dict["tables"]["tags"]
+    objects_tags = request.config_dict["tables"]["objects_tags"]
+    ui = request.user_info
+
+    if ui.user_level == "admin": return true()
+
+    object_ids_filter = object_ids if object_ids is not None else object_ids_subquery
+
+    return objects.c.object_id.notin_(
+        select([objects_tags.c.object_id])
+        .distinct()
+        .select_from(objects_tags.join(tags, objects_tags.c.tag_id == tags.c.tag_id))
+        .where(and_(
+            objects_tags.c.object_id.in_(object_ids_filter),
+            get_tags_auth_filter_clause(request, is_published=False)
+        ))
+    )
+
+
+def get_tags_auth_filter_clause(request, is_published = True):
+    """
+    Returns an SQL Alchemy 'where' clause for filtering tags on `is_published` field with the provided `is_published` value:
+    - 1 = 1 for admin user level;
+    - tags.is_published = `is_published` if user has 'user' level;
+    - tags.is_published = `is_published` if user is anonymous.
+    """
+    tags = request.config_dict["tables"]["tags"]
+    ui = request.user_info
+
+    if ui.user_level == "admin": return true()
+
+    return tags.c.is_published == is_published

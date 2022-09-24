@@ -61,12 +61,11 @@ async def view_links(request, object_ids):
     links = request.config_dict["tables"]["links"]
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
-    auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, links.c.object_id)
+    objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, links.c.object_id, object_ids)
 
     records = await request["conn"].execute(
         select([links.c.object_id, links.c.link, links.c.show_description_as_link])
-        .where(auth_filter_clause)
-        # .where(links.c.object_id.in_(object_ids))
+        .where(objects_data_auth_filter_clause)
     )
     result = []
     for row in await records.fetchall():

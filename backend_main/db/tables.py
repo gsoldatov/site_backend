@@ -66,6 +66,7 @@ def get_tables():
             Column("modified_at", DateTime, nullable=False),
             Column("tag_name", String(255), nullable=False),
             Column("tag_description", Text),
+            Column("is_published", Boolean, nullable=False),
             Index("ix_tag_name_lowered", text("lower(tag_name)"), unique=True)
         ),
     

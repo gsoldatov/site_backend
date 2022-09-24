@@ -111,14 +111,13 @@ async def view_to_do_lists(request, object_ids):
     to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
-    auth_filter_clause = get_objects_data_auth_filter_clause(request, object_ids, to_do_lists.c.object_id)
-    auth_filter_clause_items = get_objects_data_auth_filter_clause(request, object_ids, to_do_list_items.c.object_id)
+    objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, to_do_lists.c.object_id, object_ids)
+    objects_data_auth_filter_clause_items = get_objects_data_auth_filter_clause(request, to_do_list_items.c.object_id, object_ids)
 
     # Query to-do list general object data
     records = await request["conn"].execute(
         select([to_do_lists.c.object_id, to_do_lists.c.sort_type])
-        .where(auth_filter_clause)
-        # .where(to_do_lists.c.object_id.in_(object_ids))
+        .where(objects_data_auth_filter_clause)
     )
 
     data = {}
@@ -129,15 +128,13 @@ async def view_to_do_lists(request, object_ids):
     items = await request["conn"].execute(
         select([to_do_list_items.c.object_id, to_do_list_items.c.item_number, to_do_list_items.c.item_state, to_do_list_items.c.item_text,
                 to_do_list_items.c.commentary, to_do_list_items.c.indent, to_do_list_items.c.is_expanded])
-        .where(auth_filter_clause_items)
-        # .where(to_do_list_items.c.object_id.in_(object_ids))
+        .where(objects_data_auth_filter_clause_items)
         .order_by(to_do_list_items.c.object_id, to_do_list_items.c.item_number)
     )
     
     for item in await items.fetchall():
         item_dict = row_proxy_to_dict(item)
         object_id = item_dict.pop("object_id")
-        # object_id = item["object_id"]
         data[object_id]["items"].append(item_dict)
     
     # Return correctly formatted object data

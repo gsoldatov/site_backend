@@ -5,6 +5,8 @@ from aiohttp import web
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
+from backend_main.db_operations.auth import get_tags_auth_filter_clause
+from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
@@ -15,6 +17,9 @@ async def add_tag(request, tag_attributes):
         Returns a RowProxy object with the inserted data.
     """
     tags = request.config_dict["tables"]["tags"]
+    
+    # Forbid to add non-published tags for non-admins
+    debounce_non_admin_changing_object_owner(request, tag_attributes)
 
     result = await request["conn"].execute(
         tags.insert()
@@ -40,6 +45,9 @@ async def update_tag(request, tag_attributes):
     """
     tags = request.config_dict["tables"]["tags"]
     tag_id = tag_attributes["tag_id"]
+
+    # Forbid to add non-published tags for non-admins
+    debounce_non_admin_changing_object_owner(request, tag_attributes)
 
     result = await request["conn"].execute(
         tags.update()
@@ -69,10 +77,15 @@ async def view_tags(request, tag_ids):
     """
     tags = request.config_dict["tables"]["tags"]
 
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
+
     rows = await request["conn"].execute(
         select([tags])
-        .where(tags.c.tag_id.in_(tag_ids))
-    )
+        .where(and_(
+            tags_auth_filter_clause,
+            tags.c.tag_id.in_(tag_ids))
+    ))
 
     result = await rows.fetchall()
     if len(result) == 0:
@@ -116,10 +129,17 @@ async def get_page_tag_ids_data(request, pagination_info):
     first = (pagination_info["page"] - 1) * items_per_page
     filter_text = f"%{pagination_info['filter_text'].lower()}%"
 
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
+
     # return where clause statements for a select statement `s`.
     def with_where_clause(s):
-        return s\
-            .where(func.lower(tags.c.tag_name).like(filter_text))
+        return (
+            s.where(and_(
+                tags_auth_filter_clause,
+                func.lower(tags.c.tag_name).like(filter_text)
+            ))
+        )
 
     # Get tag ids
     result = await request["conn"].execute(
@@ -170,10 +190,14 @@ async def search_tags(request, query):
     maximum_values = query.get("maximum_values", 10)
     existing_ids = query.get("existing_ids", [])
 
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
+
     # Get tag ids
     result = await request["conn"].execute(
         select([tags.c.tag_id])
         .where(and_(
+            tags_auth_filter_clause,
             func.lower(tags.c.tag_name).like(func.lower(query_text)),
             tags.c.tag_id.notin_(existing_ids)
         ))

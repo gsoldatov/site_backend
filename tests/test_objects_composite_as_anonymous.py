@@ -1,0 +1,37 @@
+"""
+Tests for composite objects' data operations performed as anonymous.
+"""
+
+if __name__ == "__main__":
+    import os, sys
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
+    from tests.util import run_pytest_tests
+
+
+from tests.util import check_ids
+from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_composite
+from tests.fixtures.users import get_test_user, insert_users
+
+
+async def test_view_composite(cli, db_cursor):
+    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
+    object_attributes = [get_test_object(1, owner_id=1, pop_keys=["object_data"])]
+    object_attributes.extend([get_test_object(i, object_type="composite", is_published=i % 2 == 0,
+        owner_id=1 if i <= 35 else 2, pop_keys=["object_data"]) for i in range(31, 41)])
+    insert_objects(object_attributes, db_cursor)
+    composite_object_data = [get_test_object_data(i, object_type="composite") for i in range(31, 41)]
+    insert_composite(composite_object_data, db_cursor)
+
+    # Correct request (object_data_ids only, composite, request all composite objects, receive only published)
+    requested_object_ids = [i for i in range(31, 41)]
+    expected_object_ids = [i for i in range(31, 41) if i % 2 == 0]
+    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
+    assert resp.status == 200
+    data = await resp.json()
+
+    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request as anonymous, composite object_data_ids only")
+
+
+if __name__ == "__main__":
+    run_pytest_tests(__file__)

@@ -53,7 +53,7 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor):
             assert data["_error"] == "Invalid token."
 
 
-async def test_access_token_prolongation_as_admin(app, cli, db_cursor, config):
+async def test_access_token_prolongation(app, cli, db_cursor, config):
     # Insert mock data
     obj_list = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(100, 102)]
     obj_list.append(get_test_object(99999, object_type="composite", owner_id=1, pop_keys=["object_data"]))

@@ -11,7 +11,7 @@ from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/objects/add", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -38,14 +38,14 @@ async def test_incorrect_request_body_as_admin(cli):
             assert resp.status == 400
 
 
-async def test_add_object_with_incorrect_data_as_admin(cli):
+async def test_add_object_with_incorrect_data(cli):
     # Non-existing owner_id
     link = get_test_object(1, owner_id=1000, pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 400
 
 
-async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor):
+async def test_add_two_objects_with_the_same_name(cli, db_cursor):
     # Add a correct object
     link = get_test_object(1, is_published=True, pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
@@ -75,7 +75,7 @@ async def test_add_two_objects_with_the_same_name_as_admin(cli, db_cursor):
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
-async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, owner_id):
+async def test_add_object_with_set_owner_id(cli, db_cursor, owner_id):
     # Add a second user
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor)
 
@@ -88,15 +88,6 @@ async def test_add_object_with_set_owner_id_as_admin(cli, db_cursor, owner_id):
 
     db_cursor.execute(f"SELECT owner_id FROM objects WHERE object_id = {resp_object['object_id']}")
     assert db_cursor.fetchone() == (owner_id,)
-
-
-async def test_add_a_correct_object_as_anonymous(cli, db_cursor):
-    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-    resp = await cli.post("/objects/add", json={"object": link})
-    assert resp.status == 401
-
-    db_cursor.execute(f"SELECT object_name FROM objects")
-    assert not db_cursor.fetchone()
 
 
 if __name__ == "__main__":

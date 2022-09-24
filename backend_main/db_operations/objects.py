@@ -104,14 +104,14 @@ async def view_objects(request, object_ids):
     objects = request.config_dict["tables"]["objects"]
 
     # Objects filter for non 'admin` user level
-    auth_filter_clause = get_objects_auth_filter_clause(request)
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     result = await request["conn"].execute(
         select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
             objects.c.modified_at, objects.c.object_name, objects.c.object_description, objects.c.is_published, 
             objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id])
         .where(and_(
-            auth_filter_clause,
+            objects_auth_filter_clause,
             objects.c.object_id.in_(object_ids)
         ))
     )
@@ -122,15 +122,16 @@ async def view_objects_types(request, object_ids):
     """
     Returns a list of object types for the provided object_ids.
     """
-    # Objects filter for non 'admin` user level
-    auth_filter_clause = get_objects_auth_filter_clause(request)
-
     objects = request.config_dict["tables"]["objects"]
+
+    # Objects filter for non 'admin` user level
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
+
     result = await request["conn"].execute(
         select([objects.c.object_type])
         .distinct()
         .where(and_(
-            auth_filter_clause,
+            objects_auth_filter_clause,
             objects.c.object_id.in_(object_ids)
         ))
     )
@@ -203,9 +204,6 @@ async def get_page_object_ids_data(request, pagination_info):
     objects = request.config_dict["tables"]["objects"]
     objects_tags = request.config_dict["tables"]["objects_tags"]
 
-    # Objects filter for non 'admin` user level
-    auth_filter_clause = get_objects_auth_filter_clause(request)
-
     # Basic query parameters and clauses
     order_by = {
         "object_name": objects.c.object_name,
@@ -222,7 +220,7 @@ async def get_page_object_ids_data(request, pagination_info):
         # Text filter for object name
         filter_text = pagination_info.get("filter_text", "")
         if len(filter_text) > 0: filter_text = f"%{filter_text.lower()}%"
-        filter_clause = func.lower(objects.c.object_name).like(filter_text) if len(filter_text) > 0 else true()
+        text_filter_clause = func.lower(objects.c.object_name).like(filter_text) if len(filter_text) > 0 else true()
 
         # Object types filter
         object_types = pagination_info.get("object_types", [])
@@ -252,13 +250,24 @@ async def get_page_object_ids_data(request, pagination_info):
         if pagination_info.get("show_only_displayed_in_feed"):
             display_in_feed_clause = objects.c.display_in_feed == pagination_info["show_only_displayed_in_feed"]
         
-        # Resulting statement
-        return s\
-            .where(auth_filter_clause)\
-            .where(filter_clause)\
-            .where(object_types_clause)\
-            .where(tags_filter_clause)\
+        # Objects filter for non 'admin` user level
+        objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
+            select([objects.c.object_id])
+            .where(text_filter_clause)
+            .where(object_types_clause)
+            .where(tags_filter_clause)
             .where(display_in_feed_clause)
+        ))
+        
+        # Resulting statement
+        return (
+            s
+            .where(objects_auth_filter_clause)
+            .where(text_filter_clause)
+            .where(object_types_clause)
+            .where(tags_filter_clause)
+            .where(display_in_feed_clause)
+        )
 
     # Get object ids
     result = await request["conn"].execute(
@@ -313,13 +322,19 @@ async def search_objects(request, query):
     existing_ids = query.get("existing_ids", [])
 
     # Objects filter for non 'admin` user level
-    auth_filter_clause = get_objects_auth_filter_clause(request)
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
+        select([objects.c.object_id])
+        .where(and_(
+            func.lower(objects.c.object_name).like(func.lower(query_text)),
+            objects.c.object_id.notin_(existing_ids)
+        ))
+    ))
 
     # Get object ids
     result = await request["conn"].execute(
         select([objects.c.object_id])
         .where(and_(
-            auth_filter_clause,
+            objects_auth_filter_clause,
             func.lower(objects.c.object_name).like(func.lower(query_text)),
             objects.c.object_id.notin_(existing_ids)
         ))
@@ -348,11 +363,11 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     composite = request.config_dict["tables"]["composite"]
 
     # Check if object is composite and can be viewed by request sender
-    auth_filter_clause = get_objects_auth_filter_clause(request)
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=[object_id])
     result = await request["conn"].execute(
         select([objects.c.object_type])
         .where(and_(
-            auth_filter_clause,
+            objects_auth_filter_clause,
             objects.c.object_id == object_id
         ))
     )

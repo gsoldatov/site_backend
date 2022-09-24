@@ -1,5 +1,5 @@
 """
-Tests for link-specific operations.
+Tests for link-specific operations performed as admin.
 """
 if __name__ == "__main__":
     import os, sys
@@ -9,11 +9,11 @@ if __name__ == "__main__":
 
 from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    links_data_list, insert_objects, insert_links, insert_data_for_view_objects_as_anonymous
+    links_data_list, insert_objects, insert_links
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_add_as_admin(cli, db_cursor):
+async def test_add(cli, db_cursor):
     # Missing link object data attributes
     for attr in ["link", "show_description_as_link"]:
         link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
@@ -57,7 +57,7 @@ async def test_add_as_admin(cli, db_cursor):
     assert db_cursor.fetchone() == (link["object_data"]["link"],)
 
 
-async def test_update_as_admin(cli, db_cursor):
+async def test_update(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"])]
     l_list = [get_test_object_data(1), get_test_object_data(2)]
@@ -100,7 +100,7 @@ async def test_update_as_admin(cli, db_cursor):
     assert db_cursor.fetchone() == (obj["object_data"]["link"],)
 
 
-async def test_view_as_admin(cli, db_cursor):
+async def test_view(cli, db_cursor):
     # Insert mock values
     insert_objects(get_objects_attributes_list(1, 10), db_cursor)
     insert_links(links_data_list, db_cursor)
@@ -126,21 +126,7 @@ async def test_view_as_admin(cli, db_cursor):
         "Objects view, correct request as admin, link object_data_ids only")
 
 
-async def test_view_as_anonymous(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, object_type="link")
-
-    # Correct request (object_data_ids only, links, request all existing objects, receive only published)
-    requested_object_ids = [i for i in range(1, 11)]
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
-    assert resp.status == 200
-    data = await resp.json()
-
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request as anonymous, link object_data_ids only")
-
-
-async def test_delete_as_admin(cli, db_cursor):
+async def test_delete(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]

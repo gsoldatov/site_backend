@@ -4,11 +4,11 @@
 from datetime import datetime
 
 from aiohttp import web
-from sqlalchemy import select, func
+from sqlalchemy import select, func, true
 from sqlalchemy.sql import and_
 
 from backend_main.db_operations.auth import check_if_user_owns_objects, \
-    check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause
+    check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause, get_tags_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import error_json
@@ -26,26 +26,80 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
         raise TypeError("view_objects_tags can't receive object and tag IDs at the same time.")
 
     objects = request.config_dict["tables"]["objects"]
+    tags = request.config_dict["tables"]["tags"]
     objects_tags = request.config_dict["tables"]["objects_tags"]
 
-    # Objects filter for non 'admin` user level
-    auth_filter_clause = get_objects_auth_filter_clause(request)
+    # Query tags for `object_ids`
+    if object_ids:
+        # Objects filter for non 'admin` user level
+        objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
-    result = await request["conn"].execute(
+        result = await request["conn"].execute(
         select([objects_tags.c.object_id, objects_tags.c.tag_id])
-        .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply auth filters
-        .where(auth_filter_clause)
-        .where(objects_tags.c.object_id.in_(object_ids) if object_ids is not None else 1 == 1)
-        .where(objects_tags.c.tag_id.in_(tag_ids) if tag_ids is not None else 1 == 1)
-    )
+        .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply objects auth filter
+        .where(and_(
+            objects_tags.c.object_id.in_(object_ids),   # select rows for provided `object_ids`
+            objects_auth_filter_clause                  # filter with objects auth clause
+        )))
 
-    # result = await request["conn"].execute(
+        return await result.fetchall()
+    
+    # Query objects for `tag_ids`
+    else:
+        tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
+        objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
+            select([objects_tags.c.object_id])
+            .distinct()
+            .where(objects_tags.c.tag_id.in_(tag_ids))
+        ))
+
+        # Get pairs wihtout filtering objects with hidden tags
+        result = await request["conn"].execute(
+        select([objects_tags.c.object_id, objects_tags.c.tag_id])
+        .select_from(
+                objects_tags
+                .join(tags, objects_tags.c.tag_id == tags.c.tag_id))   # join tags table to apply tags auth filter
+                .join(objects, objects_tags.c.object_id == objects.c.object_id)
+        .where(and_(
+            objects_tags.c.tag_id.in_(tag_ids),         # select rows for provided `tag_ids`
+            tags_auth_filter_clause,                    # filter with tags auth clause
+            objects_auth_filter_clause                  # filter with objects auth clause
+        )))
+
+        return await result.fetchall()
+
+    
+    # # Query objects for `tag_ids` # TODO delete after new version is tested
+    # else:
+    #     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
+
+    #     # Get pairs wihtout filtering objects with hidden tags
+    #     result = await request["conn"].execute(
     #     select([objects_tags.c.object_id, objects_tags.c.tag_id])
-    #     .where(objects_tags.c.object_id.in_(object_ids) if object_ids is not None else 1 == 1)
-    #     .where(objects_tags.c.tag_id.in_(tag_ids) if tag_ids is not None else 1 == 1)
-    # )
+    #     .select_from(
+    #             objects_tags
+    #             .join(tags, objects_tags.c.tag_id == tags.c.tag_id))   # join tags table to apply tags auth filter
+                
+    #             # source = state.alias().join(tasks.alias('source'), state.c.source_id == tasks.alias('source').c.id)
+    #     .where(and_(
+    #         objects_tags.c.tag_id.in_(tag_ids),         # 1 - selcet rows for provided `tag_ids`
+    #         tags_auth_filter_clause,                    # 2 - filter with tags auth clause
+    #     )))
 
-    return await result.fetchall()
+    #     pairs = await result.fetchall()
+
+    #     # Remove objects with at least one hidden tag
+    #     if request.user_level != "admin":
+    #         fetched_object_ids = set((row[0] for row in pairs))
+    #         result = await request["conn"].execute(
+    #             select([objects.c.object_id])
+    #             .where(get_objects_with_published_tags_only_clause(request, fetched_object_ids))
+    #         )
+
+    #         object_ids_without_hidden_tags = set(row[0] for row in await result.fetchall())
+    #         pairs = [row for row in pairs if row[0] in object_ids_without_hidden_tags]
+
+    #     return pairs
 
 
 async def update_objects_tags(request, objects_tags_data, check_ids = False):
@@ -56,7 +110,8 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
     IDs from added_tags are always checked.
     This functionality is not implemented for tag update case (when tag_ids is provided instead of object_ids).
 
-    NOTE: tag update case is also not properly tested for correctness of auth checks & updates made.
+    NOTE: if objects for tags update case becomes used, auth checks must be added and properly tested
+    (anonymous restriction, object owning, hidden tag usage by non-admins).
     """
     # Ensure a transaction is started
     await start_transaction(request)
@@ -137,11 +192,21 @@ async def _add_tags_for_objects(request, objects_tags_data):
                 lowered_existing_tag_names.add(name.lower())
         tag_names = new_tag_names
     
+    # Check if non-admins add published existing tags only
+    if request.user_info.user_level != "admin":
+        result = await request["conn"].execute(
+            select([func.count()])
+            .where(get_tags_auth_filter_clause(request, is_published=False))
+        )
+        if (await result.fetchone())[0] > 0:
+            request.log_event("WARNING", "db_operation", "Attempted to add hidden tags as a non-admin.")
+            raise web.HTTPForbidden(text=error_json("Cannot add specified tags."), content_type="application/json")
+    
     # Create new tags for non-existing tag_names
     if len(tag_names) > 0:
         # Raise 403 if not an admin and trying to add new tags
         if request.user_info.user_level != "admin":
-            msg = "Attempted to and new tags as a non-admin."
+            msg = "Attempted to add new tags as a non-admin."
             request.log_event("WARNING", "db_operation", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
@@ -152,10 +217,11 @@ async def _add_tags_for_objects(request, objects_tags_data):
             tags.insert()
             .returning(tags.c.tag_id)
             .values([{
+                "created_at": current_time,
+                "modified_at": current_time,
                 "tag_name": name,
                 "tag_description": "",
-                "created_at": current_time,
-                "modified_at": current_time
+                "is_published": True
             } for name in tag_names])
         )
 
@@ -191,6 +257,24 @@ async def _remove_tags_for_objects(request, objects_tags_data):
     # 1. "object_ids" and "removed_tag_ids" in otd
     # 2. "object_ids" in otd and "remove_all_tags" == True
     objects_tags = request.config_dict["tables"]["objects_tags"]
+    tags = request.config_dict["tables"]["tags"]
+    
+    # Check if non-admins delete published tags only
+    if request.user_info.user_level != "admin":
+        removed_tags_clause = true() if objects_tags_data.get("remove_all_tags") else objects_tags.c.tag_id.in_(objects_tags_data["removed_tag_ids"])
+        result = await request["conn"].execute(
+            select([func.count()])
+            .select_from(objects_tags.join(tags, objects_tags.c.tag_id == tags.c.tag_id))
+            .where(and_(
+                get_tags_auth_filter_clause(request, is_published=False),
+                removed_tags_clause,
+                objects_tags.c.object_id.in_(objects_tags_data["object_ids"])
+            ))
+        )
+
+        if (await result.fetchone())[0] > 0:
+            request.log_event("WARNING", "db_operation", "Attempted to delete hidden tags as a non-admin.")
+            raise web.HTTPForbidden(text=error_json("Cannot delete tags."), content_type="application/json")
 
     # 1
     if "object_ids" in objects_tags_data and "removed_tag_ids" in objects_tags_data:

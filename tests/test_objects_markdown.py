@@ -1,5 +1,5 @@
 """
-Tests for markdown-specific operations.
+Tests for markdown-specific operations performed as admin.
 """
 if __name__ == "__main__":
     import os, sys
@@ -8,11 +8,11 @@ if __name__ == "__main__":
 
 from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    markdown_data_list, insert_objects, insert_markdown, insert_data_for_view_objects_as_anonymous
+    markdown_data_list, insert_objects, insert_markdown
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_add_as_admin(cli, db_cursor):
+async def test_add(cli, db_cursor):
     # Incorrect markdown attributes
     for attr in [{"incorrect MD attr": "123"}, {"incorrect MD attr": "123", "raw_text": "New text"}]:
         md = get_test_object(4, pop_keys=["object_id", "created_at", "modified_at"])
@@ -43,7 +43,7 @@ async def test_add_as_admin(cli, db_cursor):
     assert db_cursor.fetchone() == (md["object_data"]["raw_text"],)
 
 
-async def test_update_as_admin(cli, db_cursor):
+async def test_update(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(4, owner_id=1, pop_keys=["object_data"]), get_test_object(5, owner_id=1, pop_keys=["object_data"])]
     md_list = [get_test_object_data(4), get_test_object_data(5)]
@@ -67,7 +67,7 @@ async def test_update_as_admin(cli, db_cursor):
     assert db_cursor.fetchone() == (obj["object_data"]["raw_text"],)
 
 
-async def test_view_as_admin(cli, db_cursor):
+async def test_view(cli, db_cursor):
     # Insert mock values
     insert_objects(get_objects_attributes_list(11, 20), db_cursor)
     insert_markdown(markdown_data_list, db_cursor)
@@ -92,21 +92,7 @@ async def test_view_as_admin(cli, db_cursor):
         "Objects view, correct request as admin, markdown object_data_ids only")
 
 
-async def test_view_as_anonymous(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor, object_type="markdown")
-
-    # Correct request (object_data_ids only, markdown, request all existing objects, receive only published)
-    requested_object_ids = [i for i in range(1, 11)]
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
-    assert resp.status == 200
-    data = await resp.json()
-
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
-        "Objects view, correct request as anonymous, markdown object_data_ids only")
-
-
-async def test_delete_as_admin(cli, db_cursor):
+async def test_delete(cli, db_cursor):
     # Insert mock values
     obj_list = [get_test_object(4, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(5, owner_id=1, pop_keys=["object_data"]), get_test_object(6, owner_id=1, pop_keys=["object_data"])]

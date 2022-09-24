@@ -1,5 +1,4 @@
 from copy import deepcopy
-import pytest
 
 if __name__ == "__main__":
     import os, sys
@@ -13,7 +12,7 @@ from tests.fixtures.sessions import headers_admin_token
 pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/tags/get_page_tag_ids", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -33,15 +32,13 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-# Run the test twice for unauthorized & admin privilege levels
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_requests_as_admin_and_anonymous(cli, db_cursor, headers):
+async def test_correct_requests(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
     
     # Correct request - sort by tag_name asc + response body
     pi = deepcopy(pagination_info)
-    resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers)
+    resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     for attr in ["page", "items_per_page","total_items", "order_by", "sort_order", "filter_text", "tag_ids"]:

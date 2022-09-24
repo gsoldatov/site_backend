@@ -9,12 +9,13 @@ tags_add_schema = {
     "properties": {
         "tag": {
             "type": "object",
-            "required": ["tag_name", "tag_description"],
+            "required": ["tag_name", "tag_description", "is_published"],
             "additionalProperties": False,
             "properties": {
                 "tag_name": name,
                 "tag_description": description,
-                "added_object_ids": added_object_ids
+                "added_object_ids": added_object_ids,
+                "is_published": {"type": "boolean"}
             }
         }
     }
@@ -27,12 +28,13 @@ tags_update_schema = {
     "properties": {
         "tag": {
             "type": "object",
-            "required": ["tag_id", "tag_name", "tag_description"],
+            "required": ["tag_id", "tag_name", "tag_description", "is_published"],
             "additionalProperties": False,
             "properties": {
                 "tag_id": object_id,
                 "tag_name": name,
                 "tag_description": description,
+                "is_published": {"type": "boolean"},
                 "added_object_ids": added_object_ids,
                 "removed_object_ids": removed_object_ids
             }

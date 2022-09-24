@@ -1,7 +1,5 @@
 from datetime import datetime
 
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -10,8 +8,7 @@ if __name__ == "__main__":
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
-
-async def test_incorrect_request_body_as_anonymous(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/users/view", data="not a JSON document.")
     assert resp.status == 400
@@ -20,13 +17,13 @@ async def test_incorrect_request_body_as_anonymous(cli):
     for attr in ("user_ids",):
         body = {"full_view_mode": False, "user_ids": [1]}
         body.pop(attr)
-        resp = await cli.post("/users/view", json=body)
+        resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed attributes
     body = {"full_view_mode": False, "user_ids": [1]}
     body["unallowed"] = "unallowed"
-    resp = await cli.post("/users/view", json=body)
+    resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values for general attributes
@@ -34,26 +31,24 @@ async def test_incorrect_request_body_as_anonymous(cli):
         ("user_ids", []), ("user_ids", [1] * 1001), ("user_ids", ["a"])]:
         body = {"full_view_mode": False, "user_ids": [1]}
         body[key] = value
-        resp = await cli.post("/users/view", json=body)
+        resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
 
 async def test_valid_request_for_non_existing_users(cli):
     body = {"user_ids": [1001, 1002]}
-    resp = await cli.post("/users/view", json=body)
+    resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
     assert resp.status == 404
-    
 
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_valid_request_for_basic_view_as_anonymous_and_admin(cli, db_cursor, headers):
+
+async def test_valid_request_for_basic_view(cli, db_cursor):
     # Insert users
     users = [get_test_user(i, pop_keys=["password_repeat"]) for i in range(2, 6)]
     insert_users(users, db_cursor) 
 
     # Send request and check response
     body = {"user_ids": [i for i in range(1, 11)]}
-    if headers is None: body["full_view_mode"] = False  # Check if non-admin can use false `full_view_mode`
-    resp = await cli.post("/users/view", json=body, headers=headers)
+    resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     
     data = await resp.json()
@@ -72,13 +67,7 @@ async def test_valid_request_for_basic_view_as_anonymous_and_admin(cli, db_curso
             assert user["username"] == users[0]["username"]
 
 
-async def test_valid_request_for_full_view_as_anonymous(cli):
-    body = {"user_ids": [i for i in range(1, 11)], "full_view_mode": True}
-    resp = await cli.post("/users/view", json=body)
-    assert resp.status == 401
-
-
-async def test_valid_request_for_full_view_as_admin(cli, db_cursor):
+async def test_valid_request_for_full_view(cli, db_cursor):
     # Insert users
     users = [get_test_user(i, pop_keys=["password_repeat"]) for i in range(2, 6)]
     users[0]["user_level"] = "admin"

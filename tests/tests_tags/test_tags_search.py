@@ -1,15 +1,13 @@
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.tags import tag_list, insert_tags
+from tests.fixtures.tags import tag_list, insert_tags, get_test_tag
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request
     for req_body in ["not an object", 1, {"incorrect attribute": {}}, {"query": "not an object"}, {"query": 1},
         {"query": {"query_text": "123"}, "incorrect attribute": {}}, {"query": {"incorrect attribute": "123"}},
@@ -25,7 +23,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_search_non_existing_tags_as_admin(cli, db_cursor):
+async def test_search_non_existing_tags(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
     
@@ -34,15 +32,13 @@ async def test_search_non_existing_tags_as_admin(cli, db_cursor):
     assert resp.status == 404
 
 
-# Run the test twice for unauthorized & admin privilege levels
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, headers):
+async def test_correct_search_requests(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
 
     # Correct request - check response and maximum_values limit
     req_body = {"query": {"query_text": "0", "maximum_values": 2}}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers)
+    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "tag_ids" in data
@@ -50,8 +46,8 @@ async def test_correct_search_requests_as_admin_and_anonymous(cli, db_cursor, he
     assert data["tag_ids"] == [1, 3]    # a0, c0
 
     # Correct request - check if query case is ignored
-    insert_tags([{"tag_id": 11, "created_at": tag_list[0]["created_at"], "modified_at": tag_list[0]["modified_at"], 
-                    "tag_name": "A", "tag_description": ""}]
+    insert_tags([get_test_tag(11, created_at=tag_list[0]["created_at"], modified_at=tag_list[0]["modified_at"], 
+                    tag_name="A", tag_description="")]
                     , db_cursor)
     req_body = {"query": {"query_text": "A"}}
     resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)

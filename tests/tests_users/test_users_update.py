@@ -9,7 +9,7 @@ from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, get_update_user_request_body, incorrect_user_attributes, insert_users
 
 
-async def test_incorrect_request_body_at_top_level_as_admin(cli, config):
+async def test_incorrect_request_body_at_top_level(cli, config):
     # Incorrect request body
     resp = await cli.put("/users/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -36,7 +36,7 @@ async def test_incorrect_request_body_at_top_level_as_admin(cli, config):
         assert resp.status == 400
 
 
-async def test_incorrect_request_body_at_user_level_as_admin(cli, config):
+async def test_incorrect_request_body_at_user_level(cli, config):
     # Missing user_id
     body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"].pop("user_id")
@@ -73,7 +73,7 @@ async def test_incorrect_request_body_at_user_level_as_admin(cli, config):
             assert resp.status == 400
             
 
-async def test_incorrect_body_attribute_values_as_admin(cli, config):
+async def test_incorrect_body_attribute_values(cli, config):
     # Password is not correctly repeated
     body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
     body["user"]["password_repeat"] = "another password value"
@@ -92,13 +92,7 @@ async def test_incorrect_body_attribute_values_as_admin(cli, config):
     assert resp.status == 404
 
 
-async def test_correct_update_as_anonymous(cli, config):
-    body = get_update_user_request_body(token_owner_password=config["app"]["default_user"]["password"].value)
-    resp = await cli.put("/users/update", json=body)
-    assert resp.status == 401
-
-
-async def test_correct_update_of_a_single_attribute_of_another_user_as_admin(cli, config, db_cursor):
+async def test_correct_update_of_a_single_attribute_of_another_user(cli, config, db_cursor):
     # Declare mock data & insert user
     user_id = 2
     initial_user_data = get_test_user(user_id, pop_keys=["password_repeat"])
@@ -137,7 +131,7 @@ async def test_correct_update_of_a_single_attribute_of_another_user_as_admin(cli
             assert db_cursor.fetchone()[0] == 0
 
     
-async def test_correct_update_of_multiple_attributes_of_the_same_user_as_admin(cli, config, db_cursor):
+async def test_correct_update_of_multiple_attributes_of_the_same_user(cli, config, db_cursor):
     updated_user_data = get_test_user(1, login="updated login", username="updated username", password="updated_password", user_level="user",
         can_login=False, can_edit_objects=False, pop_keys=["registered_at"])
     

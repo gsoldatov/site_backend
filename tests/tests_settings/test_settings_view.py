@@ -1,5 +1,3 @@
-import pytest
-
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
@@ -9,7 +7,7 @@ from tests.fixtures.settings import set_setting
 from tests.fixtures.sessions import headers_admin_token
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body
     resp = await cli.post("/settings/view", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -33,30 +31,15 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_non_existing_setting_name_as_admin(cli):
+async def test_non_existing_setting_name(cli):
     body = {"setting_names": ["non-existing setting name"]}
     resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
-async def test_view_private_setting_as_anonymous(cli, db_cursor):
-    set_setting(db_cursor, "non_admin_registration_allowed", is_public=False)
-    
+async def test_view_non_admin_registration(cli, db_cursor):
     body = {"setting_names": ["non_admin_registration_allowed"]}
-    resp = await cli.post("settings/view", json=body)
-    assert resp.status == 401
-
-
-async def test_view_all_settings_as_anonymous(cli):
-    body = {"view_all": True}
-    resp = await cli.post("settings/view", json=body)
-    assert resp.status == 401
-
-
-@pytest.mark.parametrize("headers", [None, headers_admin_token])
-async def test_view_non_admin_registration_as_admin_and_anonymous(cli, db_cursor, headers):
-    body = {"setting_names": ["non_admin_registration_allowed"]}
-    resp = await cli.post("settings/view", json=body, headers=headers)
+    resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     
@@ -68,14 +51,14 @@ async def test_view_non_admin_registration_as_admin_and_anonymous(cli, db_cursor
     assert data["settings"].get("non_admin_registration_allowed") == False
 
     set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
-    resp = await cli.post("settings/view", json=body, headers=headers)
+    resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     
     assert data["settings"].get("non_admin_registration_allowed") == True
 
 
-async def test_view_all_as_admin(cli):
+async def test_view_all(cli):
     body = {"view_all": True}
     resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
     assert resp.status == 200

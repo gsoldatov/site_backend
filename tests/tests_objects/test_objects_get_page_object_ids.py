@@ -5,8 +5,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_test_object, get_objects_attributes_list, insert_objects, delete_objects, \
-    insert_data_for_view_objects_as_anonymous
+from tests.fixtures.objects import get_test_object, get_objects_attributes_list, insert_objects
 from tests.fixtures.objects_tags import insert_objects_tags
 from tests.fixtures.tags import tag_list, insert_tags
 from tests.fixtures.sessions import headers_admin_token
@@ -27,7 +26,7 @@ required_attributes = ("page", "items_per_page", "order_by", "sort_order")
 pagination_info_basic = {"pagination_info": {attr: pagination_info["pagination_info"][attr] for attr in required_attributes}}
 
 
-async def test_incorrect_request_body_as_admin(cli):
+async def test_incorrect_request_body(cli):
     # Incorrect request body (not a json, missing attributes, wrong attributes)
     resp = await cli.post("/objects/get_page_object_ids", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
@@ -53,7 +52,7 @@ async def test_incorrect_request_body_as_admin(cli):
         assert resp.status == 400
 
 
-async def test_correct_request_sort_by_name_as_admin(cli, db_cursor):
+async def test_correct_request_sort_by_name(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -80,7 +79,7 @@ async def test_correct_request_sort_by_name_as_admin(cli, db_cursor):
     assert data["pagination_info"]["object_ids"] == [10, 9] # j1, h0
 
 
-async def test_correct_request_sort_by_modified_at_as_admin(cli, db_cursor):
+async def test_correct_request_sort_by_modified_at(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -106,7 +105,7 @@ async def test_correct_request_sort_by_modified_at_as_admin(cli, db_cursor):
     assert data["pagination_info"]["object_ids"] == [7, 6]
 
 
-async def test_correct_request_sort_by_feed_timestamp_as_admin(cli, db_cursor):
+async def test_correct_request_sort_by_feed_timestamp(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -139,7 +138,7 @@ async def test_correct_request_sort_by_feed_timestamp_as_admin(cli, db_cursor):
     assert data["pagination_info"]["object_ids"] == [1, 10]
 
 
-async def test_correct_request_filter_text_as_admin(cli, db_cursor):
+async def test_correct_request_filter_text(cli, db_cursor):
     # Insert mock values
     obj_list = [
         get_test_object(1, object_name="A-A", owner_id=1),
@@ -184,7 +183,7 @@ async def test_correct_request_filter_text_as_admin(cli, db_cursor):
     assert resp.status == 404
 
 
-async def test_correct_request_object_types_filter_as_admin(cli, db_cursor):
+async def test_correct_request_object_types_filter(cli, db_cursor):
     # Insert mock values
     obj_list = [
         get_test_object(1, object_type="link", owner_id=1),
@@ -230,7 +229,7 @@ async def test_correct_request_object_types_filter_as_admin(cli, db_cursor):
     assert resp.status == 404
 
 
-async def test_correct_request_tags_filter_as_admin(cli, db_cursor):
+async def test_correct_request_tags_filter(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -281,7 +280,7 @@ async def test_correct_request_tags_filter_as_admin(cli, db_cursor):
     assert resp.status == 404
 
 
-async def test_correct_request_show_only_displayed_in_feed_as_admin(cli, db_cursor):
+async def test_correct_request_show_only_displayed_in_feed(cli, db_cursor):
     # Insert mock values
     obj_list = [
         get_test_object(1, object_type="link", display_in_feed=False, owner_id=1),
@@ -323,20 +322,6 @@ async def test_correct_request_show_only_displayed_in_feed_as_admin(cli, db_curs
     pi["pagination_info"]["object_types"] = ["composite"]
     resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 404
-    
-
-async def test_correct_requests_as_anonymous(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
-    expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
-
-    # Get all objects on one page (and receive only published)
-    pi = deepcopy(pagination_info)
-    pi["pagination_info"]["items_per_page"] = 10
-    resp = await cli.post("/objects/get_page_object_ids", json=pi)
-    assert resp.status == 200
-    data = await resp.json()
-    assert data["pagination_info"]["total_items"] == len(expected_object_ids)
-    assert sorted(data["pagination_info"]["object_ids"]) == expected_object_ids
     
 
 if __name__ == "__main__":
