@@ -9,7 +9,7 @@ if __name__ == "__main__":
 from datetime import datetime, timezone
 
 from fixtures.tags import get_test_tag, tag_list, insert_tags
-from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
+from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, insert_data_for_view_tests_objects_with_non_published_tags, \
     insert_objects, insert_links
 from fixtures.objects_tags import insert_objects_tags
 from tests.fixtures.sessions import headers_admin_token
@@ -56,6 +56,10 @@ async def test_objects_add_route(cli, db_cursor):
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 11, 12]
     db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
+
+    # Check if added new tags are published by default
+    db_cursor.execute(f"SELECT COUNT(*) FROM tags WHERE tag_id IN (11, 12) AND is_published = TRUE")
+    assert db_cursor.fetchone() == (2,)
 
 
 async def test_objects_update_route(cli, db_cursor):
@@ -113,6 +117,10 @@ async def test_objects_update_route(cli, db_cursor):
     db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_name = 'New Tag' OR tag_name = 'New Tag 2'")
     assert sorted([r[0] for r in db_cursor.fetchall()]) == ["New Tag", "New Tag 2"]
 
+    # Check if added new tags are published by default
+    db_cursor.execute(f"SELECT COUNT(*) FROM tags WHERE tag_id IN (11, 12) AND is_published = TRUE")
+    assert db_cursor.fetchone() == (2,)
+
     # Add tags only
     link = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
     link["added_tags"] = ["a0", 2, 6, "New Tag 3"]
@@ -166,6 +174,22 @@ async def test_objects_view_route(cli, db_cursor):
     for i in range(2):
         object_data = data["objects"][i]
         assert sorted(object_data["current_tag_ids"]) == sorted(objects_tags[object_data["object_id"]])
+
+
+async def test_objects_view_route_objects_with_non_published_tags(cli, db_cursor):
+    # Insert data
+    insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
+
+    # View objects' tags for objects with non-published tags
+    resp = await cli.post("/objects/view", json={"object_ids": [6, 10]}, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+
+    # Check if both objects are returned with expected tags
+    assert len(data["objects"]) == 2
+    for i in range(2):
+        assert (data["objects"][i]["object_id"] == 6 and sorted(data["objects"][i]["current_tag_ids"]) == [1, 2, 3]) \
+            or (data["objects"][i]["object_id"] == 10 and sorted(data["objects"][i]["current_tag_ids"]) == [1, 2, 3, 4])
 
 
 async def test_objects_delete_route(cli, db_cursor):

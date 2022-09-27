@@ -3,7 +3,8 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_objects_attributes_list, get_test_object, insert_objects, insert_data_for_view_objects_as_anonymous
+from tests.fixtures.objects import get_objects_attributes_list, get_test_object, insert_objects, \
+    insert_data_for_view_tests_objects_with_non_published_tags
 from tests.fixtures.sessions import headers_admin_token
 
 
@@ -33,7 +34,7 @@ async def test_search_non_existing_objects(cli, db_cursor):
     assert resp.status == 404
 
 
-async def test_correct_search_request(cli, db_cursor):
+async def test_correct_search_non_published_objects(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
@@ -69,6 +70,19 @@ async def test_correct_search_request(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [5, 7]    #e0, g0
+
+
+async def test_correct_search_objects_with_non_published_tags(cli, db_cursor):
+    inserts = insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
+    expected_object_ids = inserts["inserted_object_ids"]
+
+    # Search a pattern matching all existing objects (and receive all objects, 
+    # regardless of being tagged with non-published tags, in the response)
+    req_body = {"query": {"query_text": "object", "maximum_values": 10}}
+    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    assert sorted(data["object_ids"]) == expected_object_ids
 
 
 if __name__ == "__main__":

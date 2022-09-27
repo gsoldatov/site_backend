@@ -6,7 +6,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.util import check_ids
-from tests.fixtures.objects import get_objects_attributes_list, links_data_list, insert_objects, insert_links
+from tests.fixtures.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 from tests.fixtures.sessions import headers_admin_token
 
 
@@ -28,15 +28,14 @@ async def test_view_non_existing_objects(cli):
         assert resp.status == 404
 
 
-async def test_view_existing_objects(cli, db_cursor):
+async def test_view_non_published_objects(cli, db_cursor):
     # Insert mock values
-    obj_list = get_objects_attributes_list(1, 10)
-    insert_objects(obj_list, db_cursor)
-    insert_links(links_data_list, db_cursor)
+    inserts = insert_data_for_view_tests_non_published_objects(db_cursor)
+    obj_list = inserts["object_attributes"]
+    expected_object_ids = inserts["inserted_object_ids"]
     
     # Correct request (object_ids only)
-    object_ids = [_ for _ in range(1, 11)]
-    resp = await cli.post("/objects/view", json={"object_ids": object_ids}, headers=headers_admin_token)
+    resp = await cli.post("/objects/view", json={"object_ids": expected_object_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "objects" in data
@@ -44,7 +43,7 @@ async def test_view_existing_objects(cli, db_cursor):
     for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         assert field in data["objects"][0]
 
-    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request as admin, object_ids only")
 
     mock_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(obj_list, key=lambda o: o["object_id"])))
@@ -54,7 +53,7 @@ async def test_view_existing_objects(cli, db_cursor):
         if mock_feed_timestamps[i] == "": assert response_feed_timestamps[i] == ""
         else: assert datetime.fromisoformat(mock_feed_timestamps[i][:-1]) == datetime.fromisoformat(response_feed_timestamps[i]).replace(tzinfo=None)
     
-    # Correct request (object_data_ids only) is checked type-specific tests
+    # NOTE: object_data_ids only case is checked type-specific tests
 
     # Correct request (both types of data request)
     object_ids = [_ for _ in range(1, 6)]
@@ -64,6 +63,33 @@ async def test_view_existing_objects(cli, db_cursor):
     data = await resp.json()
     for attr in ("objects", "object_data"):
         assert attr in data
+    
+    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request for both object attributes and data as admin, object_ids")
+    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request for both object attributes and data as admin, object_data_ids")
+
+
+async def test_view_objects_with_non_published_tags(cli, db_cursor):
+    inserts = insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
+    object_ids = inserts["inserted_object_ids"]
+
+    # Correct request (object_ids only)
+    resp = await cli.post("/objects/view", json={"object_ids": object_ids}, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+
+    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+        "Objects view, correct request as admin, object_ids only")
+    
+    # NOTE: object_data_ids only case is checked type-specific tests
+
+    # Correct request (both types of data request)
+    object_ids = [1, 3, 5, 7, 9]
+    object_data_ids = [2, 4, 6, 8, 10]
+    resp = await cli.post("/objects/view", json={"object_ids": object_ids, "object_data_ids": object_data_ids}, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
     
     check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_ids")

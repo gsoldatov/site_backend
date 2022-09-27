@@ -5,7 +5,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import insert_data_for_view_objects_as_anonymous
+from tests.fixtures.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 
 
 pagination_info = {
@@ -22,11 +22,25 @@ pagination_info = {
 required_attributes = ("page", "items_per_page", "order_by", "sort_order")
 
 
-async def test_correct_request(cli, db_cursor):
-    insert_data_for_view_objects_as_anonymous(cli, db_cursor)
+async def test_correct_request_non_published_objects(cli, db_cursor):
+    insert_data_for_view_tests_non_published_objects(db_cursor)
     expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
 
     # Get all objects on one page (and receive only published)
+    pi = deepcopy(pagination_info)
+    pi["pagination_info"]["items_per_page"] = 10
+    resp = await cli.post("/objects/get_page_object_ids", json=pi)
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["pagination_info"]["total_items"] == len(expected_object_ids)
+    assert sorted(data["pagination_info"]["object_ids"]) == expected_object_ids
+
+
+async def test_correct_request_objects_with_non_published_tags(cli, db_cursor):
+    inserts = insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
+    expected_object_ids = inserts["expected_object_ids_as_anonymous"]
+
+    # Get all objects on one page (and receive only objects without non-published tags)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["items_per_page"] = 10
     resp = await cli.post("/objects/get_page_object_ids", json=pi)

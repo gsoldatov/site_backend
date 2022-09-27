@@ -13,7 +13,8 @@ if __name__ == "__main__":
 from tests.util import check_ids
 from tests.fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, get_composite_subobject_object_data, \
     add_composite_subobject, add_composite_deleted_subobject, composite_data_list, \
-    insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_composite_properties
+    insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_composite_properties, \
+    insert_data_for_composite_view_tests_objects_with_non_published_tags
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
@@ -590,7 +591,7 @@ async def test_update_correct_object_with_subobject_full_and_not_full_delete(cli
     assert sorted([r[0] for r in db_cursor.fetchall()]) == [103]    # subobjects of 11 are not changed
 
 
-async def test_view_composite_objects(cli, db_cursor):
+async def test_view_non_published_composite_objects(cli, db_cursor):
     # Insert mock values
     insert_objects(get_objects_attributes_list(1, 40), db_cursor)
     insert_composite(composite_data_list, db_cursor)
@@ -649,6 +650,20 @@ async def test_view_composite_objects_without_subobjects(cli, db_cursor):
             assert object_data["object_type"] == "composite"
             assert "subobjects" in object_data["object_data"]
             assert object_data["object_data"]["subobjects"] == []
+
+
+async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor):
+    # Insert data
+    insert_data_for_composite_view_tests_objects_with_non_published_tags(db_cursor)
+
+    # Correct request (object_data_ids only, composite, request all composite objects, 
+    # receive all objects, regardless of being tagged with non-published tags)
+    resp = await cli.post("/objects/view", json={"object_data_ids": [11, 12, 13]}, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+
+    check_ids([11, 12, 13], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request as admin, composite object_data_ids only")
 
 
 async def test_delete_composite(cli, db_cursor):

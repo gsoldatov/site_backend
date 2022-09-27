@@ -12,16 +12,19 @@ async def test_view_existing_tags(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Correct request
-    tag_ids = [_ for _ in range(1, 11)]
+    tag_ids = [tag["tag_id"] for tag in tag_list]
     resp = await cli.post("/tags/view", json={"tag_ids": tag_ids})
     assert resp.status == 200
     data = await resp.json()
     assert "tags" in data
 
-    check_ids(tag_ids, [data["tags"][x]["tag_id"] for x in range(len(data["tags"]))], 
+    # Check if only published tags are returned
+    expected_ids = [tag["tag_id"] for tag in tag_list if tag["is_published"]]
+    assert len(expected_ids) < len(tag_ids) # ensure there are non-published tags in the fixture
+    check_ids(expected_ids, [data["tags"][x]["tag_id"] for x in range(len(data["tags"]))], 
         "Tags view, correct request")
         
-    for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at"):
+    for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at", "is_published"):
         assert field in data["tags"][0]
 
 

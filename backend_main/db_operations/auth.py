@@ -89,11 +89,11 @@ async def check_if_non_admin_can_register(request):
 def get_objects_auth_filter_clause(request, object_ids = None, object_ids_subquery = None):
     """
     Returns an SQLAlchemy 'where' clause, which:
-    - filters non-published objects and objects with hidden tags if user is anonymous;
-    - filters non-published objects of other users and objects with hidden tags if user has 'user' level;
+    - filters non-published objects and objects with non-published tags if user is anonymous;
+    - filters non-published objects of other users and objects with non-published tags if user has 'user' level;
     - 1 = 1 for 'admin' user level.
 
-    `object_ids` or `object_ids_subquery` are used to specify object IDs, which are checked for being marked with hidden tags.
+    `object_ids` or `object_ids_subquery` are used to specify object IDs, which are checked for being marked with non-published tags.
     """
     objects = request.config_dict["tables"]["objects"]
     ui = request.user_info
@@ -140,7 +140,7 @@ def get_objects_with_published_tags_only_clause(request, object_ids = None, obje
     Returns an SQL Alchemy 'where' clause subquery, which:
     - if user has admin level, does nothing;
     - if user has non-admin level, filters `objects.object_id` column with a subquery, 
-      which filters out IDs with at least one hidden tag.
+      which filters out IDs with at least one non-published tag.
     
     To reduce the amount of objects' tags processing an iterable with object IDs `object_ids`
     or a subquery, which returns a list of object IDs `object_ids_subquery` must be provided.

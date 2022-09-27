@@ -32,11 +32,11 @@ async def test_incorrect_request_body(cli):
         assert resp.status == 400
 
 
-async def test_correct_requests(cli, db_cursor):
+async def test_correct_request_tag_name_asc(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
     
-    # Correct request - sort by tag_name asc + response body
+    # Send request & check response
     pi = deepcopy(pagination_info)
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
@@ -47,7 +47,12 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == len(tag_list)
     assert data["tag_ids"] == [1, 2] # a0, b1
 
-    # Correct request - sort by tag_name desc
+
+async def test_correct_request_tag_name_desc(cli, db_cursor):
+    # Insert data
+    insert_tags(tag_list, db_cursor)
+
+    # Send request & check response
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["sort_order"] = "desc"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
@@ -56,7 +61,12 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == len(tag_list)
     assert data["tag_ids"] == [10, 9] # j1, h0
 
-    # Correct request - sort by modified_at asc
+
+async def test_correct_request_modified_at_asc(cli, db_cursor):
+    # Insert data
+    insert_tags(tag_list, db_cursor)
+
+    # Send request & check response
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["order_by"] = "modified_at"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
@@ -65,7 +75,12 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == len(tag_list)
     assert data["tag_ids"] == [1, 5] # a0, e0
 
-    # Correct request - sort by modified_at desc + second page
+
+async def test_correct_request_modified_at_desc_second_page(cli, db_cursor):
+    # Insert data
+    insert_tags(tag_list, db_cursor)
+
+    # Send request & check response
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["page"] = 2
     pi["pagination_info"]["order_by"] = "modified_at"
@@ -76,7 +91,12 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == len(tag_list)
     assert data["tag_ids"] == [7, 6] # g0, f1
 
-    # Correct request - sort by tag_name asc with filter text
+
+async def test_correct_request_filter_text(cli, db_cursor):
+    # Insert data
+    insert_tags(tag_list, db_cursor)
+
+    # Send request & check response
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "0"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
@@ -85,7 +105,7 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == len(tag_list) // 2
     assert data["tag_ids"] == [1, 3] # a0, c0
 
-    # Correct request - filter by text + check if filter_text case is ignored
+    # Filter by text + check if filter_text case is ignored
     insert_tags([get_test_tag(100, "aa"), get_test_tag(101, "AaA"), get_test_tag(102, "AAaa"), get_test_tag(103, "aaaAa")], db_cursor)
     pi = deepcopy(pagination_info)
     pi["pagination_info"]["filter_text"] = "aA"
@@ -95,6 +115,29 @@ async def test_correct_requests(cli, db_cursor):
     assert data["total_items"] == 4 # id = [100, 101, 102, 103]
     assert data["tag_ids"] == [100, 101]
     delete_tags([100, 101, 102, 103], db_cursor)
+
+
+async def test_correct_request_non_published_tags(cli, db_cursor):
+    # Insert data
+    insert_tags([
+        get_test_tag(1, tag_name="a1", is_published=False),
+        get_test_tag(2, tag_name="a2", is_published=True),
+        get_test_tag(3, tag_name="a3", is_published=False),
+        get_test_tag(4, tag_name="a4", is_published=True),
+        get_test_tag(7, tag_name="b1", is_published=True),
+        get_test_tag(8, tag_name="b2", is_published=False)
+    ], db_cursor)
+    
+    # Send request & check response (tags are returned regardless of their `is_published` prop)
+    pi = deepcopy(pagination_info)
+    resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    for attr in ["page", "items_per_page","total_items", "order_by", "sort_order", "filter_text", "tag_ids"]:
+        assert attr in data
+        assert data[attr] == pi["pagination_info"].get(attr, None) or attr in ["total_items", "tag_ids"]
+    assert data["total_items"] == 6
+    assert data["tag_ids"] == [1, 2] # a1, a2
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ async def add_tag(request, tag_attributes):
     result = await request["conn"].execute(
         tags.insert()
         .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                tags.c.tag_name, tags.c.tag_description)
+                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
         .values(tag_attributes)
     )
 
@@ -54,7 +54,7 @@ async def update_tag(request, tag_attributes):
         .where(tags.c.tag_id == tag_id)
         .values(tag_attributes)
         .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                tags.c.tag_name, tags.c.tag_description)
+                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
     )
     
     record = await result.fetchone()

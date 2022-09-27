@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
 from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    to_do_lists_data_list, insert_objects, insert_to_do_lists
+    to_do_lists_data_list, insert_objects, insert_to_do_lists, insert_data_for_view_tests_objects_with_non_published_tags
 from tests.fixtures.sessions import headers_admin_token
 
 
@@ -157,7 +157,7 @@ async def test_update(cli, db_cursor):
     assert num_of_items == len(tdl["object_data"]["items"])
 
 
-async def test_view(cli, db_cursor):
+async def test_view_non_published_objects(cli, db_cursor):
     # Insert mock values
     insert_objects(get_objects_attributes_list(21, 30), db_cursor)
     insert_to_do_lists(to_do_lists_data_list, db_cursor)
@@ -189,6 +189,19 @@ async def test_view(cli, db_cursor):
     # Check ids
     check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, to-do lists object_data_ids only")
+
+
+async def test_view_objects_with_non_published_tags(cli, db_cursor):
+    # Insert data (published objects with published & non-published tags)
+    inserts = insert_data_for_view_tests_objects_with_non_published_tags(db_cursor, object_type="to_do_list")
+    requested_object_ids = inserts["inserted_object_ids"]
+
+    # Correct request (object_ids only)
+    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids}, headers=headers_admin_token)
+    assert resp.status == 200
+    data = await resp.json()
+    check_ids(requested_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+        "Objects view, correct request as admin, to-do list object_data_ids only")
 
 
 if __name__ == "__main__":

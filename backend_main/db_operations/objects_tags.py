@@ -53,7 +53,7 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
             .where(objects_tags.c.tag_id.in_(tag_ids))
         ))
 
-        # Get pairs wihtout filtering objects with hidden tags
+        # Get pairs wihtout filtering objects with non-published tags
         result = await request["conn"].execute(
         select([objects_tags.c.object_id, objects_tags.c.tag_id])
         .select_from(
@@ -68,39 +68,6 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
 
         return await result.fetchall()
 
-    
-    # # Query objects for `tag_ids` # TODO delete after new version is tested
-    # else:
-    #     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
-
-    #     # Get pairs wihtout filtering objects with hidden tags
-    #     result = await request["conn"].execute(
-    #     select([objects_tags.c.object_id, objects_tags.c.tag_id])
-    #     .select_from(
-    #             objects_tags
-    #             .join(tags, objects_tags.c.tag_id == tags.c.tag_id))   # join tags table to apply tags auth filter
-                
-    #             # source = state.alias().join(tasks.alias('source'), state.c.source_id == tasks.alias('source').c.id)
-    #     .where(and_(
-    #         objects_tags.c.tag_id.in_(tag_ids),         # 1 - selcet rows for provided `tag_ids`
-    #         tags_auth_filter_clause,                    # 2 - filter with tags auth clause
-    #     )))
-
-    #     pairs = await result.fetchall()
-
-    #     # Remove objects with at least one hidden tag
-    #     if request.user_level != "admin":
-    #         fetched_object_ids = set((row[0] for row in pairs))
-    #         result = await request["conn"].execute(
-    #             select([objects.c.object_id])
-    #             .where(get_objects_with_published_tags_only_clause(request, fetched_object_ids))
-    #         )
-
-    #         object_ids_without_hidden_tags = set(row[0] for row in await result.fetchall())
-    #         pairs = [row for row in pairs if row[0] in object_ids_without_hidden_tags]
-
-    #     return pairs
-
 
 async def update_objects_tags(request, objects_tags_data, check_ids = False):
     """
@@ -111,7 +78,7 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
     This functionality is not implemented for tag update case (when tag_ids is provided instead of object_ids).
 
     NOTE: if objects for tags update case becomes used, auth checks must be added and properly tested
-    (anonymous restriction, object owning, hidden tag usage by non-admins).
+    (anonymous restriction, object owning, non-published tag usage by non-admins).
     """
     # Ensure a transaction is started
     await start_transaction(request)
@@ -199,7 +166,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
             .where(get_tags_auth_filter_clause(request, is_published=False))
         )
         if (await result.fetchone())[0] > 0:
-            request.log_event("WARNING", "db_operation", "Attempted to add hidden tags as a non-admin.")
+            request.log_event("WARNING", "db_operation", "Attempted to add non-published tags as a non-admin.")
             raise web.HTTPForbidden(text=error_json("Cannot add specified tags."), content_type="application/json")
     
     # Create new tags for non-existing tag_names
@@ -273,7 +240,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
         )
 
         if (await result.fetchone())[0] > 0:
-            request.log_event("WARNING", "db_operation", "Attempted to delete hidden tags as a non-admin.")
+            request.log_event("WARNING", "db_operation", "Attempted to delete non-published tags as a non-admin.")
             raise web.HTTPForbidden(text=error_json("Cannot delete tags."), content_type="application/json")
 
     # 1

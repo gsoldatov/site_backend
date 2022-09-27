@@ -4,6 +4,8 @@ from psycopg2.extensions import AsIs
 
 from tests.util import parse_iso_timestamp
 from tests.fixtures.users import get_test_user, insert_users
+from tests.fixtures.objects_tags import insert_objects_tags
+from tests.fixtures.tags import get_test_tag, insert_tags
 
 
 __all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_objects_attributes_list", 
@@ -421,24 +423,73 @@ def delete_objects(object_ids, db_cursor):
     db_cursor.execute(query, params)
 
 
+object_data_insert_functions = {
+    "link": insert_links,
+    "markdown": insert_markdown,
+    "to_do_list": insert_to_do_lists,
+    "composite": insert_composite
+}
+
+
 # Sets of mock data insertions in the database
-def insert_data_for_view_objects_as_anonymous(object_ids, db_cursor, object_type = "link"):
+def insert_data_for_view_tests_non_published_objects(db_cursor, object_type = "link"):
     """
     Inserts another user and a set of objects in the database.
     Objects belong to different users and are partially published.
     If `object_type` is provided, inserted objects have it as their object type (defaults to "link").
     """
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
-    object_attributes = [get_test_object(i, object_type=object_type, owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
+    object_attributes = [get_test_object(i, object_type=object_type, 
+        feed_timestamp=_get_object_feed_timestamp(i), # `feed_timestamp` is required for /objects/view test as admin
+        owner_id=1, pop_keys=["object_data"]) for i in range(1, 11)]
     # object_attributes = get_objects_attributes_list(1, 10)
     for i in range(5, 10):
         object_attributes[i]["owner_id"] = 2
     for i in range(1, 10, 2):
         object_attributes[i]["is_published"] = True
     insert_objects(object_attributes, db_cursor)
-    data_insert_func = insert_links if object_type == "link" else insert_markdown if object_type == "markdown" else \
-        insert_to_do_lists if object_type == "to_do_list" else insert_composite
-    data_insert_func([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor)
+    object_data_insert_functions[object_type]([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor)
+
+    return {
+        "inserted_object_ids": [i for i in range(1, 11)],
+        "object_attributes": object_attributes
+    }
+
+
+def insert_data_for_view_tests_objects_with_non_published_tags(db_cursor, object_type = "link"):
+    """
+    Inserts published objects & object data of the provided `object_type`.
+    Inserts published/non-published tags, marks all objects with published tags and some with non-published.
+    """
+    insert_objects([get_test_object(i, is_published=True, object_type=object_type, owner_id=1, pop_keys=["object_data"]) 
+        for i in range(1, 11)], db_cursor) # Published objects
+    insert_tags([get_test_tag(i, is_published=i<3) for i in range(1, 5)], db_cursor) # Published & non-published tags
+    insert_objects_tags([i for i in range(1, 11)], [1, 2], db_cursor)  # Tag objects with published tags
+    insert_objects_tags([i for i in range(6, 11)], [3], db_cursor)  # Tag objects with non-published tags
+    insert_objects_tags([i for i in range(9, 11)], [4], db_cursor)
+    object_data_insert_functions[object_type]([get_test_object_data(i, object_type=object_type) for i in range(1, 11)], db_cursor)
+
+    return {
+        "inserted_object_ids": [i for i in range(1, 11)],
+        "expected_object_ids_as_anonymous": [i for i in range(1, 6)]
+    }
+
+
+def insert_data_for_composite_view_tests_objects_with_non_published_tags(db_cursor):
+    insert_objects([    # Composite objects & link subobject
+        get_test_object(1, object_type="link", is_published=True, owner_id=1, pop_keys=["object_data"]),
+        get_test_object(11, object_type="composite", is_published=True, owner_id=1, pop_keys=["object_data"]),
+        get_test_object(12, object_type="composite", is_published=True, owner_id=1, pop_keys=["object_data"]),
+        get_test_object(13, object_type="composite", is_published=True, owner_id=1, pop_keys=["object_data"])
+    ], db_cursor)
+    insert_composite([get_test_object_data(i, object_type="composite") for i in range (11, 14)], db_cursor) # Object data
+    insert_tags([   # Published & non-published tags
+        get_test_tag(1, is_published=True), get_test_tag(2, is_published=True),
+        get_test_tag(3, is_published=False), get_test_tag(4, is_published=False)
+    ], db_cursor)
+    insert_objects_tags([11, 12, 13], [1, 2], db_cursor)   # Objects tags
+    insert_objects_tags([12, 13], [3], db_cursor)
+    insert_objects_tags([13], [4], db_cursor)
 
 
 def insert_data_for_update_tests(db_cursor):
@@ -456,7 +507,7 @@ def insert_data_for_delete_tests(db_cursor):
     insert_links(l_list, db_cursor)
 
 
-def insert_non_cyclic_hierarchy(db_cursor, root_is_published = True):
+def insert_non_cyclic_hierarchy(db_cursor, root_is_published = True, root_has_non_published_tag = False):
     """
     Inserts a non-cyclic hierarchy for testing correct requests.
 
@@ -530,6 +581,11 @@ def insert_non_cyclic_hierarchy(db_cursor, root_is_published = True):
     composite_object_data.append(d)
 
     insert_composite(composite_object_data, db_cursor)
+
+    # Add optional non-published tag for root object
+    if root_has_non_published_tag:
+        insert_tags([get_test_tag(1, is_published=False)], db_cursor)
+        insert_objects_tags([99999], [1], db_cursor)
 
     # Return expected results
     return {

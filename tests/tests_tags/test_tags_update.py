@@ -17,7 +17,7 @@ async def test_incorrect_request_body(cli):
         assert resp.status == 400
     
     # Missing attributes
-    for attr in ("tag_id", "tag_name", "tag_description"):
+    for attr in ("tag_id", "tag_name", "tag_description", "is_published"):
         tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
         tag.pop(attr)
         resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
@@ -62,12 +62,12 @@ async def test_correct_update(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Correct update
-    tag = get_test_tag(3, pop_keys=["created_at", "modified_at"])
+    tag = get_test_tag(3, is_published=False, pop_keys=["created_at", "modified_at"])
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 200
-    db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
-    assert db_cursor.fetchone() == (tag["tag_name"],)
+    db_cursor.execute(f"SELECT tag_name, tag_description, is_published FROM tags WHERE tag_id = 1")
+    assert db_cursor.fetchone() == (tag["tag_name"], tag["tag_description"], tag["is_published"])
 
 
 if __name__ == "__main__":
