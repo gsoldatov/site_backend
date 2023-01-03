@@ -16,7 +16,6 @@ async def logging_middleware(request, handler):
         request.log_event("INFO", "request", f"Processing request to {request.rel_url}.")
         response = await handler(request)
         status = response.status
-        response.headers.update({"x-test-header": "1"}) # TODO remove
         return response
 
     except Exception as e:
