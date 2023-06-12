@@ -4,7 +4,7 @@ from backend_main.db_operations.searchables.data_classes import SearchableItem, 
 from backend_main.db_operations.searchables.markdown import markdown_to_searchable_item
 
 
-def process_object_ids(conn, object_ids):
+def process_object_batch(conn, object_ids):
     """
     Gets objects' attributes & data, processes them and updates `searchables` table for the provided `object_ids`.
     """

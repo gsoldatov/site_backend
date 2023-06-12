@@ -29,6 +29,8 @@ async def connection_middleware(request, handler):
 
         except Exception as e:
             if request.get("trans") is not None: await request["trans"].rollback()
+            request.pop("searchable_updates_tag_ids", None)
+            request.pop("searchable_updates_object_ids", None)
             raise e
 
 

@@ -75,3 +75,16 @@ class SearchableCollection:
             self.items[item.item_id] += item
         else:
             self.items[item.item_id] = item
+    
+    def serialize_for_insert(self, id_name, modified_at):
+        """
+        Serializes collection into a list of dictionaries
+        with `id_name` as name of ID key and `modified_at` as value of corresponding table column.
+        """
+        return [{
+            f"{id_name}": i.item_id,
+            "modified_at": modified_at,
+            "text_a": i.text_a,
+            "text_b": i.text_b,
+            "text_c": i.text_c
+        } for i in self.items.values()]
