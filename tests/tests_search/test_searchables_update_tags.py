@@ -28,7 +28,7 @@ async def test_add_tag(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Tag searchables were not processed in time.")
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if tags can are found by their names and descriptions
     for f in ("name", "descr"):
@@ -61,7 +61,7 @@ async def test_update_tag(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables WHERE modified_at > %(old_modified_at)s", {"old_modified_at": old_modified_at})
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Tag searchables were not processed in time.")
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if old searchables are no longer present
     for i in range(2):
@@ -94,7 +94,7 @@ async def test_add_object_with_new_tags(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables WHERE NOT tag_id ISNULL")
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Tag searchables were not processed in time.")
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if tags can are found by their names
     for i, w in enumerate(("first", "second")):
@@ -123,7 +123,7 @@ async def test_update_object_with_new_tags(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables WHERE NOT tag_id ISNULL")
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Tag searchables were not processed in time.")
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if tags can are found by their names
     for i, w in enumerate(("first", "second")):

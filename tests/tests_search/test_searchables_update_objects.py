@@ -29,7 +29,7 @@ async def test_add_objects_attribute_search(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if tags can are found by their names and descriptions
     for f in ("name", "descr"):
@@ -63,7 +63,7 @@ async def test_update_objects_attribute_search(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables WHERE modified_at > %(old_modified_at)s", {"old_modified_at": old_modified_at})
         return db_cursor.fetchone()[0] == 2
 
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if old searchables are no longer present
     for i in range(2):
@@ -96,7 +96,7 @@ async def test_add_object_data_link(cli_with_search, db_cursor):
         db_cursor.execute("SELECT * FROM searchables WHERE object_id = 1")
         return bool(db_cursor.fetchone())
 
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object can be found by its link value
     body = {"query": {"query_text": "new.link.value", "page": 1, "items_per_page": 10}}
@@ -118,7 +118,7 @@ async def test_add_object_data_markdown(cli_with_search, db_cursor):
         db_cursor.execute("SELECT * FROM searchables WHERE object_id = 1")
         return bool(db_cursor.fetchone())
 
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object can be found by its Markdown text
     body = {"query": {"query_text": "Header text", "page": 1, "items_per_page": 10}}
@@ -147,7 +147,7 @@ async def test_add_object_data_to_do_list(cli_with_search, db_cursor):
         db_cursor.execute("SELECT * FROM searchables WHERE object_id = 1")
         return bool(db_cursor.fetchone())
 
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object can be found by its item value and commentary
     for query_text in ("To-do list item", "To-do list commentary"):

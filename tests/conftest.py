@@ -165,9 +165,14 @@ async def cli(aiohttp_client, app):
 
 
 @pytest.fixture
-async def app_with_search(config_with_search, db_cursor, insert_data):
+async def app_with_search(config_with_search, db_cursor, insert_data, aiohttp_client):
     """
     aiohttp web.Application object with its own configured test database.
+
+    NOTE: `aiohttp_client` fixture is required, so that its teardown is called after teardown of `app`.
+    This is necessary to properly await for searchable data updates to finish in corresponding tests.
+    Another option is to call `app.shutdown` & `app.cleanup` in app fixture, but this requires additional workaround
+    to avoid errors in teardown of some tests.
     """
     app = await create_app(config=config_with_search)
     yield app

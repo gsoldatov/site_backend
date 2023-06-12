@@ -1,5 +1,5 @@
 import os
-import time
+import asyncio
 from datetime import datetime
 from copy import deepcopy
 import pytest
@@ -44,21 +44,21 @@ def parse_iso_timestamp(s, allow_empty_string = False):
     return datetime.fromisoformat(s)
 
 
-def wait_for(fn, timeout = 1, interval = 0.1, msg = "Timeout expired.", *args, **kwargs):
+async def wait_for(fn, timeout = 1, interval = 0.1, msg = "Timeout expired.", *args, **kwargs):
     """
-    Runs function `fn` until it returns True with a specified `interval` between calls.
-    Raises an error if `timeout` is reached before successful function execution.
+    Waits for callable `fn` to return True on completion.
+    Sleeps for a specified `interval` between calls.
+    If `timeout` is reached before True is returned, fails the test with the provided message `msg`.
+    `fn` arguments can be passed via `*args` and `**kwargs`.
     """
-    end_time = time.time() + timeout
-
-    while time.time() < end_time:
-        result = fn(*args, **kwargs)
-
-        if result: return
-
-        time.sleep(interval)
+    async def awaitable_wrapper():
+        while not fn(*args, **kwargs):
+            await asyncio.sleep(interval)
     
-    raise TimeoutError(msg)
+    try:
+        await asyncio.wait_for(awaitable_wrapper(), timeout=timeout)
+    except asyncio.TimeoutError:
+        pytest.fail(msg)
 
 
 def run_pytest_tests(file):

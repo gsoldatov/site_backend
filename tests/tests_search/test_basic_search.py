@@ -175,7 +175,7 @@ async def test_ranking_tag_name_description(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
     
-    wait_for(fn, msg="Tag searchables were not processed in time.")
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if tag_name has more priority than non-header tag_description
     body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
@@ -210,7 +210,7 @@ async def test_ranking_object_name_description(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
     
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than non-header object_description
     body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
@@ -249,7 +249,7 @@ async def test_ranking_object_name_link(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
     
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than link object data
     body = {"query": {"query_text": "wikipedia.org", "page": 1, "items_per_page": 10}}
@@ -282,7 +282,7 @@ async def test_ranking_object_name_markdown(cli_with_search, db_cursor):
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
     
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than non-header markdown object data
     body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
@@ -325,7 +325,7 @@ async def test_ranking_object_name_to_do_list_item_and_comment(cli_with_search, 
         db_cursor.execute("SELECT COUNT(*) FROM searchables")
         return db_cursor.fetchone()[0] == 2
     
-    wait_for(fn, msg="Object searchables were not processed in time.")
+    await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than to-do list item text
     body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
