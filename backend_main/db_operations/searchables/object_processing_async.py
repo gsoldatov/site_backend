@@ -80,7 +80,7 @@ async def _process_objects_coro(request, object_ids):
         links = request.config_dict["tables"]["links"]
 
         cursor = await conn.execute(
-            select[links.c.object_id, links.c.link]
+            select([links.c.object_id, links.c.link])
             .where(links.c.object_id.in_(types["link"]))
         )
 
@@ -108,7 +108,7 @@ async def _process_objects_coro(request, object_ids):
         to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
         cursor = await conn.execute(
-            select[to_do_list_items.c.object_id, to_do_list_items.c.item_text, to_do_list_items.c.commentary]
+            select([to_do_list_items.c.object_id, to_do_list_items.c.item_text, to_do_list_items.c.commentary])
             .where(to_do_list_items.c.object_id.in_(types["to_do_list"]))
         )
 
