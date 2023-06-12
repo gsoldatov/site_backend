@@ -37,7 +37,11 @@ async def create_app(config_file = None, config = None):
                                                                 # may be worth moving both of these into the config file
             # Create a storage for running tasks references to avoid them
             # being destroyed by the garbage collector before they complete
-            app["pending_tasks"] = set() 
+            app["pending_tasks"] = set()
+        
+        # Set flag for request bounce middleware 
+        # NOTE: dict is used to avoid warnings about state change of a frozen app
+        app["can_process_requests"] = { "value": True } 
 
         # Setup routes
         setup_routes(app)

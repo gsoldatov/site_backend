@@ -39,7 +39,10 @@ async def error_middleware(request, handler):
         request.log_event("ERROR", "request", "Failed to connect to the database.")
         _raise_500(request, e)
 
-    except web.HTTPException:
+    except web.HTTPException as e:
+        if type(e) == web.HTTPServiceUnavailable:
+            request.log_event("WARNING", "request", "Request was not processed due to app shutdown.")
+
         raise
 
     except Exception as e:

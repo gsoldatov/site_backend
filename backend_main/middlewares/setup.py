@@ -2,6 +2,7 @@ from aiohttp_remotes import ForwardedRelaxed
 
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
+from backend_main.middlewares.bounce import bounce_middleware
 from backend_main.middlewares.connection import connection_middleware
 from backend_main.middlewares.logging import logging_middleware
 from backend_main.middlewares.tasks import tasks_middleware
@@ -16,6 +17,7 @@ def setup_middlewares(app):
     
     app.middlewares.append(logging_middleware)
     app.middlewares.append(error_middleware)
+    app.middlewares.append(bounce_middleware)
     app.middlewares.append(tasks_middleware)
     # app.middlewares.append(threading_middleware)
     app.middlewares.append(connection_middleware)
