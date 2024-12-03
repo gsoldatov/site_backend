@@ -31,7 +31,7 @@ async def error_middleware(request, handler):
         raise web.HTTPBadRequest(text=error_json(e), content_type="application/json")
 
     except UniqueViolation as e:
-        msg = _get_uv_msg(e)
+        msg = _get_unique_violation_error_message(e)
         request.log_event("WARNING", "request", "Invalid data in request body.", details=msg)
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
@@ -62,16 +62,19 @@ def _raise_500(request, exception):
         raise web.HTTPInternalServerError(text="Server failed to process request.")
 
 
-def _get_uv_msg(e):
+def _get_unique_violation_error_message(e):
     """
-    Returns custom message to return in case of a UniqueViolation error.
+    Generates an error message to return in HTTP response in case of a UniqueViolation error.
     """
-    uv_field_names = {"tag_name": "tag name", "login": "login", "username": "username"}
+    field_name_message_map = {
+        "login": "Submitted login is unavailable.",
+        "username": "Submitted username is unavailable.",
+        "tag_name": "Submitted tag name already exists.",
+    }
     error_text = str(e)
-    field_name = "data"
-    for fn in uv_field_names:
-        if error_text.find(fn) > -1:
-            field_name = uv_field_names[fn]
-            break
-            
-    return f"Submitted {field_name} already exists."
+
+    for field_name in field_name_message_map:
+        if error_text.find(field_name) > -1:
+            return field_name_message_map[field_name]
+    
+    return f"Submitted data already exists."
