@@ -31,13 +31,13 @@ async def create_app(config_file = None, config = None):
         app["tables"] = get_tables()[0]
 
         # Setup async thread pool executor
-        if app["config"]["auxillary"]["enable_searchables_updates"]:
-            loop = asyncio.get_event_loop()
-            loop.set_default_executor(ThreadPoolExecutor(10))   # NOTE: pool size is limited to 1/2 of connection pool;
-                                                                # may be worth moving both of these into the config file
-            # Create a storage for running tasks references to avoid them
-            # being destroyed by the garbage collector before they complete
-            app["pending_tasks"] = set()
+        pool_size = 10  # limit pool size to 1/2 of connection pool; it may be worth moving both of these into the config file
+        loop = asyncio.get_event_loop()
+        loop.set_default_executor(ThreadPoolExecutor(pool_size))    # NOTE: ThreadPoolExecutor is used by default, so only the number of workers is adjusted here
+
+        # Create a storage for running tasks references to avoid them
+        # being destroyed by the garbage collector before they complete
+        app["pending_tasks"] = set()
         
         # Set flag for request bounce middleware 
         # NOTE: dict is used to avoid warnings about state change of a frozen app
