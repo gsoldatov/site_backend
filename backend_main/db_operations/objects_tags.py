@@ -1,8 +1,6 @@
 """
     Common operations with objects_tags table.
 """
-from datetime import datetime
-
 from aiohttp import web
 from sqlalchemy import select, func, true
 from sqlalchemy.sql import and_
@@ -177,15 +175,15 @@ async def _add_tags_for_objects(request, objects_tags_data):
             request.log_event("WARNING", "db_operation", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
-        current_time = datetime.utcnow()
+        request_time = request["time"]
         new_tag_ids = []
 
         result = await request["conn"].execute(
             tags.insert()
             .returning(tags.c.tag_id)
             .values([{
-                "created_at": current_time,
-                "modified_at": current_time,
+                "created_at": request_time,
+                "modified_at": request_time,
                 "tag_name": name,
                 "tag_description": "",
                 "is_published": True

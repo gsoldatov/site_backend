@@ -2,7 +2,7 @@
     Authorization & authentication routes.
 """
 from aiohttp import web
-from datetime import datetime, timedelta
+from datetime import timedelta
 from jsonschema import validate
 
 from backend_main.db_operations.auth import check_if_non_admin_can_register
@@ -43,7 +43,8 @@ async def register(request):
     
     # Set default values
     data.pop("password_repeat")
-    data["registered_at"] = datetime.utcnow()
+    request_time = request["time"]
+    data["registered_at"] = request_time
     if "user_level" not in data: data["user_level"] = "user"
     if "can_login" not in data: data["can_login"] = True
     if "can_edit_objects" not in data: data["can_edit_objects"] = True
@@ -77,9 +78,11 @@ async def login(request):
 
     # User was not found
     if user_data is None:
+        request_time = request["time"]
+
         # Update login rate limits
         lrli = request.login_rate_limit_info
-        lrli.cant_login_until = datetime.utcnow() + \
+        lrli.cant_login_until = request_time + \
             timedelta(seconds=get_login_attempts_timeout_in_seconds(lrli.failed_login_attempts))
         lrli.failed_login_attempts += 1
         await upsert_login_rate_limit(request, lrli)

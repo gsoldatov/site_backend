@@ -110,6 +110,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
     """
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
+    request_time = request["time"]
 
     # Get new subobjects' attributes and data
     new_objects_attributes = {}
@@ -125,8 +126,8 @@ async def _add_new_subobjects(request, obj_ids_and_data):
                     "object_type": object_type,
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
-                    "created_at": request["current_time"],
-                    "modified_at": request["current_time"],
+                    "created_at": request_time,
+                    "modified_at": request_time,
                     
                     "is_published": so["is_published"],
 
@@ -181,6 +182,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
     """
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
+    request_time = request["time"]
     
     # Get existing subobjects' attributes and data
     updated_objects_attributes = []
@@ -198,7 +200,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                     "show_description": so["show_description"],
                     "display_in_feed": so["display_in_feed"],
                     "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
-                    "modified_at": request["current_time"]
+                    "modified_at": request_time
                 }
                 if "owner_id" in so:     # don't update owner_id if it was not explicitly passed
                     updated_so_attributes["owner_id"] = so["owner_id"]

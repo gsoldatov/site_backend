@@ -3,12 +3,17 @@
 """
 from asyncio import get_running_loop
 from aiohttp import web
+from datetime import datetime, timezone
 
 from backend_main.logging.loggers.app import setup_request_event_logging
 
 
 @web.middleware
 async def logging_middleware(request, handler):
+    # Set request time
+    # request["time"] = datetime.now(tz=timezone.utc)     # Request start time
+    request["time"] = datetime.utcnow()     # TODO replace when timezone fields are added
+
     # Setup request event logging function
     setup_request_event_logging(request)
 
@@ -27,7 +32,7 @@ async def logging_middleware(request, handler):
         request_id = request["request_id"]
         path = request.path
         method = request.method
-        elapsed_time = round(get_running_loop().time() - request["start_time"], 3)
+        elapsed_time = round(get_running_loop().time() - request["monotonic_start_time"], 3)
         
         user_id = "anonymous"
         if hasattr(request, "user_info"):

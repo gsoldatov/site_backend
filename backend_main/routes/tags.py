@@ -1,9 +1,7 @@
-from backend_main.middlewares.connection import start_transaction
-from datetime import datetime
-
 from aiohttp import web
 from jsonschema import validate
 
+from backend_main.middlewares.connection import start_transaction
 from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
 from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 from backend_main.middlewares.connection import start_transaction
@@ -18,9 +16,9 @@ async def add(request):
     validate(instance = data, schema = tags_add_schema)
     
     # Get and set attribute values
-    current_time = datetime.utcnow()
-    data["tag"]["created_at"] = current_time
-    data["tag"]["modified_at"] = current_time
+    request_time = request["time"]
+    data["tag"]["created_at"] = request_time
+    data["tag"]["modified_at"] = request_time
     added_object_ids = data["tag"].pop("added_object_ids", [])
 
     # Start a transaction
@@ -42,7 +40,8 @@ async def update(request):
     validate(instance = data, schema = tags_update_schema)
 
     # Get and set attribute values
-    data["tag"]["modified_at"] = datetime.utcnow()
+    request_time = request["time"]
+    data["tag"]["modified_at"] = request_time
     added_object_ids = data["tag"].pop("added_object_ids", [])
     removed_object_ids = data["tag"].pop("removed_object_ids", [])
 

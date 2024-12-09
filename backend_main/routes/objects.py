@@ -1,8 +1,6 @@
 """
     Object routes.
 """
-from datetime import datetime
-
 from aiohttp import web
 from jsonschema import validate
 
@@ -25,10 +23,9 @@ async def add(request):
     validate(instance=data, schema=objects_add_schema)
 
     # Get and set attribute values
-    current_time = datetime.utcnow()
-    request["current_time"] = current_time
-    data["object"]["created_at"] = current_time
-    data["object"]["modified_at"] = current_time
+    request_time = request["time"]
+    data["object"]["created_at"] = request_time
+    data["object"]["modified_at"] = request_time
     data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
@@ -69,9 +66,8 @@ async def update(request):
     validate(instance=data, schema=objects_update_schema)
 
     # Get and set attribute values
-    current_time = datetime.utcnow()
-    request["current_time"] = current_time
-    data["object"]["modified_at"] = current_time
+    request_time = request["time"]
+    data["object"]["modified_at"] = request_time
     data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])

@@ -425,7 +425,7 @@ async def set_modified_at(request, object_ids, modified_at = None):
     if type(object_ids) != list:
         raise TypeError("object_ids is not a list or an empty list")
 
-    modified_at = modified_at or datetime.utcnow()
+    modified_at = modified_at or request["time"]
     if type(modified_at) != datetime:
         raise TypeError("modified_at is not a datetime object")
 

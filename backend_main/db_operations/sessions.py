@@ -22,8 +22,8 @@ async def prolong_access_token_and_get_user_info(request):
     
     users = request.config_dict["tables"]["users"]
     sessions = request.config_dict["tables"]["sessions"]
-    current_time = datetime.utcnow()
-    expiration_time = current_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
+    request_time = request["time"]
+    expiration_time = request_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
 
     # Update expiration time and return user information corresponding to the updated token 
     # in a single query using CTE.
@@ -32,7 +32,7 @@ async def prolong_access_token_and_get_user_info(request):
         sessions.update()
         .where(and_(
             sessions.c.access_token == request.user_info.access_token,
-            sessions.c.expiration_time > current_time
+            sessions.c.expiration_time > request_time
         ))
         .values({"expiration_time": expiration_time})
         .returning(sessions.c.user_id.label("user_id"))
@@ -64,11 +64,12 @@ async def add_session(request, user_id):
     Adds a new session for the provided `user_id` and returns the generated access token.
     """
     sessions = request.config_dict["tables"]["sessions"]
+    request_time = request["time"]
     
     data = {
         "user_id": user_id,
         "access_token": uuid4().hex,
-        "expiration_time": datetime.utcnow() + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
+        "expiration_time": request_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
     }
 
     await request["conn"].execute(
