@@ -1,7 +1,7 @@
 """
 Clears expired records from `sessions` table.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from psycopg2.extensions import cursor as CursorClass
 
@@ -25,7 +25,7 @@ def main(config = None):
         logger.info("Connected to the database.")
         
         # Delete sessions, which are expired or belong to users who can't login
-        current_time = datetime.utcnow()
+        current_time = datetime.now(tz=timezone.utc)
         cursor.execute(f"""
             DELETE FROM sessions
             WHERE access_token IN (

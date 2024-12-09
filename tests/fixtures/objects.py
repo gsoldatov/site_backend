@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from psycopg2.extensions import AsIs
 
@@ -43,7 +43,7 @@ def get_test_object(object_id, object_type = None, created_at = None, modified_a
         else:
             raise ValueError(f"Received an incorrect combination of object_id and object_type in get_test_object function: '{object_id}', '{object_type}'")
     
-    curr_time = datetime.utcnow()
+    curr_time = datetime.now(tz=timezone.utc)
     created_at = created_at if created_at is not None else curr_time
     modified_at = modified_at if modified_at is not None else curr_time
     object_name = object_name if object_name is not None else f"Object #{object_id}"
@@ -122,7 +122,7 @@ def _get_composite_object_data(id, composite_subobject_object_type = None):
         so["object_description"] = "subobject description"
         so["is_published"] = False
         so["display_in_feed"] = False
-        so["feed_timestamp"] = datetime.utcnow().isoformat() + "Z"
+        so["feed_timestamp"] = datetime.now(tz=timezone.utc).isoformat()
         so["show_description"] = False
         so["object_type"] = composite_subobject_object_type
         so["object_data"] = get_composite_subobject_object_data(1, object_type=composite_subobject_object_type)
@@ -143,7 +143,7 @@ def _get_obj_timestamp(x):
     ... 16 12 8 4 1 2 3 5 6 7 9 ...
     """
     delta = -x if x % 4 == 0 else x
-    return datetime.utcnow() + timedelta(minutes=delta)
+    return datetime.now(tz=timezone.utc) + timedelta(minutes=delta)
 
 
 def _get_object_feed_timestamp(x):
@@ -156,7 +156,7 @@ def _get_object_feed_timestamp(x):
     """
     if x % 2 == 0: return ""
     delta = 10 * x * (1 if x % 4 == 1 else -1)
-    return (datetime.utcnow() + timedelta(days=delta)).isoformat() + "Z"
+    return (datetime.now(tz=timezone.utc) + timedelta(days=delta)).isoformat()
 
 
 def get_objects_attributes_list(min_id, max_id, owner_id = 1):

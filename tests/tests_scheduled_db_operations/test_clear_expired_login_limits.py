@@ -1,7 +1,7 @@
 """
 Tests for scheduled deletion of expired login limits.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -16,10 +16,10 @@ from tests.fixtures.login_rate_limits import get_test_login_rate_limit, insert_l
 def test_clear_expired_login_limits(db_cursor, config):
     # Insert data
     login_rate_limits = [
-        get_test_login_rate_limit("1.1.1.1", cant_login_until=datetime.utcnow() - timedelta(hours=12, seconds=1)),
-        get_test_login_rate_limit("2.2.2.2", cant_login_until=datetime.utcnow() - timedelta(days=1, hours=12, seconds=1)),
-        get_test_login_rate_limit("3.3.3.3", cant_login_until=datetime.utcnow() - timedelta(hours=11, minutes=59, seconds=59)),
-        get_test_login_rate_limit("4.4.4.4", cant_login_until=datetime.utcnow() + timedelta(seconds=10))
+        get_test_login_rate_limit("1.1.1.1", cant_login_until=datetime.now(tz=timezone.utc) - timedelta(hours=12, seconds=1)),
+        get_test_login_rate_limit("2.2.2.2", cant_login_until=datetime.now(tz=timezone.utc) - timedelta(days=1, hours=12, seconds=1)),
+        get_test_login_rate_limit("3.3.3.3", cant_login_until=datetime.now(tz=timezone.utc) - timedelta(hours=11, minutes=59, seconds=59)),
+        get_test_login_rate_limit("4.4.4.4", cant_login_until=datetime.now(tz=timezone.utc) + timedelta(seconds=10))
     ]
 
     insert_login_rate_limits(login_rate_limits, db_cursor)

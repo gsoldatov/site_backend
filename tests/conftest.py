@@ -1,6 +1,6 @@
 import os, sys
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from copy import deepcopy
 
@@ -131,7 +131,7 @@ def insert_data(config, db_cursor):
     db_cursor.execute("INSERT INTO settings VALUES ('non_admin_registration_allowed', 'FALSE', true)")
 
     # Insert admin
-    current_time = datetime.utcnow()
+    current_time = datetime.now(tz=timezone.utc)
     login = config["app"]["default_user"]["login"].value
     password = config["app"]["default_user"]["password"].value
     username = config["app"]["default_user"]["username"]
@@ -141,7 +141,7 @@ def insert_data(config, db_cursor):
     # Insert admin session
     db_cursor.execute("SELECT user_id FROM users")
     default_user_id = db_cursor.fetchone()[0]
-    expiration_time = datetime.utcnow() + timedelta(minutes=15)
+    expiration_time = datetime.now(tz=timezone.utc) + timedelta(minutes=15)
     db_cursor.execute(f"""INSERT INTO sessions (user_id, access_token, expiration_time)
                         VALUES ({default_user_id}, '{admin_token}', '{expiration_time}')""")
 

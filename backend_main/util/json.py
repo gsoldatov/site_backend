@@ -15,7 +15,7 @@ def row_proxy_to_dict(row_proxy):
     result = {}
     for k in row_proxy:
         if type(row_proxy[k]) == datetime:
-            result[k] = serialize_datetime_to_str(row_proxy[k])
+            result[k] = row_proxy[k].isoformat()
         else:
             result[k] = row_proxy[k]
     return result
@@ -45,12 +45,6 @@ def markdown_data_row_proxy_to_dict(row):
     for attr in [a for a in d]:
         result["object_data"][attr] = d.pop(attr)
     return result
-
-
-def serialize_datetime_to_str(d):
-    # Add UTC timezone and serialize into string
-    date_with_timezone = d.replace(tzinfo=timezone.utc)
-    return date_with_timezone.isoformat()
 
 
 def deserialize_str_to_datetime(s, allow_empty_string = False, error_msg = None):

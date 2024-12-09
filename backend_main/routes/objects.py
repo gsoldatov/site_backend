@@ -13,7 +13,7 @@ from backend_main.db_operations.objects import add_objects, update_objects, view
 from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
-from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json, serialize_datetime_to_str
+from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 
@@ -194,7 +194,7 @@ async def update_tags(request):
     response_data["tag_updates"] = await update_objects_tags(request, data, check_ids=True)
     
     # Set objects' modified_at time
-    response_data["modified_at"] = serialize_datetime_to_str(await set_modified_at(request, data["object_ids"]))
+    response_data["modified_at"] = (await set_modified_at(request, data["object_ids"])).isoformat()
 
     request.log_event("INFO", "route_handler", "Updated tags for objects.")
     return response_data

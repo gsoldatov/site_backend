@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -100,7 +100,7 @@ async def test_failed_login_attempts_limiting(cli, db_cursor):
             assert rows[0] == lrl
 
             # Reset `cant_login_until`
-            cant_login_until = datetime.utcnow() + timedelta(seconds=-60)
+            cant_login_until = datetime.now(tz=timezone.utc) + timedelta(seconds=-60)
             db_cursor.execute(f"UPDATE login_rate_limits SET cant_login_until = '{cant_login_until}' WHERE ip_address = '{ip_address}'")
 
             # Login with incorrect credentials
@@ -118,8 +118,9 @@ async def test_failed_login_attempts_limiting(cli, db_cursor):
         rows = db_cursor.fetchall()
         assert len(rows) == 1
         assert rows[0][0] == lrl[0] + 1 # `failed_login_attempts`
-        # `cant_login_until` ~= datetime.utcnow() + timeout after i+1 failed logins
-        assert timedelta(seconds=0) <= datetime.utcnow() - (rows[0][1] - timedelta(seconds=_LOGIN_TIMEOUTS[i])) <= timedelta(seconds=1)
+        # `cant_login_until` ~= datetime.now(tz=timezone.utc) + timeout after i+1 failed logins
+        assert timedelta(seconds=0) <= datetime.now(tz=timezone.utc) - \
+            (rows[0][1] - timedelta(seconds=_LOGIN_TIMEOUTS[i])) <= timedelta(seconds=1)
 
 
 async def test_failed_login_attempts_limiting_forwarded_remote(cli, db_cursor):
@@ -157,7 +158,7 @@ async def test_logging_in_with_correct_admin_credentials(cli, db_cursor, config)
 
     # Add a login rate limiting record
     ip_address = "127.0.0.1"
-    cant_login_until = datetime.utcnow() + timedelta(seconds=-60)
+    cant_login_until = datetime.now(tz=timezone.utc) + timedelta(seconds=-60)
     db_cursor.execute(f"""INSERT INTO login_rate_limits (ip_address, failed_login_attempts, cant_login_until) VALUES 
                           ('{ip_address}', 5, '{cant_login_until}')""")
     db_cursor.execute(f"SELECT COUNT(*) FROM login_rate_limits WHERE ip_address = '{ip_address}'")
@@ -171,8 +172,8 @@ async def test_logging_in_with_correct_admin_credentials(cli, db_cursor, config)
     data = await resp.json()
     assert "auth" in data
     assert "access_token" in data["auth"]
-    expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"]).replace(tzinfo=None)
-    assert datetime.utcnow() + timedelta(seconds=config["app"]["token_lifetime"]) \
+    expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"])
+    assert datetime.now(tz=timezone.utc) + timedelta(seconds=config["app"]["token_lifetime"]) \
         - expiration_time < timedelta(seconds=1)
     assert data["auth"]["user_id"] == user["user_id"]
     assert data["auth"]["user_level"] == user["user_level"]
@@ -181,7 +182,7 @@ async def test_logging_in_with_correct_admin_credentials(cli, db_cursor, config)
     db_cursor.execute(f"""SELECT user_id, expiration_time FROM sessions WHERE access_token = '{data["auth"]["access_token"]}'""")
     row = db_cursor.fetchone()
     assert row[0] == 2
-    assert expiration_time == row[1].replace(tzinfo=None)
+    assert expiration_time == row[1]
 
     # Check if login rate limiting record was removed from the database
     db_cursor.execute(f"SELECT COUNT(*) FROM login_rate_limits WHERE ip_address = '{ip_address}'")

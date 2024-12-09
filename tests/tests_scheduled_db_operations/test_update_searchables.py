@@ -1,7 +1,7 @@
 """
 Tests for scheduled recalculations of `searchables` table.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -20,7 +20,7 @@ def test_disabled_searchables_updates(db_cursor, config, app):
     obj_list=[get_test_object(1, owner_id=1, pop_keys=["object_data"])]
     insert_objects(obj_list, db_cursor)
 
-    searchables = [get_test_searchable(object_id=1, text_a="old", modified_at=datetime(2001, 1, 1))]
+    searchables = [get_test_searchable(object_id=1, text_a="old", modified_at=datetime(2001, 1, 1, tzinfo=timezone.utc))]
     insert_searchables(searchables, db_cursor)
 
     # Run script
@@ -40,7 +40,7 @@ def test_full_mode(db_cursor, config_with_search, app_with_search):
 
     # Check if all objects' searchables were updated
     for object_id in range(1, 4):
-        curr_time = datetime.utcnow()
+        curr_time = datetime.now(tz=timezone.utc)
         db_cursor.execute("SELECT modified_at, text_a FROM searchables WHERE object_id = %(object_id)s", {"object_id": object_id})
         modified_at, text_a = db_cursor.fetchone()
         assert curr_time - timedelta(seconds=1) < modified_at < curr_time + timedelta(seconds=1)
@@ -48,7 +48,7 @@ def test_full_mode(db_cursor, config_with_search, app_with_search):
     
     # Check if all tags' searchables were updated
     for tag_id in range(1, 4):
-        curr_time = datetime.utcnow()
+        curr_time = datetime.now(tz=timezone.utc)
         db_cursor.execute("SELECT modified_at, text_a FROM searchables WHERE tag_id = %(tag_id)s", {"tag_id": tag_id})
         modified_at, text_a = db_cursor.fetchone()
         assert curr_time - timedelta(seconds=1) < modified_at < curr_time + timedelta(seconds=1)
@@ -70,7 +70,7 @@ def test_missing_mode(db_cursor, config_with_search, app_with_search):
 
     # Check if object searchables not saved after object save were updated
     for object_id in range(2, 4):
-        curr_time = datetime.utcnow()
+        curr_time = datetime.now(tz=timezone.utc)
         db_cursor.execute("SELECT modified_at, text_a FROM searchables WHERE object_id = %(object_id)s", {"object_id": object_id})
         modified_at, text_a = db_cursor.fetchone()
         assert curr_time - timedelta(seconds=1) < modified_at < curr_time + timedelta(seconds=1)
@@ -84,13 +84,14 @@ def test_missing_mode(db_cursor, config_with_search, app_with_search):
 
     # Check if tag searchables not saved after tag save were updated
     for tag_id in range(2, 4):
-        curr_time = datetime.utcnow()
+        curr_time = datetime.now(tz=timezone.utc)
         db_cursor.execute("SELECT modified_at, text_a FROM searchables WHERE tag_id = %(tag_id)s", {"tag_id": tag_id})
         modified_at, text_a = db_cursor.fetchone()
         assert curr_time - timedelta(seconds=1) < modified_at < curr_time + timedelta(seconds=1)
         assert text_a.find("new") > - 1
     
 
+# TODO move into a separate file
 def _insert_mock_data_for_searchable_update(db_cursor):
     # Insert 3 objects
     obj_list=[
@@ -110,8 +111,8 @@ def _insert_mock_data_for_searchable_update(db_cursor):
 
     # Insert searchables for objects (1 searchable save after object save, 1 - before, 1 - missing)
     object_searchables = [
-        get_test_searchable(object_id=1, text_a="old", modified_at=datetime.utcnow() + timedelta(days=1)),
-        get_test_searchable(object_id=2, text_a="old", modified_at=datetime.utcnow() - timedelta(days=1))
+        get_test_searchable(object_id=1, text_a="old", modified_at=datetime.now(tz=timezone.utc) + timedelta(days=1)),
+        get_test_searchable(object_id=2, text_a="old", modified_at=datetime.now(tz=timezone.utc) - timedelta(days=1))
     ]
     insert_searchables(object_searchables, db_cursor)
 
@@ -125,8 +126,8 @@ def _insert_mock_data_for_searchable_update(db_cursor):
 
     # Insert searchables for tags (1 searchable save after tag save, 1 - before, 1 - missing)
     tag_searchables = [
-        get_test_searchable(tag_id=1, text_a="old", modified_at=datetime.utcnow() + timedelta(days=1)),
-        get_test_searchable(tag_id=2, text_a="old", modified_at=datetime.utcnow() - timedelta(days=1))
+        get_test_searchable(tag_id=1, text_a="old", modified_at=datetime.now(tz=timezone.utc) + timedelta(days=1)),
+        get_test_searchable(tag_id=2, text_a="old", modified_at=datetime.now(tz=timezone.utc) - timedelta(days=1))
     ]
     insert_searchables(tag_searchables, db_cursor)
 

@@ -51,7 +51,7 @@ async def test_view_non_published_objects(cli, db_cursor):
 
     for i in range(len(mock_feed_timestamps)):  # Check empty & non-empty `feed_timestamp` values
         if mock_feed_timestamps[i] == "": assert response_feed_timestamps[i] == ""
-        else: assert datetime.fromisoformat(mock_feed_timestamps[i][:-1]) == datetime.fromisoformat(response_feed_timestamps[i]).replace(tzinfo=None)
+        else: assert datetime.fromisoformat(mock_feed_timestamps[i]) == datetime.fromisoformat(response_feed_timestamps[i])
     
     # NOTE: object_data_ids only case is checked type-specific tests
 

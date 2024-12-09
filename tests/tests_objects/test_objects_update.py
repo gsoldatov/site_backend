@@ -96,7 +96,7 @@ async def test_correct_update_with_set_owner_id(cli, db_cursor, owner_id):
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     resp_object = (await resp.json())["object"]
-    assert datetime.fromisoformat(obj["feed_timestamp"][:-1]) == datetime.fromisoformat(resp_object["feed_timestamp"]).replace(tzinfo=None)
+    assert datetime.fromisoformat(obj["feed_timestamp"][:-1]) == datetime.fromisoformat(resp_object["feed_timestamp"])
     db_cursor.execute(f"SELECT object_name, owner_id FROM objects WHERE object_id = 1")
     assert db_cursor.fetchone() == (updated_name, owner_id)
 

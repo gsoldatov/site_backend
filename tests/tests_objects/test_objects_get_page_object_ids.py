@@ -234,7 +234,7 @@ async def test_correct_request_tags_filter(cli, db_cursor):
     # Insert mock values
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
     insert_objects_tags([5], [1, 2], db_cursor)
     insert_objects_tags([6], [1, 3], db_cursor)
     insert_objects_tags([7, 8], [1, 2, 3], db_cursor)

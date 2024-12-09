@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -86,7 +86,7 @@ async def test_correct_request_with_omitted_privileges(cli, db_cursor):
     # Enable non-admin user registration
     set_setting(db_cursor, "non_admin_registration_allowed", "TRUE")
     
-    current_time = datetime.utcnow()
+    current_time = datetime.now(tz=timezone.utc)
     user = get_test_user(2, pop_keys=["user_id", "registered_at", "user_level", "can_login", "can_edit_objects"])
     resp = await cli.post("/auth/register", json=user)
     assert resp.status == 200

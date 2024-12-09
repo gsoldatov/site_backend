@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -29,13 +29,13 @@ async def test_access_token_parsing(app, cli):
 async def test_invalid_access_token_refusal(app, cli, db_cursor):
     # Add an expired session for admin
     expired_token = "expired token"
-    expiration_time = datetime.utcnow() + timedelta(seconds=-60)
+    expiration_time = datetime.now(tz=timezone.utc) + timedelta(seconds=-60)
     db_cursor.execute(f"INSERT INTO sessions (user_id, access_token, expiration_time) VALUES (1, '{expired_token}', '{expiration_time}')")
 
     # Add another user who can't login and an active session for him
     insert_users([get_test_user(2, user_level="admin", can_login=False, pop_keys=["password_repeat"])], db_cursor)
     active_token_with_disabled_login = "active token with disabled login"
-    expiration_time = datetime.utcnow() + timedelta(seconds=60)
+    expiration_time = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
     db_cursor.execute(f"INSERT INTO sessions (user_id, access_token, expiration_time) VALUES (2, '{active_token_with_disabled_login}', '{expiration_time}')")
 
     # Check incorrect access_token format for all routes, excluding /auth/logout & /settings/view
@@ -102,7 +102,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         if route.method in ("OPTIONS", "HEAD"): continue    # Don't check routes created by Aiohttp-CORS
 
         # Reset access token_expiration time
-        expiration_time = datetime.utcnow() + timedelta(seconds=5)
+        expiration_time = datetime.now(tz=timezone.utc) + timedelta(seconds=5)
         db_cursor.execute(f"UPDATE sessions SET expiration_time = '{expiration_time}' WHERE access_token = '{admin_token}'")
         
         # Send a correct request to route
@@ -115,8 +115,9 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         data = await resp.json()
         assert "auth" in data
 
-        response_expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"]).replace(tzinfo=None)
-        assert timedelta(seconds=0) <= datetime.utcnow() - (response_expiration_time - timedelta(seconds=config["app"]["token_lifetime"])) <= timedelta(seconds=1)
+        response_expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"])
+        assert timedelta(seconds=0) <= datetime.now(tz=timezone.utc) - \
+            (response_expiration_time - timedelta(seconds=config["app"]["token_lifetime"])) <= timedelta(seconds=1)
 
         # Check if expiration time was updated in the database
         db_cursor.execute(f"SELECT expiration_time FROM sessions WHERE access_token = '{admin_token}'")

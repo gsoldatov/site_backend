@@ -1,6 +1,6 @@
 import asyncio
 from functools import partial
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 
@@ -16,7 +16,7 @@ async def process_tag_batch_coro(request, tag_ids):
 
     searchables = request.config_dict["tables"]["searchables"]
     conn = request["conn_searchables"]
-    modified_at = datetime.utcnow()
+    modified_at = datetime.now(tz=timezone.utc)
 
     try:
         trans = await conn.begin()

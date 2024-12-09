@@ -1,7 +1,7 @@
 """
 Clears records, which expired more than 12 hours ago from `login_rate_limits` table.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from psycopg2.extensions import cursor as CursorClass
 
@@ -25,7 +25,7 @@ def main(config = None):
         logger.info("Connected to the database.")
         
         # Delete sessions with `expiration_time` < current_time - 12 hours
-        threshold = datetime.utcnow() - timedelta(hours=12)
+        threshold = datetime.now(tz=timezone.utc) - timedelta(hours=12)
         cursor.execute(f"DELETE FROM login_rate_limits WHERE cant_login_until < '{threshold}'")
         logger.info("Deleted expired login limits.")
     except Exception as e:

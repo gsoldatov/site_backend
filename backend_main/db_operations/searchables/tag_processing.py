@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_to_searchable_item
@@ -10,7 +10,7 @@ def process_tag_batch(conn, tag_ids):
     """
     if len(tag_ids) == 0: return
 
-    modified_at = datetime.utcnow()
+    modified_at = datetime.now(tz=timezone.utc)
 
     # psycopg2 connection context processes all executed statements in a transaction
     with conn:

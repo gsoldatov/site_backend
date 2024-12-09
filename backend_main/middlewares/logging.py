@@ -11,8 +11,7 @@ from backend_main.logging.loggers.app import setup_request_event_logging
 @web.middleware
 async def logging_middleware(request, handler):
     # Set request time
-    # request["time"] = datetime.now(tz=timezone.utc)     # Request start time
-    request["time"] = datetime.utcnow()     # TODO replace when timezone fields are added
+    request["time"] = datetime.now(tz=timezone.utc)     # Request start time
 
     # Setup request event logging function
     setup_request_event_logging(request)

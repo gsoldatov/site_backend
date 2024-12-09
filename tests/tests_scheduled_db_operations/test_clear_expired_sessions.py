@@ -1,7 +1,7 @@
 """
 Tests for scheduled deletion of expired sessions.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -26,14 +26,14 @@ def test_clear_expired_sessions(db_cursor, config, app):
 
     sessions = [
         # Sessions of active users
-        get_test_session(1, access_token="-1", expiration_time=datetime.utcnow() + timedelta(seconds=-1)),
-        get_test_session(2, access_token="-2", expiration_time=datetime.utcnow() + timedelta(seconds=-120)),
-        get_test_session(1, access_token="1", expiration_time=datetime.utcnow() + timedelta(seconds=10)),
-        get_test_session(2, access_token="2", expiration_time=datetime.utcnow() + timedelta(seconds=20)),
+        get_test_session(1, access_token="-1", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=-1)),
+        get_test_session(2, access_token="-2", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=-120)),
+        get_test_session(1, access_token="1", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=10)),
+        get_test_session(2, access_token="2", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=20)),
 
         # Sessions of user who can't login
-        get_test_session(3, access_token="-3", expiration_time=datetime.utcnow() + timedelta(seconds=-10)),
-        get_test_session(3, access_token="3", expiration_time=datetime.utcnow() + timedelta(seconds=10))
+        get_test_session(3, access_token="-3", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=-10)),
+        get_test_session(3, access_token="3", expiration_time=datetime.now(tz=timezone.utc) + timedelta(seconds=10))
     ]
 
     insert_sessions(sessions, db_cursor)

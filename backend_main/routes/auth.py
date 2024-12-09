@@ -15,7 +15,7 @@ from backend_main.middlewares.connection import start_transaction
 from backend_main.validation.schemas.auth import register_schema, login_schema
 
 from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
-from backend_main.util.json import error_json, row_proxy_to_dict, serialize_datetime_to_str
+from backend_main.util.json import error_json, row_proxy_to_dict
 from backend_main.util.login_rate_limits import get_login_attempts_timeout_in_seconds, IncorrectCredentialsException
 
 
@@ -112,7 +112,7 @@ async def login(request):
         request.log_event("INFO", "route_handler", f"User {user_data.user_id} logged in.")
         return web.json_response({"auth": {
             "access_token": session["access_token"],
-            "access_token_expiration_time": serialize_datetime_to_str(session["expiration_time"]),
+            "access_token_expiration_time": session["expiration_time"].isoformat(),
             "user_id": user_data.user_id,
             "user_level": user_data.user_level
         }})

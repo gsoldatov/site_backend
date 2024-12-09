@@ -17,7 +17,7 @@ from tests.fixtures.sessions import headers_admin_token
 
 async def test_objects_add_route(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
 
     # Incorrect object's tags
     for added_tags in ["not a list", 1, {}]:
@@ -64,7 +64,7 @@ async def test_objects_add_route(cli, db_cursor):
 
 async def test_objects_update_route(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
     insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)    
     l_list = [get_test_object_data(1)]
     insert_links(l_list, db_cursor)
@@ -146,7 +146,7 @@ async def test_objects_update_route(cli, db_cursor):
 
 async def test_objects_view_route(cli, db_cursor):
     # Insert mock data
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
     objects = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]
     insert_objects(objects, db_cursor)
@@ -194,7 +194,7 @@ async def test_objects_view_route_objects_with_non_published_tags(cli, db_cursor
 
 async def test_objects_delete_route(cli, db_cursor):
     # Insert mock values
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
     objects = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
         get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]
     insert_objects(objects, db_cursor)
@@ -359,7 +359,7 @@ async def test_objects_update_tags_route(cli, db_cursor):
     obj_list = get_objects_attributes_list(1, 10)
 
     # Insert mock values
-    insert_tags(tag_list, db_cursor, generate_tag_ids=True)
+    insert_tags(tag_list, db_cursor, generate_ids=True)
     insert_objects(obj_list, db_cursor)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
     insert_objects_tags([1], objects_tags[1], db_cursor)
@@ -406,9 +406,9 @@ async def test_objects_update_tags_route(cli, db_cursor):
 
     # Check modified_at values for modfied and not modified objects
     # Response from server format: "2021-04-27T15:29:41.701892+00:00"
-    # Cursor value format - datetime without timezone, converted to str: "2021-04-27 15:43:02.557558"
+    # Cursor value format - datetime with timezone, converted to str: "2021-04-27 15:43:02.557558"
     db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 1")
-    db_modified_at_value = db_cursor.fetchone()[0].replace(tzinfo=timezone.utc) # add a UTC timezone for correct comparison
+    db_modified_at_value = db_cursor.fetchone()[0]
     assert db_modified_at_value == datetime.strptime(data["modified_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
 
     db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 2")

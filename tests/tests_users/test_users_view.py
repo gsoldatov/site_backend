@@ -62,7 +62,7 @@ async def test_valid_request_for_basic_view(cli, db_cursor):
         assert sorted(list(user.keys())) == ["registered_at", "user_id", "username"]
 
         if user["user_id"] == 2:
-            response_registered_at = datetime.fromisoformat(user["registered_at"]).replace(tzinfo=None)
+            response_registered_at = datetime.fromisoformat(user["registered_at"])
             assert response_registered_at == users[0]["registered_at"]
             assert user["username"] == users[0]["username"]
 
@@ -91,7 +91,7 @@ async def test_valid_request_for_full_view(cli, db_cursor):
         assert len(user.keys()) == len(attrs)
 
         if user["user_id"] == 2:
-            response_registered_at = datetime.fromisoformat(user["registered_at"]).replace(tzinfo=None)
+            response_registered_at = datetime.fromisoformat(user["registered_at"])
             assert response_registered_at == users[0]["registered_at"]
             for attr in attrs:
                 if attr != "registered_at":

@@ -5,7 +5,7 @@ from aiohttp import web
 
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
 from backend_main.auth.route_access_checks import check_route_access
-from backend_main.util.json import error_json, serialize_datetime_to_str
+from backend_main.util.json import error_json
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
 
 
@@ -49,7 +49,7 @@ async def auth_middleware(request, handler):
                 
         if not request.user_info.is_anonymous:
             response["auth"] = response.get("auth", {})
-            response["auth"]["access_token_expiration_time"] = serialize_datetime_to_str(request.user_info.access_token_expiration_time)
+            response["auth"]["access_token_expiration_time"] = request.user_info.access_token_expiration_time.isoformat()
         
         # Create a Response object
         response = web.json_response(response)

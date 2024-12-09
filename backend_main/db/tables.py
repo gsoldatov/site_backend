@@ -32,7 +32,7 @@ def get_tables():
             "users",
             meta,
             Column("user_id", Integer, primary_key=True, server_default=FetchedValue()),
-            Column("registered_at", DateTime, nullable=False),
+            Column("registered_at", DateTime(timezone=True), nullable=False),
             Column("login", String(255), nullable=False, unique=True),
             Column("password", Text, nullable=False),
             Column("username", String(255), nullable=False, unique=True),
@@ -46,7 +46,7 @@ def get_tables():
             meta,
             Column("user_id", Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False),
             Column("access_token", Text, primary_key=True, nullable=False),
-            Column("expiration_time", DateTime, nullable=False)
+            Column("expiration_time", DateTime(timezone=True), nullable=False)
         ),
 
         "login_rate_limits": Table(
@@ -54,7 +54,7 @@ def get_tables():
             meta,
             Column("ip_address", postgresql.INET, primary_key=True),
             Column("failed_login_attempts", Integer, nullable=False),
-            Column("cant_login_until", DateTime, nullable=False)
+            Column("cant_login_until", DateTime(timezone=True), nullable=False)
         ),
 
         # Objects and tags
@@ -62,8 +62,8 @@ def get_tables():
             "tags", 
             meta,
             Column("tag_id", Integer, primary_key=True, server_default=FetchedValue()),
-            Column("created_at", DateTime, nullable=False),
-            Column("modified_at", DateTime, nullable=False),
+            Column("created_at", DateTime(timezone=True), nullable=False),
+            Column("modified_at", DateTime(timezone=True), nullable=False),
             Column("tag_name", String(255), nullable=False),
             Column("tag_description", Text),
             Column("is_published", Boolean, nullable=False),
@@ -75,15 +75,15 @@ def get_tables():
             meta,
             Column("object_id", Integer, primary_key=True, server_default=FetchedValue()),
             Column("object_type", String(32), nullable=False, index=True),
-            Column("created_at", DateTime, nullable=False),
-            Column("modified_at", DateTime, nullable=False),
+            Column("created_at", DateTime(timezone=True), nullable=False),
+            Column("modified_at", DateTime(timezone=True), nullable=False),
             Column("object_name", String(255), nullable=False),
             Column("object_description", Text),
             Column("owner_id", Integer, ForeignKey("users.user_id", onupdate="CASCADE", ondelete="SET NULL"), nullable=False),
 
             Column("is_published", Boolean, nullable=False),
             Column("display_in_feed", Boolean, nullable=False),
-            Column("feed_timestamp", DateTime),
+            Column("feed_timestamp", DateTime(timezone=True)),
             Column("show_description", Boolean, nullable=False)
         ),
 
@@ -156,7 +156,7 @@ def get_tables():
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
             Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE")),
-            Column("modified_at", DateTime, nullable=False),
+            Column("modified_at", DateTime(timezone=True), nullable=False),
             Column("text_a", Text),
             Column("text_b", Text),
             Column("text_c", Text),
