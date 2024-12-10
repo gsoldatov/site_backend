@@ -36,9 +36,9 @@ def dispatch_searchables_update_coro(request):
     async def task_coro(request, tag_ids, object_ids):
         try:
             await update_searchables_coro(request, tag_ids, object_ids)
-            request.log_event("INFO", "task_coro", "Updated searchables", details=f"object_ids = {object_ids}, tag_ids = {tag_ids}")
+            request["log_event"]("INFO", "task_coro", "Updated searchables", details=f"object_ids = {object_ids}, tag_ids = {tag_ids}")
         except Exception as e:
-            request.log_event("ERROR", "task_coro", "Error during searchables update", exc_info=True)
+            request["log_event"]("ERROR", "task_coro", "Error during searchables update", exc_info=True)
 
     task = asyncio.create_task(task_coro(request, tag_ids, object_ids))
 

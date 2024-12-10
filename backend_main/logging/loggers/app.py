@@ -90,7 +90,7 @@ def setup_request_event_logging(request):
     
     request["request_id"] = str(uuid4())[:8]
     request["monotonic_start_time"] = get_running_loop().time() # Monotonic time from loop timer for measuring elapsed time
-    request.log_event = log
+    request["log_event"] = log
 
 
 def _get_level(level):

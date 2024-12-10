@@ -88,7 +88,7 @@ async def update_to_do_lists(request, obj_ids_and_data):
         # Raise an error if object data does not exist
         if not await result.fetchone():
             msg = "Attempted to update a non to-do list object as a to-do list."
-            request.log_event("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
+            request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
         # Update to-do list items

@@ -23,19 +23,19 @@ async def auth_middleware(request, handler):
     # Validate and prolong token, add user info to the request
     try:
         await prolong_access_token_and_get_user_info(request)
-        # ui.user_id, ui.user_level, ui.can_edit_objects
-        user_info = "anonymous" if request.user_info.is_anonymous else \
-            f"user_id = {request.user_info.user_id}, user_level = {request.user_info.user_level}"
-        request.log_event("INFO", "auth", f"Request issued by {user_info}.")
+        user_info = request["user_info"]
+        user_details = "anonymous" if user_info.is_anonymous else \
+            f"user_id = {user_info.user_id}, user_level = {user_info.user_level}"
+        request["log_event"]("INFO", "auth", f"Request issued by {user_details}.")
     except web.HTTPUnauthorized:
-        request.log_event("WARNING", "auth", f"Received invalid access token.")
+        request["log_event"]("WARNING", "auth", f"Received invalid access token.")
         raise
 
     # Check route access
     try:
         check_route_access(request)
     except web.HTTPException:
-        request.log_event("WARNING", "auth", f"Route access is denied.")
+        request["log_event"]("WARNING", "auth", f"Route access is denied.")
         raise
 
     # Call next handler
@@ -47,9 +47,9 @@ async def auth_middleware(request, handler):
         if type(response) != dict:
             raise Exception(f"Auth middleware expected {request.path} route handler to return dict, got {type(response)}")
                 
-        if not request.user_info.is_anonymous:
+        if not user_info.is_anonymous:
             response["auth"] = response.get("auth", {})
-            response["auth"]["access_token_expiration_time"] = request.user_info.access_token_expiration_time.isoformat()
+            response["auth"]["access_token_expiration_time"] = user_info.access_token_expiration_time.isoformat()
         
         # Create a Response object
         response = web.json_response(response)
@@ -65,12 +65,12 @@ def parse_access_token(request):
     access_token = request.headers.get("Authorization")
     
     if access_token is None:
-        request.user_info = UserInfo()
+        request["user_info"] = UserInfo()
     else:
         if access_token.find("Bearer ") == 0 and len(access_token) > 7:
-            request.user_info = UserInfo(access_token[7:])
+            request["user_info"] = UserInfo(access_token[7:])
         else:
-            request.log_event("WARNING", "auth", f"Invalid Authorization header.")
+            request["log_event"]("WARNING", "auth", f"Invalid Authorization header.")
             raise web.HTTPUnauthorized(text=error_json("Incorrect token format."), content_type="application/json")
 
 

@@ -30,15 +30,15 @@ async def register(request):
     # Check password
     if data["password"] != data["password_repeat"]:
         msg = "Password is not correctly repeated."
-        request.log_event("WARNING", "route_handler", msg)
+        request["log_event"]("WARNING", "route_handler", msg)
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
     # Check if non-admins are not trying to set privileges
-    if request.user_info.user_level != "admin":
+    if request["user_info"].user_level != "admin":
         for attr in forbidden_non_admin_user_modify_attributes:
             if attr in data:
                 msg = "User privileges can only be set by admins."
-                request.log_event("WARNING", "route_handler", msg)
+                request["log_event"]("WARNING", "route_handler", msg)
                 raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
     # Set default values
@@ -52,10 +52,10 @@ async def register(request):
     # Add the user
     result = await add_user(request, data)
     user = row_proxy_to_dict(result)
-    request.log_event("INFO", "route_handler", f"Registered user {user['user_id']}.")
+    request["log_event"]("INFO", "route_handler", f"Registered user {user['user_id']}.")
 
     # Don't send user info if admin token was not provided (registration form processing case)
-    if request.user_info.user_level != "admin": return web.Response()
+    if request["user_info"].user_level != "admin": return web.Response()
 
     # Return new user's data in case of admin registration
     return web.json_response({"user": user})
@@ -66,7 +66,7 @@ async def login(request):
     try:
         await add_login_rate_limit_to_request(request)
     except web.HTTPTooManyRequests:
-        request.log_event("WARNING", "route_handler", "Log in rate limit is exceeded.")
+        request["log_event"]("WARNING", "route_handler", "Log in rate limit is exceeded.")
         raise
 
     # Validate request schema
@@ -81,14 +81,14 @@ async def login(request):
         request_time = request["time"]
 
         # Update login rate limits
-        lrli = request.login_rate_limit_info
+        lrli = request["login_rate_limit_info"]
         lrli.cant_login_until = request_time + \
             timedelta(seconds=get_login_attempts_timeout_in_seconds(lrli.failed_login_attempts))
         lrli.failed_login_attempts += 1
         await upsert_login_rate_limit(request, lrli)
 
         # Raise 401 with committing database changes
-        request.log_event("WARNING", "route_handler", f"Incorrect user credentials.")
+        request["log_event"]("WARNING", "route_handler", f"Incorrect user credentials.")
         raise IncorrectCredentialsException()
     
     # User was found
@@ -96,7 +96,7 @@ async def login(request):
         # If user can't login, raise 403
         if not user_data.can_login:
             msg = "User is not allowed to login."
-            request.log_event("WARNING", "route_handler", msg)
+            request["log_event"]("WARNING", "route_handler", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
         
         # Start a transaction
@@ -109,7 +109,7 @@ async def login(request):
         await delete_login_rate_limits(request, [request.remote])
 
         # Return access token
-        request.log_event("INFO", "route_handler", f"User {user_data.user_id} logged in.")
+        request["log_event"]("INFO", "route_handler", f"User {user_data.user_id} logged in.")
         return web.json_response({"auth": {
             "access_token": session["access_token"],
             "access_token_expiration_time": session["expiration_time"].isoformat(),
@@ -120,8 +120,9 @@ async def login(request):
 
 async def logout(request):
     # Delete session (if it does not exist, return 200 anyway)
-    await delete_sessions(request, access_tokens=[request.user_info.access_token])
-    request.log_event("INFO", "route_handler", f"User {request.user_info.user_id} logged out.")
+    user_info = request["user_info"]
+    await delete_sessions(request, access_tokens=[user_info.access_token])
+    request["log_event"]("INFO", "route_handler", f"User {user_info.user_id} logged out.")
     return web.Response()
 
 

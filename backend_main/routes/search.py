@@ -15,7 +15,7 @@ async def search(request):
 
     # Query search results
     result = await search_items(request, data["query"])
-    request.log_event("INFO", "route_handler", "Returning search results.")
+    request["log_event"]("INFO", "route_handler", "Returning search results.")
     return result
 
 

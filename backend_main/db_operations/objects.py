@@ -87,7 +87,7 @@ async def update_objects(request, objects_attributes):
 
         if not record:
             msg = "Attempted to update attributes of a non-existing object."
-            request.log_event("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+            request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         records.append(record)
     
@@ -188,10 +188,10 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
 
     if not await result.fetchone():
         msg = "Attempted to delete non-existing object(-s)."
-        request.log_event("WARNING", "db_operation", msg, details=f"object_ids = {object_ids}")
+        request["log_event"]("WARNING", "db_operation", msg, details=f"object_ids = {object_ids}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
-    request.log_event("INFO", "db_operation", "Deleted objects.", details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
+    request["log_event"]("INFO", "db_operation", "Deleted objects.", details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
 
 
 async def get_page_object_ids_data(request, pagination_info):
@@ -284,7 +284,7 @@ async def get_page_object_ids_data(request, pagination_info):
     
     if len(object_ids) == 0:
         msg = "No objects found."
-        request.log_event("WARNING", "db_operation", msg)
+        request["log_event"]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Get object count
@@ -346,7 +346,7 @@ async def search_objects(request, query):
     
     if len(object_ids) == 0:
         msg = "No objects found."
-        request.log_event("WARNING", "db_operation", msg)
+        request["log_event"]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     return object_ids
 
@@ -376,13 +376,13 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     # Throw 404 if object can't be viewed
     if not row:
         msg = "Object not found."
-        request.log_event("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+        request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Throw 400 if root object is not composite
     if row[0] != "composite":
         msg = "Attempted to loop through a hierarchy of a non-composite object."
-        request.log_event("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+        request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
     # Build a hierarchy

@@ -17,7 +17,7 @@ async def logging_middleware(request, handler):
     setup_request_event_logging(request)
 
     try:
-        request.log_event("INFO", "request", f"Processing request to {request.rel_url}.")
+        request["log_event"]("INFO", "request", f"Processing request to {request.rel_url}.")
         response = await handler(request)
         status = response.status
         return response
@@ -35,13 +35,13 @@ async def logging_middleware(request, handler):
         
         user_id = "anonymous"
         if hasattr(request, "user_info"):
-            if request.user_info.user_id: user_id = request.user_info.user_id
+            if request["user_info"].user_id: user_id = request["user_info"].user_id
 
         remote = request.remote
         user_agent = request.headers.get("User-Agent", "")
         referer = request.headers.get("Referer", "")
 
-        request.log_event("INFO", "request", "Finished processing request.", details=f"status = {status}")
+        request["log_event"]("INFO", "request", "Finished processing request.", details=f"status = {status}")
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):

@@ -12,7 +12,7 @@ from backend_main.util.json import error_json
 
 async def check_if_user_owns_objects(request, object_ids):
     """
-    Checks is `request.user_info.user_id` is admin or user owning all objects with the provided `object_ids`.
+    Checks is `request["user_info"].user_id` is admin or user owning all objects with the provided `object_ids`.
     Raises 401 for anonymous.
     Raises 403 if user is not admin and does not own at least one object. Non-existing objects do not trigger the exception.
     """
@@ -21,9 +21,9 @@ async def check_if_user_owns_objects(request, object_ids):
     
     debounce_anonymous(request)
 
-    if request.user_info.user_level != "admin":
+    if request["user_info"].user_level != "admin":
         objects = request.config_dict["tables"]["objects"]
-        user_id = request.user_info.user_id
+        user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
             select([objects.c.object_id, objects.c.owner_id])
@@ -34,13 +34,13 @@ async def check_if_user_owns_objects(request, object_ids):
 
         if len(not_owned_objects) > 0:
             msg = "User does not own object(-s)."
-            request.log_event("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+            request["log_event"]("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
 async def check_if_user_owns_all_tagged_objects(request, tag_ids):
     """
-    Checks is `request.user_info.user_id` is admin or user owning all objects tagged with the provided `tag_ids`.
+    Checks is `request["user_info"].user_id` is admin or user owning all objects tagged with the provided `tag_ids`.
     Raises 401 for anonymous.
     Raises 403 if user is not admin and does not own at least one object.
     """
@@ -49,10 +49,10 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
 
     debounce_anonymous(request)
 
-    if request.user_info.user_level != "admin":
+    if request["user_info"].user_level != "admin":
         objects = request.config_dict["tables"]["objects"]
         objects_tags = request.config_dict["tables"]["objects_tags"]
-        user_id = request.user_info.user_id
+        user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
             select([objects.c.object_id, objects.c.owner_id])
@@ -67,7 +67,7 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
 
         if len(not_owned_objects) > 0:
             msg = "User does not own object(-s)."
-            request.log_event("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+            request["log_event"]("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
@@ -76,13 +76,13 @@ async def check_if_non_admin_can_register(request):
     Checks if non-admin registration is enabled.
     If request was not sent by an admin and registration is not enabled, raises 403.
     """
-    if request.user_info.user_level == "admin": return
+    if request["user_info"].user_level == "admin": return
 
     non_admin_registration_allowed = (await view_settings(request, ["non_admin_registration_allowed"]))["non_admin_registration_allowed"]
 
     if not non_admin_registration_allowed:
         msg = "Registration is disabled."
-        request.log_event("WARNING", "auth", msg)
+        request["log_event"]("WARNING", "auth", msg)
         raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
@@ -96,7 +96,7 @@ def get_objects_auth_filter_clause(request, object_ids = None, object_ids_subque
     `object_ids` or `object_ids_subquery` are used to specify object IDs, which are checked for being marked with non-published tags.
     """
     objects = request.config_dict["tables"]["objects"]
-    ui = request.user_info
+    ui = request["user_info"]
 
     if ui.is_anonymous:
         return and_(
@@ -119,7 +119,7 @@ def get_objects_data_auth_filter_clause(request, object_id_column, object_ids):
     Returns an SQL Alchemy 'where' clause with a subquery for applying objects' auth filters for `object_id_column`.
     """
     objects = request.config_dict["tables"]["objects"]
-    ui = request.user_info
+    ui = request["user_info"]
 
     if ui.user_level == "admin":
         return object_id_column.in_(object_ids)
@@ -151,7 +151,7 @@ def get_objects_with_published_tags_only_clause(request, object_ids = None, obje
     objects = request.config_dict["tables"]["objects"]
     tags = request.config_dict["tables"]["tags"]
     objects_tags = request.config_dict["tables"]["objects_tags"]
-    ui = request.user_info
+    ui = request["user_info"]
 
     if ui.user_level == "admin": return true()
 
@@ -176,7 +176,7 @@ def get_tags_auth_filter_clause(request, is_published = True):
     - tags.is_published = `is_published` if user is anonymous.
     """
     tags = request.config_dict["tables"]["tags"]
-    ui = request.user_info
+    ui = request["user_info"]
 
     if ui.user_level == "admin": return true()
 

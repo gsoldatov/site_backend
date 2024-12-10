@@ -25,7 +25,7 @@ async def add_login_rate_limit_to_request(request):
     ip_address = request.remote
     failed_login_attempts = row[0] if row is not None else 0
     cant_login_until = row[1] if row is not None else request_time + timedelta(minutes=-1)
-    request.login_rate_limit_info = LoginRateLimitInfo(ip_address, failed_login_attempts, cant_login_until)
+    request["login_rate_limit_info"] = LoginRateLimitInfo(ip_address, failed_login_attempts, cant_login_until)
 
     seconds_until_logging_in_is_available = ceil((cant_login_until - request_time).total_seconds())
     if seconds_until_logging_in_is_available > 0:

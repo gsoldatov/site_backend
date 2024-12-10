@@ -16,7 +16,7 @@ async def update(request):
 
     # Perform additional data validation & update data
     await update_user(request, data)
-    request.log_event("INFO", "route_handler", "Updated user.", details=f"user_id = {data['user']['user_id']}")
+    request["log_event"]("INFO", "route_handler", "Updated user.", details=f"user_id = {data['user']['user_id']}")
     return {}
 
 
@@ -34,10 +34,10 @@ async def view(request):
     # Handle 404
     if len(users) == 0:
         msg = "Users not found."
-        request.log_event("WARNING", "route_handler", msg, details=f"user_ids = {data['user_ids']}")
+        request["log_event"]("WARNING", "route_handler", msg, details=f"user_ids = {data['user_ids']}")
         raise web.HTTPNotFound(text=error_json("Users not found."), content_type="application/json")
     
-    request.log_event("INFO", "route_handler", "Returning users.", details=f"user_ids = {data['user_ids']}")
+    request["log_event"]("INFO", "route_handler", "Returning users.", details=f"user_ids = {data['user_ids']}")
     return {"users": users}
 
 
