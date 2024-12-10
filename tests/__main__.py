@@ -1,6 +1,7 @@
 """
 Wrapper for parallelized test execution, which ensures that temporary users and databases are cleared if test fixtures failed to do this.
 """
+from datetime import datetime
 from psycopg2.extensions import cursor as CursorClass
 
 if __name__ == "__main__":
@@ -62,14 +63,22 @@ def main():
     clear_test_users_and_databases()
 
     try:
+        # Get args for pytest
+        args = " ".join(sys.argv[1:])
+
         # Change root dir
         cwd = os.getcwd()
-        root_dir = os.path.abspath(os.path.join(__file__, "..", ".."))
-        os.chdir(root_dir)
+        tests_dir = os.path.abspath(os.path.join(__file__, ".."))
+        os.chdir(tests_dir)
 
         # Run tests
-        os.system(f'pytest "tests" -n auto --dist=loadfile --asyncio-mode=auto')
+        cmd = f'pytest -n auto --dist=loadfile --asyncio-mode=auto {args}'
 
+        print("Tests execution started at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print("Running command", cmd)
+
+        os.system(cmd)
+        
         # Restore current working directory
         os.chdir(cwd)
     finally:
