@@ -47,16 +47,16 @@ async def create_app(config_file = None, config = None):
         setup_routes(app)
         setup_cors(app)
 
-        app.log_event("INFO", "app_start", "Finished app setup.")
+        app["log_event"]("INFO", "app_start", "Finished app setup.")
         return app
     
     except OperationalError:
-        app.log_event("CRITICAL", "app_start", "Failed to setup database connection pools.")
+        app["log_event"]("CRITICAL", "app_start", "Failed to setup database connection pools.")
         raise web.GracefulExit()    # Close the app gracefully
     
     except Exception:
         if getattr(app, "log_event", None):
-            app.log_event("CRITICAL", "app_start", "Unhandled exception during app setup.", exc_info=True)
+            app["log_event"]("CRITICAL", "app_start", "Unhandled exception during app setup.", exc_info=True)
         await close_connection_pools(app)   # Ensure connection pools and loggers are cleaned up
         await cleanup_loggers(app)
         raise

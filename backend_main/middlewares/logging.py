@@ -4,14 +4,17 @@
 from asyncio import get_running_loop
 from aiohttp import web
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from backend_main.logging.loggers.app import setup_request_event_logging
 
 
 @web.middleware
 async def logging_middleware(request, handler):
-    # Set request time
+    # Set request id & time
     request["time"] = datetime.now(tz=timezone.utc)     # Request start time
+    request["request_id"] = str(uuid4())[:8]
+    request["monotonic_start_time"] = get_running_loop().time()     # Monotonic time from loop timer for measuring elapsed time
 
     # Setup request event logging function
     setup_request_event_logging(request)
@@ -45,4 +48,4 @@ async def logging_middleware(request, handler):
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):
-            request.app.log_access(request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)
+            request.app["log_access"](request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)

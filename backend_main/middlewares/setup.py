@@ -23,4 +23,4 @@ def setup_middlewares(app):
     app.middlewares.append(connection_middleware)
     app.middlewares.append(auth_middleware)
 
-    app.log_event("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")
+    app["log_event"]("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")

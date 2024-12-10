@@ -49,7 +49,7 @@ def setup_app_access_logging(app):
             "user_id": user_id, "remote": remote, "referer": referer, "user_agent": user_agent}
         app["access_logger"].log(level, "", extra=extra)
     
-    app.log_access = log_access
+    app["log_access"] = log_access
 
 
 def setup_app_event_logging(app):
@@ -72,7 +72,7 @@ def setup_app_event_logging(app):
         extra = {"event_type": event_type, "request_id": "", "details": details}
         app["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
-    app.log_event = log_event
+    app["log_event"] = log_event
 
 
 def setup_request_event_logging(request):
@@ -88,8 +88,6 @@ def setup_request_event_logging(request):
         extra = {"event_type": event_type, "request_id": request["request_id"], "details": details}
         request.config_dict["event_logger"].log(level, message, extra=extra, exc_info=exc_info)
     
-    request["request_id"] = str(uuid4())[:8]
-    request["monotonic_start_time"] = get_running_loop().time() # Monotonic time from loop timer for measuring elapsed time
     request["log_event"] = log
 
 
