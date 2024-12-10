@@ -417,17 +417,10 @@ async def get_elements_in_composite_hierarchy(request, object_id):
 
 async def set_modified_at(request, object_ids, modified_at = None):
     """
-    Updates modified_at attribute for the objects with provided object_ids.
-    Returns the updated modified_at value.
+    Sets `modified_at` attribute for the objects with provided `object_ids` to provided value or request time.
+    Returns the updated `modified_at` value.
     """
-    # Check parameter values
-    object_ids = object_ids or None
-    if type(object_ids) != list:
-        raise TypeError("object_ids is not a list or an empty list")
-
     modified_at = modified_at or request["time"]
-    if type(modified_at) != datetime:
-        raise TypeError("modified_at is not a datetime object")
 
     # Update modified_at
     objects = request.config_dict["tables"]["objects"]
