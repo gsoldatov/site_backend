@@ -16,7 +16,9 @@ from tests.fixtures.objects import get_test_object, get_objects_attributes_list,
     insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_composite_properties, \
     insert_data_for_composite_view_tests_objects_with_non_published_tags
 from tests.fixtures.data_generators.sessions import headers_admin_token
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_add_incorrect_top_level_data(cli):

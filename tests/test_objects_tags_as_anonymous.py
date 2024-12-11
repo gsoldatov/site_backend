@@ -11,7 +11,9 @@ from tests.fixtures.db_operations.tags import insert_tags
 
 from fixtures.objects import get_test_object, insert_objects
 from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_tags_view_route(cli, db_cursor):

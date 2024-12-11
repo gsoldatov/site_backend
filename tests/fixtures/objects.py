@@ -3,7 +3,10 @@ from datetime import datetime, timezone, timedelta
 from psycopg2.extensions import AsIs
 
 from tests.util import parse_iso_timestamp
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
+
 from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 
 from tests.fixtures.data_generators.tags import get_test_tag

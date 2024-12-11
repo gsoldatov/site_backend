@@ -6,7 +6,10 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.fixtures.db_operations.settings import set_setting
-from tests.fixtures.users import incorrect_user_attributes, get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.data_sets.users import incorrect_user_attributes
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_incorrect_request_body(cli, db_cursor):

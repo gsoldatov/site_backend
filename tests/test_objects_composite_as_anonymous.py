@@ -9,7 +9,9 @@ if __name__ == "__main__":
 from tests.util import check_ids
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_composite, \
     insert_data_for_composite_view_tests_objects_with_non_published_tags
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_view_non_published_composite(cli, db_cursor):

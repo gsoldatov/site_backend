@@ -8,7 +8,9 @@ if __name__ == "__main__":
 
 from tests.fixtures.objects import get_test_object, incorrect_object_values
 from tests.fixtures.data_generators.sessions import headers_admin_token
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_incorrect_request_body(cli):

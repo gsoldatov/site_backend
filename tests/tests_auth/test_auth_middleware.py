@@ -13,7 +13,9 @@ from tests.fixtures.db_operations.tags import insert_tags
 from tests.fixtures.data_generators.searchables import get_test_searchable
 from tests.fixtures.db_operations.searchables import insert_searchables
 from tests.fixtures.data_generators.sessions import headers_admin_token, admin_token
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 async def test_access_token_parsing(app, cli):

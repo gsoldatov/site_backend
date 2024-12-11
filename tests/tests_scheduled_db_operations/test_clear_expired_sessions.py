@@ -12,7 +12,9 @@ from backend_main.db_operations.scheduled.clear_expired_sessions import main as 
 
 from tests.fixtures.data_generators.sessions import get_test_session
 from tests.fixtures.db_operations.sessions import insert_sessions
-from tests.fixtures.users import get_test_user, insert_users
+
+from tests.fixtures.data_generators.users import get_test_user
+from tests.fixtures.db_operations.users import insert_users
 
 
 def test_clear_expired_sessions(db_cursor, config, app):
