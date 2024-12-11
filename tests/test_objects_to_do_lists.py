@@ -14,31 +14,31 @@ from tests.fixtures.sessions import headers_admin_token
 
 
 async def test_add(cli, db_cursor):
-    correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
+    correct_to_do_list_items = get_test_object(7, object_type="to_do_list")["object_data"]["items"]
 
     # Incorrect attributes
     for attr in [{"incorrect attr": "123"}, {"incorrect attr": "123", "sort_type": "default", "items": correct_to_do_list_items}]:
-        tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
         tdl["object_data"] = attr
         resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attibutes (to-do list items, missing keys)
     for k in correct_to_do_list_items[0].keys():
-        tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
         tdl["object_data"]["items"][0].pop(k)
         resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attibutes (to-do list items, additional key)
-    tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
     tdl["object_data"]["items"][0]["wrong_key"] = "some value"
     resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 400
     
     # Incorrect attribute values (general to-do list object data)
     for k, v in [("sort_type", 1), ("sort_type", True), ("sort_type", "incorrect string"), ("items", 1), ("items", True), ("items", "string"), ("items", [])]:
-        tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
         tdl["object_data"][k] = v
         resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
@@ -46,13 +46,13 @@ async def test_add(cli, db_cursor):
     # Incorrect attribute values (to-do list items)
     for k, v in [("item_number", "string"), ("item_number", -1), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
                 ("indent", "string"), ("indent", -1), ("is_expanded", 0), ("is_expanded", "string")]:
-        tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
         tdl["object_data"]["items"][0][k] = v
         resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute values (to-do list items, duplicate line numbers)
-    tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
     tdl["object_data"]["items"][0]["item_number"] = tdl["object_data"]["items"][1]["item_number"]
     resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 400
@@ -62,7 +62,7 @@ async def test_add(cli, db_cursor):
         assert not db_cursor.fetchone()
     
     # Add a correct to-do list object
-    tdl = get_test_object(7, pop_keys=["object_id", "created_at", "modified_at"])
+    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["object_id", "created_at", "modified_at"])
     resp = await cli.post("/objects/add", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -86,37 +86,38 @@ async def test_add(cli, db_cursor):
 
 
 async def test_update(cli, db_cursor):
-    correct_to_do_list_items = get_test_object(7)["object_data"]["items"]
+    correct_to_do_list_items = get_test_object(7, object_type="to_do_list")["object_data"]["items"]
 
     # Insert mock values
-    obj_list = [get_test_object(7, owner_id=1, pop_keys=["object_data"]), get_test_object(8, owner_id=1, pop_keys=["object_data"])]
-    tdl_list = [get_test_object_data(7), get_test_object_data(8)]
+    obj_list = [get_test_object(7, object_type="to_do_list", owner_id=1, pop_keys=["object_data"]), 
+                get_test_object(8, object_type="to_do_list", owner_id=1, pop_keys=["object_data"])]
+    tdl_list = [get_test_object_data(7, object_type="to_do_list"), get_test_object_data(8, object_type="to_do_list")]
     insert_objects(obj_list, db_cursor)
     insert_to_do_lists(tdl_list, db_cursor)
 
     # Incorrect attributes
     for attr in [{"incorrect attr": "123"}, {"incorrect attr": "123", "sort_type": "default", "items": correct_to_do_list_items}]:
-        tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
         tdl["object_data"] = attr
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attibutes (to-do list items, missing keys)
     for k in correct_to_do_list_items[0].keys():
-        tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
         tdl["object_data"]["items"][0].pop(k)
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attibutes (to-do list items, additional key)
-    tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
     tdl["object_data"]["items"][0]["wrong_key"] = "some value"
     resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 400
     
     # Incorrect attribute values (general to-do list object data)
     for k, v in [("sort_type", 1), ("sort_type", True), ("sort_type", "incorrect string"), ("items", 1), ("items", True), ("items", "string"), ("items", [])]:
-        tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
         tdl["object_data"][k] = v
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
@@ -124,19 +125,19 @@ async def test_update(cli, db_cursor):
     # Incorrect attribute values (to-do list items)
     for k, v in [("item_number", "string"), ("item_number", -1), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
                 ("indent", "string"), ("indent", -1), ("is_expanded", 0), ("is_expanded", "string")]:
-        tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
         tdl["object_data"]["items"][0][k] = v
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute values (to-do list items, duplicate line numbers)
-    tdl = get_test_object(7, pop_keys=["created_at", "modified_at", "object_type"])
+    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
     tdl["object_data"]["items"][0]["item_number"] = tdl["object_data"]["items"][1]["item_number"]
     resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 400
     
     # Correct update
-    tdl = get_test_object(9, pop_keys=["created_at", "modified_at", "object_type"])
+    tdl = get_test_object(9, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
     tdl["object_id"] = 7
     resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
     assert resp.status == 200
@@ -183,7 +184,7 @@ async def test_view_non_published_objects(cli, db_cursor):
         assert k in data["object_data"][0]["object_data"]
     
     # Check to-do list's item attributes
-    for k in get_test_object(7)["object_data"]["items"][0].keys():
+    for k in get_test_object(7, object_type="to_do_list")["object_data"]["items"][0].keys():
         assert k in data["object_data"][0]["object_data"]["items"][0]
     
     # Check ids
