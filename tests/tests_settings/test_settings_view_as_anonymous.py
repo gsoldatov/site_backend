@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.settings import set_setting
+from tests.fixtures.db_operations.settings import set_setting
 
 
 async def test_view_private_setting(cli, db_cursor):
