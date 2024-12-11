@@ -16,7 +16,7 @@ from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser
 from backend_main.config import hide_config_values
 
 from tests.util import get_test_name
-from tests.fixtures.sessions import admin_token
+from tests.fixtures.data_generators.sessions import admin_token
 
 
 @pytest.fixture

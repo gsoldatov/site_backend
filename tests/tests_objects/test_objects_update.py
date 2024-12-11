@@ -7,7 +7,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.fixtures.objects import get_test_object, incorrect_object_values, insert_data_for_update_tests
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users
 
 

@@ -4,7 +4,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests    
 
 from tests.fixtures.tags import get_test_tag, incorrect_tag_values, insert_tags
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 
 
 async def test_incorrect_request_body(cli):

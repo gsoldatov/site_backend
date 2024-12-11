@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.sessions import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
+from tests.fixtures.data_generators.sessions import admin_token, non_existing_token, headers_admin_token, headers_non_existing_token
 
 
 async def test_correct_logout(cli, db_cursor):

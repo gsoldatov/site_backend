@@ -10,7 +10,8 @@ if __name__ == "__main__":
 
 from backend_main.db_operations.scheduled.clear_expired_sessions import main as clear_expired_sessions
 
-from tests.fixtures.sessions import get_test_session, insert_sessions
+from tests.fixtures.data_generators.sessions import get_test_session
+from tests.fixtures.db_operations.sessions import insert_sessions
 from tests.fixtures.users import get_test_user, insert_users
 
 

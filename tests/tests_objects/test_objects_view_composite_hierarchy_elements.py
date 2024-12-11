@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
 from tests.fixtures.objects import get_test_object, insert_objects, insert_non_cyclic_hierarchy, \
     insert_non_cyclic_hierarchy_with_max_depth_exceeded, insert_a_cyclic_hierarchy
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 
 
 async def test_incorrect_request_body(cli):

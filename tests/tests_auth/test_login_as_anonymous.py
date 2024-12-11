@@ -5,7 +5,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 from tests.fixtures.users import get_test_user, insert_users, incorrect_user_attributes
 
 

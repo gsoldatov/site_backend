@@ -9,7 +9,7 @@ if __name__ == "__main__":
 from util import check_ids
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
     markdown_data_list, insert_objects, insert_markdown, insert_data_for_view_tests_objects_with_non_published_tags
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 
 
 async def test_add(cli, db_cursor):

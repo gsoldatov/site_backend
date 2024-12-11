@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
 from tests.fixtures.objects import get_objects_attributes_list, get_test_object, insert_objects, \
     insert_data_for_view_tests_objects_with_non_published_tags
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 
 
 async def test_incorrect_request_body(cli):

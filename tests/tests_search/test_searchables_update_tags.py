@@ -9,7 +9,7 @@ if __name__ == "__main__":
 from datetime import datetime
 
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_links
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 from tests.fixtures.data_generators.searchables import get_test_searchable
 from tests.fixtures.db_operations.searchables import insert_searchables
 from tests.fixtures.tags import get_test_tag, insert_tags

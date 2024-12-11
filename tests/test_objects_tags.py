@@ -12,7 +12,7 @@ from fixtures.tags import get_test_tag, tag_list, insert_tags
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, insert_data_for_view_tests_objects_with_non_published_tags, \
     insert_objects, insert_links
 from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.sessions import headers_admin_token
+from tests.fixtures.data_generators.sessions import headers_admin_token
 
 
 async def test_objects_add_route(cli, db_cursor):
