@@ -6,7 +6,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
     from tests.util import run_pytest_tests
 
-from fixtures.tags import get_test_tag, insert_tags
+from tests.fixtures.data_generators.tags import get_test_tag
+from tests.fixtures.db_operations.tags import insert_tags
+
 from fixtures.objects import get_test_object, insert_objects
 from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 from fixtures.users import get_test_user, insert_users

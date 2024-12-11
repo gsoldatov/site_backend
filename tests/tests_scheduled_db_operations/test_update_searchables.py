@@ -13,7 +13,9 @@ from backend_main.db_operations.scheduled.update_searchables import main as upda
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_links
 from tests.fixtures.data_generators.searchables import get_test_searchable
 from tests.fixtures.db_operations.searchables import insert_searchables
-from tests.fixtures.tags import get_test_tag, insert_tags
+
+from tests.fixtures.data_generators.tags import get_test_tag
+from tests.fixtures.db_operations.tags import insert_tags
 
 
 def test_disabled_searchables_updates(db_cursor, config, app):

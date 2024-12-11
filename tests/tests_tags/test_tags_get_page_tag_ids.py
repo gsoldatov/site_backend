@@ -5,7 +5,10 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.tags import get_test_tag, tag_list, insert_tags, delete_tags
+from tests.fixtures.data_generators.tags import get_test_tag
+from tests.fixtures.data_sets.tags import tag_list
+from tests.fixtures.db_operations.tags import insert_tags, delete_tags
+
 from tests.fixtures.data_generators.sessions import headers_admin_token
 
 

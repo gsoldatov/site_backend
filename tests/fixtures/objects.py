@@ -5,7 +5,9 @@ from psycopg2.extensions import AsIs
 from tests.util import parse_iso_timestamp
 from tests.fixtures.users import get_test_user, insert_users
 from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.tags import get_test_tag, insert_tags
+
+from tests.fixtures.data_generators.tags import get_test_tag
+from tests.fixtures.db_operations.tags import insert_tags
 
 
 __all__ = ["get_test_object", "get_test_object_data", "incorrect_object_values", "get_objects_attributes_list", 

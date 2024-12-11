@@ -4,7 +4,9 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.util import check_ids
-from tests.fixtures.tags import tag_list, insert_tags
+
+from tests.fixtures.data_sets.tags import tag_list
+from tests.fixtures.db_operations.tags import insert_tags
 
 
 async def test_view_existing_tags(cli, db_cursor):

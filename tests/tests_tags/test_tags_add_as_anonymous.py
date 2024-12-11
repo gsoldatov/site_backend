@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.tags import get_test_tag
+from tests.fixtures.data_generators.tags import get_test_tag
 
 
 async def test_add_a_correct_tag_as_anonymous(cli, db_cursor):
