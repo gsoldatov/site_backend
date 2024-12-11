@@ -11,7 +11,8 @@ if __name__ == "__main__":
 from backend_main.db_operations.scheduled.update_searchables import main as update_searchables
 
 from tests.fixtures.objects import get_test_object, get_test_object_data, insert_objects, insert_links
-from tests.fixtures.searchables import get_test_searchable, insert_searchables
+from tests.fixtures.data_generators.searchables import get_test_searchable
+from tests.fixtures.db_operations.searchables import insert_searchables
 from tests.fixtures.tags import get_test_tag, insert_tags
 
 
