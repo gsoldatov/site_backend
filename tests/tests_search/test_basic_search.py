@@ -9,7 +9,7 @@ if __name__ == "__main__":
 from random import shuffle
 
 from tests.fixtures.objects import get_test_object, insert_objects
-from tests.fixtures.objects_tags import insert_objects_tags
+from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 from tests.fixtures.searchables import get_test_searchable, insert_searchables
 from tests.fixtures.sessions import headers_admin_token
 from tests.fixtures.tags import get_test_tag, insert_tags

@@ -7,7 +7,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.fixtures.objects import get_test_object, insert_objects
-from tests.fixtures.objects_tags import insert_objects_tags
+from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 from tests.fixtures.searchables import get_test_searchable, insert_searchables
 from tests.fixtures.tags import get_test_tag, insert_tags
 

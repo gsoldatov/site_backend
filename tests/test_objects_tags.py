@@ -6,12 +6,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
     from tests.util import run_pytest_tests
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fixtures.tags import get_test_tag, tag_list, insert_tags
 from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, insert_data_for_view_tests_objects_with_non_published_tags, \
     insert_objects, insert_links
-from fixtures.objects_tags import insert_objects_tags
+from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 from tests.fixtures.sessions import headers_admin_token
 
 

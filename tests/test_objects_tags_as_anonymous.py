@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from fixtures.tags import get_test_tag, insert_tags
 from fixtures.objects import get_test_object, insert_objects
-from fixtures.objects_tags import insert_objects_tags
+from tests.fixtures.db_operations.objects_tags import insert_objects_tags
 from fixtures.users import get_test_user, insert_users
 
 
