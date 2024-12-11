@@ -14,7 +14,7 @@ from tests.fixtures.data_sets.objects import to_do_lists_data_list, insert_data_
 
 from tests.fixtures.db_operations.objects import insert_objects, insert_to_do_lists
 
-from util import check_ids
+from util import ensure_equal_collection_elements
 
 
 async def test_add(cli, db_cursor):
@@ -192,7 +192,7 @@ async def test_view_non_published_objects(cli, db_cursor):
         assert k in data["object_data"][0]["object_data"]["items"][0]
     
     # Check ids
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, to-do lists object_data_ids only")
 
 
@@ -205,7 +205,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids}, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    check_ids(requested_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(requested_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as admin, to-do list object_data_ids only")
 
 

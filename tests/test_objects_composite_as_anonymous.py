@@ -14,7 +14,7 @@ from tests.fixtures.data_sets.objects import insert_data_for_composite_view_test
 from tests.fixtures.db_operations.objects import insert_objects, insert_composite
 from tests.fixtures.db_operations.users import insert_users
 
-from tests.util import check_ids
+from tests.util import ensure_equal_collection_elements
 
 
 async def test_view_non_published_composite(cli, db_cursor):
@@ -33,7 +33,7 @@ async def test_view_non_published_composite(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
 
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as anonymous, composite object_data_ids only")
 
 
@@ -46,7 +46,7 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
     assert resp.status == 200
     data = await resp.json()
 
-    check_ids([11], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements([11], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as anonymous, composite object_data_ids only")
 
 

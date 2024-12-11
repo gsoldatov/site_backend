@@ -21,7 +21,7 @@ from tests.fixtures.db_operations.objects import insert_objects, insert_links, i
     insert_composite_properties
 from tests.fixtures.db_operations.users import insert_users
 
-from tests.util import check_ids
+from tests.util import ensure_equal_collection_elements
 
 
 async def test_add_incorrect_top_level_data(cli):
@@ -627,7 +627,7 @@ async def test_view_non_published_composite_objects(cli, db_cursor):
         assert field in data["object_data"][0]
     assert "subobjects" in data["object_data"][0]["object_data"]
 
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request, composite object_data_ids only")
     
     for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"]:
@@ -652,7 +652,7 @@ async def test_view_composite_objects_without_subobjects(cli, db_cursor):
 
     assert resp.status == 200
     data = await resp.json()
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, composite objects without subobjects")
     for object_data in data["object_data"]:
         object_id = object_data["object_id"]
@@ -677,7 +677,7 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
     assert resp.status == 200
     data = await resp.json()
 
-    check_ids([11, 12, 13], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements([11, 12, 13], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as admin, composite object_data_ids only")
 
 

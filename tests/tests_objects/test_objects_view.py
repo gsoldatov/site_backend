@@ -9,7 +9,7 @@ from tests.fixtures.data_generators.sessions import headers_admin_token
 
 from tests.fixtures.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 
-from tests.util import check_ids
+from tests.util import ensure_equal_collection_elements
 
 
 async def test_incorrect_request_body(cli):
@@ -45,7 +45,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     for field in ("object_id", "object_type", "object_name", "object_description", "created_at", "modified_at", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         assert field in data["objects"][0]
 
-    check_ids(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+    ensure_equal_collection_elements(expected_object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request as admin, object_ids only")
 
     mock_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(obj_list, key=lambda o: o["object_id"])))
@@ -66,9 +66,9 @@ async def test_view_non_published_objects(cli, db_cursor):
     for attr in ("objects", "object_data"):
         assert attr in data
     
-    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+    ensure_equal_collection_elements(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_ids")
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_data_ids")
 
 
@@ -81,7 +81,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
 
-    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+    ensure_equal_collection_elements(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request as admin, object_ids only")
     
     # NOTE: object_data_ids only case is checked type-specific tests
@@ -93,9 +93,9 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     
-    check_ids(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
+    ensure_equal_collection_elements(object_ids, [data["objects"][x]["object_id"] for x in range(len(data["objects"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_ids")
-    check_ids(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request for both object attributes and data as admin, object_data_ids")
 
 

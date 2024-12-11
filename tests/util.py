@@ -7,8 +7,11 @@ import pytest
 from backend_main.config import HiddenValue
 
 
-# TODO add docstring and/or rename
-def check_ids(expected, received, message = "Expected ids check"):
+def ensure_equal_collection_elements(expected: list | set, received: list | set, message: str = "Expected ids check"):
+    """
+        Ensures `expected` and `received` collections (lists or sets) contain the same elements.
+        Different sort order is allowed.
+    """
     expected = deepcopy(expected)
     received = deepcopy(received)
     
@@ -16,9 +19,9 @@ def check_ids(expected, received, message = "Expected ids check"):
         try:
             expected.remove(r)
         except (KeyError, ValueError):
-            pytest.fail(message + f" > received unexpected id {r}.")
+            pytest.fail(message + f" > received unexpected list element {r}.")
     if len(expected) > 0:
-        pytest.fail(message + f" > expected ids {expected} not found.")
+        pytest.fail(message + f" > expected list elements not found: {expected}.")
 
 
 def get_test_name(name, test_uuid):

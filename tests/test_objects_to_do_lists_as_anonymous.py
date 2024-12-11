@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from tests.fixtures.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 
-from util import check_ids
+from util import ensure_equal_collection_elements
 
 
 async def test_view_non_published_objects(cli, db_cursor):
@@ -21,7 +21,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
 
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as anonymous, to-do lists object_data_ids only")
 
 
@@ -35,7 +35,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
     assert resp.status == 200
     data = await resp.json()
-    check_ids(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    ensure_equal_collection_elements(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
         "Objects view, correct request as anonymous, to-do list object_data_ids only")
 
 
