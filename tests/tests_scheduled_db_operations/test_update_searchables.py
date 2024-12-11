@@ -10,13 +10,13 @@ if __name__ == "__main__":
 
 from backend_main.db_operations.scheduled.update_searchables import main as update_searchables
 
-from tests.fixtures.data_generators.objects import get_test_object, get_test_object_data
+from tests.fixtures.data_generators.objects import get_test_object
 from tests.fixtures.data_generators.searchables import get_test_searchable
-from tests.fixtures.data_generators.tags import get_test_tag
 
-from tests.fixtures.db_operations.objects import insert_objects, insert_links
+from tests.fixtures.data_sets.searchables import insert_mock_data_for_searchable_update
+
+from tests.fixtures.db_operations.objects import insert_objects
 from tests.fixtures.db_operations.searchables import insert_searchables
-from tests.fixtures.db_operations.tags import insert_tags
 
 
 def test_disabled_searchables_updates(db_cursor, config, app):
@@ -37,7 +37,7 @@ def test_disabled_searchables_updates(db_cursor, config, app):
 
 def test_full_mode(db_cursor, config_with_search, app_with_search):
     # Insert mock data
-    _insert_mock_data_for_searchable_update(db_cursor)
+    insert_mock_data_for_searchable_update(db_cursor)
 
     # Run script
     update_searchables("full", config_with_search)
@@ -61,7 +61,7 @@ def test_full_mode(db_cursor, config_with_search, app_with_search):
 
 def test_missing_mode(db_cursor, config_with_search, app_with_search):
     # Insert mock data
-    obj_list, link_list, tag_list, object_searchables, tag_searchables = _insert_mock_data_for_searchable_update(db_cursor)
+    obj_list, link_list, tag_list, object_searchables, tag_searchables = insert_mock_data_for_searchable_update(db_cursor)
 
     # Run script
     update_searchables("missing", config_with_search)
@@ -93,49 +93,6 @@ def test_missing_mode(db_cursor, config_with_search, app_with_search):
         modified_at, text_a = db_cursor.fetchone()
         assert curr_time - timedelta(seconds=1) < modified_at < curr_time + timedelta(seconds=1)
         assert text_a.find("new") > - 1
-    
-
-# TODO move into a separate file
-def _insert_mock_data_for_searchable_update(db_cursor):
-    # Insert 3 objects
-    obj_list=[
-        get_test_object(1, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"]),
-        get_test_object(2, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"]),
-        get_test_object(3, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"])
-    ]
-    insert_objects(obj_list, db_cursor)
-
-    link_list = []
-    for i in range(1, 4):
-        link = get_test_object_data(i, object_type="link")
-        link["link"] = ""
-        link_list.append(link)
-
-    insert_links(link_list, db_cursor)
-
-    # Insert searchables for objects (1 searchable save after object save, 1 - before, 1 - missing)
-    object_searchables = [
-        get_test_searchable(object_id=1, text_a="old", modified_at=datetime.now(tz=timezone.utc) + timedelta(days=1)),
-        get_test_searchable(object_id=2, text_a="old", modified_at=datetime.now(tz=timezone.utc) - timedelta(days=1))
-    ]
-    insert_searchables(object_searchables, db_cursor)
-
-    # Insert 3 tags
-    tag_list=[
-        get_test_tag(1, tag_name="new 1", tag_description=""),
-        get_test_tag(2, tag_name="new 2", tag_description=""),
-        get_test_tag(3, tag_name="new 3", tag_description="")
-    ]
-    insert_tags(tag_list, db_cursor)
-
-    # Insert searchables for tags (1 searchable save after tag save, 1 - before, 1 - missing)
-    tag_searchables = [
-        get_test_searchable(tag_id=1, text_a="old", modified_at=datetime.now(tz=timezone.utc) + timedelta(days=1)),
-        get_test_searchable(tag_id=2, text_a="old", modified_at=datetime.now(tz=timezone.utc) - timedelta(days=1))
-    ]
-    insert_searchables(tag_searchables, db_cursor)
-
-    return obj_list, link_list, tag_list, object_searchables, tag_searchables
 
 
 if __name__ == "__main__":
