@@ -3,7 +3,8 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import insert_non_cyclic_hierarchy, insert_non_cyclic_hierarchy_with_max_depth_exceeded, insert_a_cyclic_hierarchy
+from tests.fixtures.data_sets.objects import insert_non_cyclic_hierarchy, \
+    insert_non_cyclic_hierarchy_with_max_depth_exceeded, insert_a_cyclic_hierarchy
 
 
 async def test_correct_hierarchy_with_non_published_root_object(cli, db_cursor):

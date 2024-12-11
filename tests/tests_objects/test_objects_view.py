@@ -5,9 +5,11 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.util import check_ids
-from tests.fixtures.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 from tests.fixtures.data_generators.sessions import headers_admin_token
+
+from tests.fixtures.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
+
+from tests.util import check_ids
 
 
 async def test_incorrect_request_body(cli):

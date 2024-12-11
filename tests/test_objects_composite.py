@@ -10,15 +10,18 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 
-from tests.util import check_ids
-from tests.fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, get_composite_subobject_object_data, \
-    add_composite_subobject, add_composite_deleted_subobject, composite_data_list, \
-    insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, insert_composite_properties, \
-    insert_data_for_composite_view_tests_objects_with_non_published_tags
+from tests.fixtures.data_generators.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
+    get_composite_subobject_object_data, add_composite_subobject, add_composite_deleted_subobject
 from tests.fixtures.data_generators.sessions import headers_admin_token
-
 from tests.fixtures.data_generators.users import get_test_user
+
+from tests.fixtures.data_sets.objects import composite_data_list, insert_data_for_composite_view_tests_objects_with_non_published_tags
+
+from tests.fixtures.db_operations.objects import insert_objects, insert_links, insert_markdown, insert_to_do_lists, insert_composite, \
+    insert_composite_properties
 from tests.fixtures.db_operations.users import insert_users
+
+from tests.util import check_ids
 
 
 async def test_add_incorrect_top_level_data(cli):
@@ -409,7 +412,7 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor):
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
         assert subobjects[object_id]["display_in_feed"] == row[5]
-        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"][:-1]) == row[6]
+        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"]) == row[6]
         assert subobjects[object_id]["show_description"] == row[7]
         assert subobjects[object_id].get("owner_id", 1) == row[8]   # If owner_id is not set in request, token owner should be set as owner_id of new object
     
@@ -487,7 +490,7 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor):
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
         assert subobjects[object_id]["display_in_feed"] == row[5]
-        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"][:-1]) == row[6]
+        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"]) == row[6]
         assert subobjects[object_id]["show_description"] == row[7]
         assert subobjects[object_id].get("owner_id", default_owner) == row[8]   # If owner_id is not set in request, it should not be changed
 

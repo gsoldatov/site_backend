@@ -3,7 +3,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_test_object, insert_data_for_update_tests
+from tests.fixtures.data_generators.objects import get_test_object
+
+from tests.fixtures.data_sets.objects import insert_data_for_update_tests
 
 
 async def test_correct_update(cli, db_cursor):

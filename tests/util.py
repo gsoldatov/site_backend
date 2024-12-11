@@ -7,6 +7,7 @@ import pytest
 from backend_main.config import HiddenValue
 
 
+# TODO add docstring and/or rename
 def check_ids(expected, received, message = "Expected ids check"):
     expected = deepcopy(expected)
     received = deepcopy(received)

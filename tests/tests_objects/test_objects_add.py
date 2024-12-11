@@ -6,10 +6,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_test_object, incorrect_object_values
+from tests.fixtures.data_generators.objects import get_test_object
 from tests.fixtures.data_generators.sessions import headers_admin_token
-
 from tests.fixtures.data_generators.users import get_test_user
+
+from tests.fixtures.data_sets.objects import incorrect_object_values
+
 from tests.fixtures.db_operations.users import insert_users
 
 
@@ -60,7 +62,7 @@ async def test_add_two_objects_with_the_same_name(cli, db_cursor):
         assert attr in resp_object
     for attr in ("object_name", "object_description", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         if attr == "feed_timestamp":
-            assert datetime.fromisoformat(link[attr][:-1]) == datetime.fromisoformat(resp_object[attr])
+            assert datetime.fromisoformat(link[attr]) == datetime.fromisoformat(resp_object[attr])
         else:
             assert link[attr] == resp_object[attr]
 

@@ -7,10 +7,14 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 
-from util import check_ids
-from fixtures.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    to_do_lists_data_list, insert_objects, insert_to_do_lists, insert_data_for_view_tests_objects_with_non_published_tags
+from tests.fixtures.data_generators.objects import get_test_object, get_objects_attributes_list, get_test_object_data
 from tests.fixtures.data_generators.sessions import headers_admin_token
+
+from tests.fixtures.data_sets.objects import to_do_lists_data_list, insert_data_for_view_tests_objects_with_non_published_tags
+
+from tests.fixtures.db_operations.objects import insert_objects, insert_to_do_lists
+
+from util import check_ids
 
 
 async def test_add(cli, db_cursor):

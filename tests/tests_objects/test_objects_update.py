@@ -6,10 +6,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..", "..")))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.objects import get_test_object, incorrect_object_values, insert_data_for_update_tests
+from tests.fixtures.data_generators.objects import get_test_object
 from tests.fixtures.data_generators.sessions import headers_admin_token
-
 from tests.fixtures.data_generators.users import get_test_user
+
+from tests.fixtures.data_sets.objects import incorrect_object_values, insert_data_for_update_tests
+
 from tests.fixtures.db_operations.users import insert_users
 
 
@@ -82,7 +84,7 @@ async def test_correct_update(cli, db_cursor):
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_name, is_published, display_in_feed, feed_timestamp, show_description FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"], obj["display_in_feed"], datetime.fromisoformat(obj["feed_timestamp"][:-1]), obj["show_description"])
+    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"], obj["display_in_feed"], datetime.fromisoformat(obj["feed_timestamp"]), obj["show_description"])
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
@@ -98,7 +100,7 @@ async def test_correct_update_with_set_owner_id(cli, db_cursor, owner_id):
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     resp_object = (await resp.json())["object"]
-    assert datetime.fromisoformat(obj["feed_timestamp"][:-1]) == datetime.fromisoformat(resp_object["feed_timestamp"])
+    assert datetime.fromisoformat(obj["feed_timestamp"]) == datetime.fromisoformat(resp_object["feed_timestamp"])
     db_cursor.execute(f"SELECT object_name, owner_id FROM objects WHERE object_id = 1")
     assert db_cursor.fetchone() == (updated_name, owner_id)
 
