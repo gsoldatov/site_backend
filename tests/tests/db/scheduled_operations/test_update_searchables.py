@@ -10,13 +10,13 @@ if __name__ == "__main__":
 
 from backend_main.db_operations.scheduled.update_searchables import main as update_searchables
 
-from tests.fixtures.data_generators.objects import get_test_object
-from tests.fixtures.data_generators.searchables import get_test_searchable
+from tests.data_generators.objects import get_test_object
+from tests.data_generators.searchables import get_test_searchable
 
-from tests.fixtures.data_sets.searchables import insert_mock_data_for_searchable_update
+from tests.data_sets.searchables import insert_mock_data_for_searchable_update
 
-from tests.fixtures.db_operations.objects import insert_objects
-from tests.fixtures.db_operations.searchables import insert_searchables
+from tests.db_operations.objects import insert_objects
+from tests.db_operations.searchables import insert_searchables
 
 
 def test_disabled_searchables_updates(db_cursor, config, app):

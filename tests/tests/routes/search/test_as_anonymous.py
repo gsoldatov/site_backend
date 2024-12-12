@@ -6,14 +6,14 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 5)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.objects import get_test_object
-from tests.fixtures.data_generators.searchables import get_test_searchable
-from tests.fixtures.data_generators.tags import get_test_tag
+from tests.data_generators.objects import get_test_object
+from tests.data_generators.searchables import get_test_searchable
+from tests.data_generators.tags import get_test_tag
 
-from tests.fixtures.db_operations.objects import insert_objects
-from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.db_operations.searchables import insert_searchables
-from tests.fixtures.db_operations.tags import insert_tags
+from tests.db_operations.objects import insert_objects
+from tests.db_operations.objects_tags import insert_objects_tags
+from tests.db_operations.searchables import insert_searchables
+from tests.db_operations.tags import insert_tags
 
 
 async def test_correct_search_non_published_objects(cli_with_search, db_cursor):

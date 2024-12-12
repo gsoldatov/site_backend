@@ -3,16 +3,16 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.objects import get_test_object
-from tests.fixtures.data_generators.tags import get_test_tag
-from tests.fixtures.data_generators.users import get_test_user
+from tests.data_generators.objects import get_test_object
+from tests.data_generators.tags import get_test_tag
+from tests.data_generators.users import get_test_user
 
-from tests.fixtures.data_sets.tags import tag_list
+from tests.data_sets.tags import tag_list
 
-from tests.fixtures.db_operations.objects import insert_objects
-from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.db_operations.tags import insert_tags
-from tests.fixtures.db_operations.users import insert_users
+from tests.db_operations.objects import insert_objects
+from tests.db_operations.objects_tags import insert_objects_tags
+from tests.db_operations.tags import insert_tags
+from tests.db_operations.users import insert_users
 
 from tests.util import ensure_equal_collection_elements
 

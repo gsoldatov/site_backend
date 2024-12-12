@@ -8,15 +8,15 @@ if __name__ == "__main__":
 
 from random import shuffle
 
-from tests.fixtures.data_generators.objects import get_test_object
-from tests.fixtures.data_generators.searchables import get_test_searchable
-from tests.fixtures.data_generators.sessions import headers_admin_token
-from tests.fixtures.data_generators.tags import get_test_tag
+from tests.data_generators.objects import get_test_object
+from tests.data_generators.searchables import get_test_searchable
+from tests.data_generators.sessions import headers_admin_token
+from tests.data_generators.tags import get_test_tag
 
-from tests.fixtures.db_operations.objects import insert_objects
-from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.db_operations.searchables import insert_searchables
-from tests.fixtures.db_operations.tags import insert_tags
+from tests.db_operations.objects import insert_objects
+from tests.db_operations.objects_tags import insert_objects_tags
+from tests.db_operations.searchables import insert_searchables
+from tests.db_operations.tags import insert_tags
 
 from tests.util import wait_for
 

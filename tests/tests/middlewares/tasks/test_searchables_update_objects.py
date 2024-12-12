@@ -8,12 +8,12 @@ if __name__ == "__main__":
 
 from datetime import datetime
 
-from tests.fixtures.data_generators.objects import get_test_object, get_test_object_data
-from tests.fixtures.data_generators.searchables import get_test_searchable
-from tests.fixtures.data_generators.sessions import headers_admin_token
+from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.searchables import get_test_searchable
+from tests.data_generators.sessions import headers_admin_token
 
-from tests.fixtures.db_operations.objects import insert_objects, insert_links
-from tests.fixtures.db_operations.searchables import insert_searchables
+from tests.db_operations.objects import insert_objects, insert_links
+from tests.db_operations.searchables import insert_searchables
 
 from tests.util import wait_for
 

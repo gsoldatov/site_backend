@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_sets.objects import insert_non_cyclic_hierarchy, \
+from tests.data_sets.objects import insert_non_cyclic_hierarchy, \
     insert_non_cyclic_hierarchy_with_max_depth_exceeded, insert_a_cyclic_hierarchy
 
 

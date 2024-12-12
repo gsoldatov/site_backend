@@ -1,12 +1,12 @@
-from tests.fixtures.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
-from tests.fixtures.data_generators.tags import get_test_tag
-from tests.fixtures.data_generators.users import get_test_user
+from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
+from tests.data_generators.tags import get_test_tag
+from tests.data_generators.users import get_test_user
 
-from tests.fixtures.db_operations.objects import insert_objects, object_data_insert_functions, insert_links, \
+from tests.db_operations.objects import insert_objects, object_data_insert_functions, insert_links, \
     insert_composite
-from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.db_operations.tags import insert_tags
-from tests.fixtures.db_operations.users import insert_users
+from tests.db_operations.objects_tags import insert_objects_tags
+from tests.db_operations.tags import insert_tags
+from tests.db_operations.users import insert_users
 
 
 

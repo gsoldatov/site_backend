@@ -8,10 +8,10 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
-from tests.fixtures.data_generators.sessions import headers_admin_token
+from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
+from tests.data_generators.sessions import headers_admin_token
 
-from tests.fixtures.db_operations.objects import insert_objects, insert_composite
+from tests.db_operations.objects import insert_objects, insert_composite
 
 
 # Update handler uses the same logic as add handler, so tests are not duplicated

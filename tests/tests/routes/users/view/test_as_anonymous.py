@@ -5,9 +5,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.users import get_test_user
+from tests.data_generators.users import get_test_user
 
-from tests.fixtures.db_operations.users import insert_users
+from tests.db_operations.users import insert_users
 
 
 async def test_valid_request_for_basic_view(cli, db_cursor):

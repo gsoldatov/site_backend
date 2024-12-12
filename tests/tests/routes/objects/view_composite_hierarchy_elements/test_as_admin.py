@@ -3,13 +3,13 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.objects import get_test_object
-from tests.fixtures.data_generators.sessions import headers_admin_token
+from tests.data_generators.objects import get_test_object
+from tests.data_generators.sessions import headers_admin_token
 
-from tests.fixtures.data_sets.objects import insert_non_cyclic_hierarchy, \
+from tests.data_sets.objects import insert_non_cyclic_hierarchy, \
     insert_non_cyclic_hierarchy_with_max_depth_exceeded, insert_a_cyclic_hierarchy
 
-from tests.fixtures.db_operations.objects import insert_objects
+from tests.db_operations.objects import insert_objects
 
 
 async def test_incorrect_request_body(cli):

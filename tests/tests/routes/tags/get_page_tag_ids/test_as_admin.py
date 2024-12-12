@@ -5,12 +5,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.sessions import headers_admin_token
-from tests.fixtures.data_generators.tags import get_test_tag
+from tests.data_generators.sessions import headers_admin_token
+from tests.data_generators.tags import get_test_tag
 
-from tests.fixtures.data_sets.tags import tag_list
+from tests.data_sets.tags import tag_list
 
-from tests.fixtures.db_operations.tags import insert_tags, delete_tags
+from tests.db_operations.tags import insert_tags, delete_tags
 
 
 pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}

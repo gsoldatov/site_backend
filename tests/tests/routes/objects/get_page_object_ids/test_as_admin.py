@@ -5,15 +5,15 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.objects import get_test_object, get_objects_attributes_list
-from tests.fixtures.data_generators.sessions import headers_admin_token
+from tests.data_generators.objects import get_test_object, get_objects_attributes_list
+from tests.data_generators.sessions import headers_admin_token
 
-from tests.fixtures.data_sets.objects import insert_data_for_view_tests_objects_with_non_published_tags
-from tests.fixtures.data_sets.tags import tag_list
+from tests.data_sets.objects import insert_data_for_view_tests_objects_with_non_published_tags
+from tests.data_sets.tags import tag_list
 
-from tests.fixtures.db_operations.objects import insert_objects
-from tests.fixtures.db_operations.objects_tags import insert_objects_tags
-from tests.fixtures.db_operations.tags import insert_tags
+from tests.db_operations.objects import insert_objects
+from tests.db_operations.objects_tags import insert_objects_tags
+from tests.db_operations.tags import insert_tags
 
 
 pagination_info = {

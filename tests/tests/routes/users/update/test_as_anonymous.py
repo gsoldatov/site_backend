@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.fixtures.data_generators.users import get_update_user_request_body
+from tests.data_generators.users import get_update_user_request_body
 
 
 async def test_correct_update(cli, config):

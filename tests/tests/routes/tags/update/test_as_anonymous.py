@@ -3,9 +3,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests    
 
-from tests.fixtures.data_generators.tags import get_test_tag
+from tests.data_generators.tags import get_test_tag
 
-from tests.fixtures.db_operations.tags import insert_tags
+from tests.db_operations.tags import insert_tags
 
 
 async def test_correct_update(cli, db_cursor):

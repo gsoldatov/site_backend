@@ -10,8 +10,8 @@ if __name__ == "__main__":
 
 from backend_main.db_operations.scheduled.clear_expired_login_limits import main as clear_expired_login_limits
 
-from tests.fixtures.data_generators.login_rate_limits import get_test_login_rate_limit
-from tests.fixtures.db_operations.login_rate_limits import insert_login_rate_limits
+from tests.data_generators.login_rate_limits import get_test_login_rate_limit
+from tests.db_operations.login_rate_limits import insert_login_rate_limits
 
 
 def test_clear_expired_login_limits(db_cursor, config):
