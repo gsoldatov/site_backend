@@ -15,17 +15,17 @@ python -m tests
 
 Any CLI args given to `tests` module will be passed to the invoked `pytest` command.
 
-Tests from specific files & dirs can be performed by passing their paths relative to `tests` directory:
+Tests from specific files & dirs can be performed by passing their paths relative to `<project_root>/tests/tests` directory:
 
 ```bash
 # Run a single file `test_config.py`
-python -m tests test_config.py
+python -m tests modules/test_config.py
 
 # Run all tests in the `tests_objects` dirs
-python -m tests tests_objects
+python -m tests routes/objects
 
 # Run tests from several files/dirs
-python -m tests test_config.py tests_objects
+python -m tests modules/test_config.py routes/objects
 ```
 
 

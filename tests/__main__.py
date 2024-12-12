@@ -68,7 +68,7 @@ def main():
 
         # Change root dir
         cwd = os.getcwd()
-        tests_dir = os.path.abspath(os.path.join(__file__, ".."))
+        tests_dir = os.path.abspath(os.path.join(__file__, "..", "tests/"))
         os.chdir(tests_dir)
 
         # Run tests
