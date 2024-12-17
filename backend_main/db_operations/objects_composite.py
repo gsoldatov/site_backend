@@ -33,8 +33,16 @@ async def view_composite(request, object_ids):
 
     # Query subobjects
     records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
-        select([objects.c.object_id, composite.c.subobject_id, composite.c.row, composite.c.column, 
-            composite.c.selected_tab, composite.c.is_expanded, composite.c.show_description_composite, composite.c.show_description_as_link_composite])
+        select(
+            objects.c.object_id,
+            composite.c.subobject_id,
+            composite.c.row,
+            composite.c.column, 
+            composite.c.selected_tab,
+            composite.c.is_expanded,
+            composite.c.show_description_composite,
+            composite.c.show_description_as_link_composite
+        )
         .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
         .where(and_(
             objects_auth_filter_clause,
@@ -60,7 +68,7 @@ async def view_composite(request, object_ids):
     
     # Query composite properties
     records = await request["conn"].execute(
-        select([composite_properties.c.object_id, composite_properties.c.display_mode, composite_properties.c.numerate_chapters])
+        select(composite_properties.c.object_id, composite_properties.c.display_mode, composite_properties.c.numerate_chapters)
         .select_from(objects.outerjoin(composite_properties, objects.c.object_id == composite_properties.c.object_id))
         .where(and_(
             objects_auth_filter_clause,
@@ -286,7 +294,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     # Check if all subobject IDs exist as objects
     new_subobject_ids = [data["subobject_id"] for data in composite_object_data]
     result = await request["conn"].execute(
-        select([objects.c.object_id])
+        select(objects.c.object_id)
         .where(objects.c.object_id.in_(new_subobject_ids))
     )
     existing_subobject_ids = [row[0] for row in await result.fetchall()]
@@ -323,7 +331,7 @@ async def _delete_subobjects(request, obj_ids_and_data):
     if len(marked_for_full_deletion) > 0:
         # Check which subobjects marked for full deletion are not referenced by other composite objects
         result = await request["conn"].execute(
-            select([composite.c.subobject_id])
+            select(composite.c.subobject_id)
             .distinct()
             .where(composite.c.subobject_id.in_(marked_for_full_deletion))
         )

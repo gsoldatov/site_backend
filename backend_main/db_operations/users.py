@@ -30,8 +30,8 @@ async def get_user_by_credentials(request, user_id = None, login = None, passwor
     password_clause = text("password = crypt(:submitted_password, password)")
 
     result = await request["conn"].execute(
-        select([users.c.user_id, users.c.username, users.c.user_level, 
-            users.c.can_login, users.c.can_edit_objects])
+        select(users.c.user_id, users.c.username, users.c.user_level, 
+            users.c.can_login, users.c.can_edit_objects)
         .where(and_(
             user_id_or_login_clause,
             password_clause
@@ -126,7 +126,7 @@ async def check_if_user_ids_exist(request, user_ids):
     users = request.config_dict["tables"]["users"]
 
     result = await request["conn"].execute(
-        select([users.c.user_id])
+        select(users.c.user_id)
         .where(users.c.user_id.in_(user_ids))
     )
     existing_user_ids = set((r[0] for r in await result.fetchall()))
@@ -161,7 +161,7 @@ async def view_users(request, user_ids, full_view_mode):
         if full_view_mode else [users.c.user_id, users.c.registered_at, users.c.username]
     
     result = await request["conn"].execute(
-        select(columns)
+        select(*columns)
         .where(users.c.user_id.in_(user_ids))
     )
     return await result.fetchall()

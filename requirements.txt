@@ -45,13 +45,13 @@ python-editor==1.0.4
 referencing==0.35.1
 rpds-py==0.22.3
 six==1.16.0
-SQLAlchemy==1.4.39
+SQLAlchemy==2.0.36
 toml==0.10.2
 tomli==2.0.1
 types-jsonschema==4.23.0.20241208
 types-Markdown==3.7.0.20241204
 types-psycopg2==2.9.21.20241019
-types-SQLAlchemy==1.4.39
+types-SQLAlchemy==1.4.53.38
 typing_extensions==4.12.2
 wcwidth==0.2.5
 yarl==1.18.3

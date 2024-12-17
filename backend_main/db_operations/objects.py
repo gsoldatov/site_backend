@@ -107,9 +107,9 @@ async def view_objects(request, object_ids):
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     result = await request["conn"].execute(
-        select([objects.c.object_id, objects.c.object_type, objects.c.created_at,
+        select(objects.c.object_id, objects.c.object_type, objects.c.created_at,
             objects.c.modified_at, objects.c.object_name, objects.c.object_description, objects.c.is_published, 
-            objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id])
+            objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id)
         .where(and_(
             objects_auth_filter_clause,
             objects.c.object_id.in_(object_ids)
@@ -128,7 +128,7 @@ async def view_objects_types(request, object_ids):
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     result = await request["conn"].execute(
-        select([objects.c.object_type])
+        select(objects.c.object_type)
         .distinct()
         .where(and_(
             objects_auth_filter_clause,
@@ -154,7 +154,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     if delete_subobjects:
         # Get all subobject IDs of deleted subobjects
         result = await request["conn"].execute(
-            select([composite.c.subobject_id])
+            select(composite.c.subobject_id)
             .distinct()
             .where(composite.c.object_id.in_(object_ids))
         )
@@ -162,7 +162,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
 
         # Get subobject IDs which are present in other composite objects
         result = await request["conn"].execute(
-            select([composite.c.subobject_id])
+            select(composite.c.subobject_id)
             .distinct()
             .where(and_(
                 composite.c.subobject_id.in_(subobjects_of_deleted_objects),
@@ -233,12 +233,12 @@ async def get_page_object_ids_data(request, pagination_info):
 
             # Sub-query for filtering objects which match tags filter condition
             tags_filter_subquery = (
-                select([objects_tags.c.object_id.label("object_id"), func.count().label("tags_count")])
+                select(objects_tags.c.object_id.label("object_id"), func.count().label("tags_count"))
                 .where(objects_tags.c.tag_id.in_(tags_filter))
                 .group_by(objects_tags.c.object_id)
             ).alias("t_f_subquery")
             tags_filter_query = (
-                select([tags_filter_subquery.c.object_id])
+                select(tags_filter_subquery.c.object_id)
                 .select_from(tags_filter_subquery)
                 .where(tags_filter_subquery.c.tags_count == len(tags_filter))
             ).scalar_subquery()
@@ -252,7 +252,7 @@ async def get_page_object_ids_data(request, pagination_info):
         
         # Objects filter for non 'admin` user level
         objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
-            select([objects.c.object_id])
+            select(objects.c.object_id)
             .where(text_filter_clause)
             .where(object_types_clause)
             .where(tags_filter_clause)
@@ -272,7 +272,7 @@ async def get_page_object_ids_data(request, pagination_info):
     # Get object ids
     result = await request["conn"].execute(
         with_where_clause(
-            select([objects.c.object_id])
+            select(objects.c.object_id)
         )
         .order_by(order_by if order_asc else order_by.desc())
         .limit(items_per_page)
@@ -290,7 +290,7 @@ async def get_page_object_ids_data(request, pagination_info):
     # Get object count
     result = await request["conn"].execute(
         with_where_clause(
-            select([func.count()])
+            select(func.count())
             .select_from(objects)
         )
     )
@@ -323,7 +323,7 @@ async def search_objects(request, query):
 
     # Objects filter for non 'admin` user level
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
-        select([objects.c.object_id])
+        select(objects.c.object_id)
         .where(and_(
             func.lower(objects.c.object_name).like(func.lower(query_text)),
             objects.c.object_id.notin_(existing_ids)
@@ -332,7 +332,7 @@ async def search_objects(request, query):
 
     # Get object ids
     result = await request["conn"].execute(
-        select([objects.c.object_id])
+        select(objects.c.object_id)
         .where(and_(
             objects_auth_filter_clause,
             func.lower(objects.c.object_name).like(func.lower(query_text)),
@@ -365,7 +365,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     # Check if object is composite and can be viewed by request sender
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=[object_id])
     result = await request["conn"].execute(
-        select([objects.c.object_type])
+        select(objects.c.object_type)
         .where(and_(
             objects_auth_filter_clause,
             objects.c.object_id == object_id
@@ -393,7 +393,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     while len(parent_object_ids) > 0 and current_depth < request.config_dict["config"]["app"]["composite_hierarchy_max_depth"]:
         # Query all subobjects of current parents
         result = await request["conn"].execute(
-            select([composite.c.subobject_id, objects.c.object_type])
+            select(composite.c.subobject_id, objects.c.object_type)
             .select_from(composite.join(objects, composite.c.subobject_id == objects.c.object_id))
             .where(composite.c.object_id.in_(parent_object_ids))    # Do not apply auth filter here (it will be applied when objects' attributes & data are fetched)
         )

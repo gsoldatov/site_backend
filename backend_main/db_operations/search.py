@@ -27,7 +27,7 @@ async def search_items(request, query):
     # Objects auth filter for non-admin user levels (applied for objects only)
     objects_auth_filter_clause = or_(searchables.c.object_id == None, 
         get_objects_auth_filter_clause(request, object_ids_subquery=(
-            select([searchables.c.object_id])
+            select(searchables.c.object_id)
             .where(and_(
                 searchables.c.searchable_tsv_russian.op("@@")(func.websearch_to_tsquery("russian", query_text)),
                 searchables.c.object_id != None
@@ -42,9 +42,9 @@ async def search_items(request, query):
 
     # Query database
     result = await request["conn"].execute(
-        select([searchables.c.tag_id, searchables.c.object_id,
+        select(searchables.c.tag_id, searchables.c.object_id,
             # set bit flags for ts_rank function to normalize ranks (2 divides the rank by the document length; 32 divides the rank by itself + 1)
-            func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")]
+            func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")
         )
         .select_from(
             searchables
@@ -74,7 +74,7 @@ async def search_items(request, query):
 
     # Query total number of items
     result = await request["conn"].execute(
-        select([func.count()])
+        select(func.count())
         .select_from(
             searchables
             .outerjoin(objects, searchables.c.object_id == objects.c.object_id)

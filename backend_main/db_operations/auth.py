@@ -26,7 +26,7 @@ async def check_if_user_owns_objects(request, object_ids):
         user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
-            select([objects.c.object_id, objects.c.owner_id])
+            select(objects.c.object_id, objects.c.owner_id)
             .where(objects.c.object_id.in_(object_ids))
         )
 
@@ -55,9 +55,9 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
         user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
-            select([objects.c.object_id, objects.c.owner_id])
+            select(objects.c.object_id, objects.c.owner_id)
             .where(objects.c.object_id.in_(
-                select([objects_tags.c.object_id])
+                select(objects_tags.c.object_id)
                 .distinct()
                 .where(objects_tags.c.tag_id.in_(tag_ids))
             ))
@@ -127,7 +127,7 @@ def get_objects_data_auth_filter_clause(request, object_id_column, object_ids):
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     return object_id_column.in_(
-        select([objects.c.object_id])
+        select(objects.c.object_id)
         .where(and_(
             objects_auth_filter_clause,
             objects.c.object_id.in_(object_ids)
@@ -158,7 +158,7 @@ def get_objects_with_published_tags_only_clause(request, object_ids = None, obje
     object_ids_filter = object_ids if object_ids is not None else object_ids_subquery
 
     return objects.c.object_id.notin_(
-        select([objects_tags.c.object_id])
+        select(objects_tags.c.object_id)
         .distinct()
         .select_from(objects_tags.join(tags, objects_tags.c.tag_id == tags.c.tag_id))
         .where(and_(

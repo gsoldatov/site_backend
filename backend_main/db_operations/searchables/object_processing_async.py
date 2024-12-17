@@ -46,8 +46,8 @@ async def _process_objects_coro(request, object_ids):
     objects = request.config_dict["tables"]["objects"]
 
     cursor = await conn.execute(
-        select([objects.c.object_id, objects.c.object_name, 
-                objects.c.object_description, objects.c.object_type])
+        select(objects.c.object_id, objects.c.object_name, 
+                objects.c.object_description, objects.c.object_type)
         .where(objects.c.object_id.in_(object_ids))
     )
 
@@ -79,7 +79,7 @@ async def _process_objects_coro(request, object_ids):
         links = request.config_dict["tables"]["links"]
 
         cursor = await conn.execute(
-            select([links.c.object_id, links.c.link])
+            select(links.c.object_id, links.c.link)
             .where(links.c.object_id.in_(types["link"]))
         )
 
@@ -91,7 +91,7 @@ async def _process_objects_coro(request, object_ids):
         markdown = request.config_dict["tables"]["markdown"]
 
         cursor = await conn.execute(
-            select([markdown.c.object_id, markdown.c.raw_text])
+            select(markdown.c.object_id, markdown.c.raw_text)
             .where(markdown.c.object_id.in_(types["markdown"]))
         )
 
@@ -107,7 +107,7 @@ async def _process_objects_coro(request, object_ids):
         to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
 
         cursor = await conn.execute(
-            select([to_do_list_items.c.object_id, to_do_list_items.c.item_text, to_do_list_items.c.commentary])
+            select(to_do_list_items.c.object_id, to_do_list_items.c.item_text, to_do_list_items.c.commentary)
             .where(to_do_list_items.c.object_id.in_(types["to_do_list"]))
         )
 

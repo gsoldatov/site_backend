@@ -81,7 +81,7 @@ async def view_tags(request, tag_ids):
     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
 
     rows = await request["conn"].execute(
-        select([tags])
+        select(tags)
         .where(and_(
             tags_auth_filter_clause,
             tags.c.tag_id.in_(tag_ids))
@@ -144,7 +144,7 @@ async def get_page_tag_ids_data(request, pagination_info):
     # Get tag ids
     result = await request["conn"].execute(
         with_where_clause(
-            select([tags.c.tag_id])
+            select(tags.c.tag_id)
         )
         .order_by(order_by if order_asc else order_by.desc())
         .limit(items_per_page)
@@ -162,7 +162,7 @@ async def get_page_tag_ids_data(request, pagination_info):
     # Get tag count
     result = await request["conn"].execute(
         with_where_clause(
-            select([func.count()])
+            select(func.count())
             .select_from(tags)
         )
     )
@@ -195,7 +195,7 @@ async def search_tags(request, query):
 
     # Get tag ids
     result = await request["conn"].execute(
-        select([tags.c.tag_id])
+        select(tags.c.tag_id)
         .where(and_(
             tags_auth_filter_clause,
             func.lower(tags.c.tag_name).like(func.lower(query_text)),

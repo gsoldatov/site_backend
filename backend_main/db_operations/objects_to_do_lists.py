@@ -116,7 +116,7 @@ async def view_to_do_lists(request, object_ids):
 
     # Query to-do list general object data
     records = await request["conn"].execute(
-        select([to_do_lists.c.object_id, to_do_lists.c.sort_type])
+        select(to_do_lists.c.object_id, to_do_lists.c.sort_type)
         .where(objects_data_auth_filter_clause)
     )
 
@@ -126,8 +126,8 @@ async def view_to_do_lists(request, object_ids):
 
     # Query to-do list items
     items = await request["conn"].execute(
-        select([to_do_list_items.c.object_id, to_do_list_items.c.item_number, to_do_list_items.c.item_state, to_do_list_items.c.item_text,
-                to_do_list_items.c.commentary, to_do_list_items.c.indent, to_do_list_items.c.is_expanded])
+        select(to_do_list_items.c.object_id, to_do_list_items.c.item_number, to_do_list_items.c.item_state, to_do_list_items.c.item_text,
+                to_do_list_items.c.commentary, to_do_list_items.c.indent, to_do_list_items.c.is_expanded)
         .where(objects_data_auth_filter_clause_items)
         .order_by(to_do_list_items.c.object_id, to_do_list_items.c.item_number)
     )

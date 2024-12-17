@@ -53,7 +53,7 @@ async def view_markdown(request, object_ids):
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, markdown.c.object_id, object_ids)
 
     records = await request["conn"].execute(
-        select([markdown.c.object_id, markdown.c.raw_text])
+        select(markdown.c.object_id, markdown.c.raw_text)
         .where(objects_data_auth_filter_clause)
     )
     result = []

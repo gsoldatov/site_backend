@@ -46,7 +46,7 @@ async def _process_tags_coro(request, tag_ids):
     tags = request.config_dict["tables"]["tags"]
 
     cursor = await request["conn_searchables"].execute(
-        select([tags.c.tag_id, tags.c.tag_name, tags.c.tag_description])
+        select(tags.c.tag_id, tags.c.tag_name, tags.c.tag_description)
         .where(tags.c.tag_id.in_(tag_ids))
     )
 

@@ -1,7 +1,7 @@
 """
 Session-related database operations.
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
 from uuid import uuid4
 
 from aiohttp import web
@@ -39,9 +39,9 @@ async def prolong_access_token_and_get_user_info(request):
     ).cte("update_cte")
 
     result = await request["conn"].execute(
-        select([users.c.user_id, users.c.user_level, users.c.can_edit_objects])
+        select(users.c.user_id, users.c.user_level, users.c.can_edit_objects)
         .where(and_(
-            users.c.user_id.in_(select([update_cte.c.user_id])),
+            users.c.user_id.in_(select(update_cte.c.user_id)),
             users.c.can_login == True
         ))
     )

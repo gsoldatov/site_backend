@@ -33,7 +33,7 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
         objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
         result = await request["conn"].execute(
-        select([objects_tags.c.object_id, objects_tags.c.tag_id])
+        select(objects_tags.c.object_id, objects_tags.c.tag_id)
         .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply objects auth filter
         .where(and_(
             objects_tags.c.object_id.in_(object_ids),   # select rows for provided `object_ids`
@@ -46,14 +46,14 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
     else:
         tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
         objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
-            select([objects_tags.c.object_id])
+            select(objects_tags.c.object_id)
             .distinct()
             .where(objects_tags.c.tag_id.in_(tag_ids))
         ))
 
         # Get pairs wihtout filtering objects with non-published tags
         result = await request["conn"].execute(
-        select([objects_tags.c.object_id, objects_tags.c.tag_id])
+        select(objects_tags.c.object_id, objects_tags.c.tag_id)
         .select_from(
                 objects_tags
                 .join(tags, objects_tags.c.tag_id == tags.c.tag_id))   # join tags table to apply tags auth filter
@@ -124,7 +124,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     if len(tag_ids) > 0:
         # Check if all of the provided tag_ids exist
         result = await request["conn"].execute(
-            select([tags.c.tag_id])
+            select(tags.c.tag_id)
             .where(tags.c.tag_id.in_(tag_ids))
         )
         existing_tag_ids = {row["tag_id"] for row in await result.fetchall()}
@@ -142,7 +142,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     # Get existing tag_ids for provided string tag_names
     if len(tag_names) > 0:
         records = await request["conn"].execute(
-            select([tags.c.tag_id, func.lower(tags.c.tag_name).label("lowered_tag_name")])
+            select(tags.c.tag_id, func.lower(tags.c.tag_name).label("lowered_tag_name"))
             .where(func.lower(tags.c.tag_name).in_(lowered_tag_names))
         )
         for row in await records.fetchall():
@@ -160,7 +160,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     # Check if non-admins add published existing tags only
     if request["user_info"].user_level != "admin":
         result = await request["conn"].execute(
-            select([func.count()])
+            select(func.count())
             .where(get_tags_auth_filter_clause(request, is_published=False))
         )
         if (await result.fetchone())[0] > 0:
@@ -228,7 +228,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
     if request["user_info"].user_level != "admin":
         removed_tags_clause = true() if objects_tags_data.get("remove_all_tags") else objects_tags.c.tag_id.in_(objects_tags_data["removed_tag_ids"])
         result = await request["conn"].execute(
-            select([func.count()])
+            select(func.count())
             .select_from(objects_tags.join(tags, objects_tags.c.tag_id == tags.c.tag_id))
             .where(and_(
                 get_tags_auth_filter_clause(request, is_published=False),
@@ -330,7 +330,7 @@ async def _check_object_ids(request, checked_object_ids):
         checked_object_ids = set(checked_object_ids)
     objects = request.config_dict["tables"]["objects"]
     result = await request["conn"].execute(
-        select([objects.c.object_id])
+        select(objects.c.object_id)
         .where(objects.c.object_id.in_(checked_object_ids))
     )
     existing_object_ids = {row["object_id"] for row in await result.fetchall()}

@@ -84,7 +84,7 @@ def upgrade():
 
     op.add_column('objects', sa.Column('owner_id', sa.Integer()))
     conn = op.get_bind()
-    default_user_id = conn.execute("SELECT user_id FROM users").fetchone()[0]
+    default_user_id = conn.execute(sa.text("SELECT user_id FROM users")).fetchone()[0]
     op.execute(f'UPDATE objects SET owner_id={default_user_id}')
     op.alter_column('objects', 'owner_id', nullable=False)
 

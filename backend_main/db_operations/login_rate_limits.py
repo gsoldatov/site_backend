@@ -18,7 +18,7 @@ async def add_login_rate_limit_to_request(request):
     request_time = request["time"]
 
     result = await request["conn"].execute(
-        select([login_rate_limits.c.failed_login_attempts, login_rate_limits.c.cant_login_until])
+        select(login_rate_limits.c.failed_login_attempts, login_rate_limits.c.cant_login_until)
         .where(login_rate_limits.c.ip_address == request.remote)
     )
     row = await result.fetchone()

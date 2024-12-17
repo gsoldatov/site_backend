@@ -64,7 +64,7 @@ async def view_links(request, object_ids):
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, links.c.object_id, object_ids)
 
     records = await request["conn"].execute(
-        select([links.c.object_id, links.c.link, links.c.show_description_as_link])
+        select(links.c.object_id, links.c.link, links.c.show_description_as_link)
         .where(objects_data_auth_filter_clause)
     )
     result = []
