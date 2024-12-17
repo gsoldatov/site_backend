@@ -1,4 +1,5 @@
-from logging.handlers import BaseRotatingHandler, _MIDNIGHT
+from logging.handlers import BaseRotatingHandler
+from logging.handlers import _MIDNIGHT # type: ignore
 import os, time, re
 from stat import ST_MTIME
 

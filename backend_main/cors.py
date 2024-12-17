@@ -1,4 +1,4 @@
-import aiohttp_cors
+import aiohttp_cors # type: ignore
 
 
 def setup_cors(app):

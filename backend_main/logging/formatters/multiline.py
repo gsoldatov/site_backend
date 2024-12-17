@@ -57,4 +57,4 @@ class MultilineFormatter(logging.Formatter):
         return text
 
 
-_default_log_record_params = set((k for k in logging.LogRecord(*[None] * 7).__dict__))
+_default_log_record_params = set((k for k in logging.LogRecord(*[None] * 7).__dict__))  # type: ignore
