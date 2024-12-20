@@ -6,6 +6,8 @@
 # from aiohttp import web
 # from threading import Thread
 
+# from backend_main.types import app_config_key
+
 # from backend_main.db_operations.searchables import update_searchables
 
 
@@ -35,6 +37,6 @@
 #         finally:
 #             app["threaded_pool"].putconn(conn)
 
-#     if request.config_dict["config"]["auxillary"]["enable_searchables_updates"] \
+#     if request.config_dict[app_config_key].auxillary.enable_searchables_updates \
 #         and ("searchable_updates_tag_ids" in request or "searchable_updates_object_ids" in request):
 #         Thread(target=_task, args=(request,)).start()

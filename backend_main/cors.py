@@ -1,7 +1,12 @@
 import aiohttp_cors # type: ignore
+# TODO ignore specific error
+
+from aiohttp import web
+
+from backend_main.types import app_config_key
 
 
-def setup_cors(app):
+def setup_cors(app: web.Application):
     resource_options = aiohttp_cors.ResourceOptions(
                 allow_credentials=True,
                 expose_headers="*",
@@ -9,7 +14,7 @@ def setup_cors(app):
             )
     
     cors = aiohttp_cors.setup(app, defaults = {
-        url: resource_options for url in app["config"]["cors_urls"]
+        url: resource_options for url in app[app_config_key].cors_urls
     })
 
     for route in app.router.routes():

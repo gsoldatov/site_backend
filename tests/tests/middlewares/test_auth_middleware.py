@@ -94,7 +94,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         "/settings/update": {"PUT": {"settings": {"non_admin_registration_allowed": False}}},
         "/settings/view": {"POST": {"view_all": True}},
 
-        "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config["app"]["default_user"]["password"].value}},
+        "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config.app.default_user.password.value}},
         "/users/view": {"POST": {"user_ids": [1]}},
 
         "/search": {"POST": {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}}
@@ -122,7 +122,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
 
         response_expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"])
         assert timedelta(seconds=0) <= datetime.now(tz=timezone.utc) - \
-            (response_expiration_time - timedelta(seconds=config["app"]["token_lifetime"])) <= timedelta(seconds=1)
+            (response_expiration_time - timedelta(seconds=config.app.token_lifetime)) <= timedelta(seconds=1)
 
         # Check if expiration time was updated in the database
         db_cursor.execute(f"SELECT expiration_time FROM sessions WHERE access_token = '{admin_token}'")

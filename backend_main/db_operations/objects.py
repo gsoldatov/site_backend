@@ -1,13 +1,13 @@
 """
 Common operations with objects table.
 """
-from datetime import datetime
-
 from aiohttp import web
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_, or_
 from sqlalchemy.sql.expression import true
 from sqlalchemy.sql.functions import coalesce
+
+from backend_main.types import app_config_key
 
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
@@ -390,7 +390,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     all_composite, all_non_composite = set([object_id]), set()
     current_depth = 1
 
-    while len(parent_object_ids) > 0 and current_depth < request.config_dict["config"]["app"]["composite_hierarchy_max_depth"]:
+    while len(parent_object_ids) > 0 and current_depth < request.config_dict[app_config_key].app.composite_hierarchy_max_depth:
         # Query all subobjects of current parents
         result = await request["conn"].execute(
             select(composite.c.subobject_id, objects.c.object_type)

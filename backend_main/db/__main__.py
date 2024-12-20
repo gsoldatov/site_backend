@@ -61,8 +61,8 @@ def main():
             logger.info(f"Starting database initialization...")
 
             # Get app config and connect to the default database
-            cursor = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_init_database"].value,
-                                user=config["db"]["db_init_username"].value, password=config["db"]["db_init_password"].value)
+            cursor = connect(host=config.db.db_host, port=config.db.db_port, database=config.db.db_init_database.value,
+                                user=config.db.db_init_username.value, password=config.db.db_init_password.value)
             logger.info(f"Connected to the default database.")
             
             # Drop existing user and database

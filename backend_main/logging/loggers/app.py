@@ -2,10 +2,14 @@ from asyncio import get_running_loop
 import logging
 from uuid import uuid4
 
+from aiohttp import web
+
+from backend_main.types import app_config_key
+
 from backend_main.logging.handlers.app import get_access_logger_handler, get_event_logger_handler
 
 
-def setup_loggers(app):
+def setup_loggers(app: web.Application):
     """
     Sets up access and event loggers in the app.
     """
@@ -16,34 +20,34 @@ def setup_loggers(app):
     app.on_cleanup.append(cleanup_loggers)
 
 
-async def cleanup_loggers(app):
+async def cleanup_loggers(app: web.Application):
     """
     Clean loggers on application exit.
 
     NOTE: function must be async to be added to `app` on_cleanup list.
     """
-    if app["config"]["logging"]["app_event_log_mode"] == "file":
+    if app[app_config_key].logging.app_event_log_mode == "file":
         app["event_logger"].handlers[0].doRollover()    # Roll the current event log file over
     
-    if app["config"]["logging"]["app_access_log_mode"] == "file":
+    if app[app_config_key].logging.app_access_log_mode == "file":
         app["access_logger"].handlers[0].doRollover()    # Roll the current access log file over
 
 
-def setup_app_access_logging(app):
+def setup_app_access_logging(app: web.Application):
     """ Sets up access logger and logging function in the `app`. """
     # Set up access logger
     level = logging.INFO
     app["access_logger"] = logging.getLogger("app_access_logger")
     app["access_logger"].setLevel(level)
     
-    handler = get_access_logger_handler(app["config"], level)
+    handler = get_access_logger_handler(app[app_config_key], level)
     if handler is not None:
         app["access_logger"].addHandler(handler)
     
     # Set up logging funciton
     def log_access(request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
-        if app["config"]["logging"]["app_access_log_mode"] == "off": return
+        if app[app_config_key].logging.app_access_log_mode == "off": return
 
         extra = {"request_id": request_id, "path": path, "method": method, "status": status, "elapsed_time": elapsed_time, 
             "user_id": user_id, "remote": remote, "referer": referer, "user_agent": user_agent}
@@ -52,21 +56,21 @@ def setup_app_access_logging(app):
     app["log_access"] = log_access
 
 
-def setup_app_event_logging(app):
+def setup_app_event_logging(app: web.Application):
     """ Sets up event logger and logging function in the `app`. """
     # Set up event logger
     level = logging.INFO
     app["event_logger"] = logging.getLogger("app_event_logger")
     app["event_logger"].setLevel(level)
     
-    handler = get_event_logger_handler(app["config"], level)
+    handler = get_event_logger_handler(app[app_config_key], level)
     if handler is not None:
         app["event_logger"].addHandler(handler)
     
     # Set up logging funciton    
     def log_event(level, event_type, message, details = "", exc_info = None):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
-        if app["config"]["logging"]["app_event_log_mode"] == "off": return
+        if app[app_config_key].logging.app_event_log_mode == "off": return
 
         level = _get_level(level)
         extra = {"event_type": event_type, "request_id": "", "details": details}
@@ -79,7 +83,7 @@ def setup_request_event_logging(request):
     """ Set up request event logging function and log-related params. """
     def log(level, event_type, message, details = "", exc_info = None):
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
-        if request.config_dict["config"]["logging"]["app_event_log_mode"] == "off": return
+        if request.config_dict[app_config_key].logging.app_event_log_mode == "off": return
 
         # Don't log CORS requests
         if request.method in ("OPTIONS", "HEAD"): return

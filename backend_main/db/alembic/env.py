@@ -33,15 +33,17 @@ app_config = get_config(app_config_path)
 test_uuid = x_arguments.get("test_uuid")
 if test_uuid is not None:
     test_uuid = test_uuid.replace('"', '')
-    app_config["db"]["db_database"] = get_test_name(app_config["db"]["db_database"], test_uuid)
-    app_config["db"]["db_username"] = get_test_name(app_config["db"]["db_username"], test_uuid)
+    app_config.db.db_database = get_test_name(app_config.db.db_database, test_uuid)
+    app_config.db.db_username = get_test_name(app_config.db.db_username, test_uuid)
 
 # Set connection string
-username = urllib.parse.quote(app_config["db"]["db_username"].value).replace("%", "%%") # encode special characters in username and password;
-password = urllib.parse.quote(app_config["db"]["db_password"].value).replace("%", "%%") # after quoting, '%' chars must also be escaped to avoid "ValueError: invalid interpolation syntax" exception
+## encode special characters in username and password;
+username = urllib.parse.quote(app_config.db.db_username.value).replace("%", "%%")
+## after quoting, '%' chars must also be escaped to avoid "ValueError: invalid interpolation syntax" exception
+password = urllib.parse.quote(app_config.db.db_password.value).replace("%", "%%")
 
 config.set_main_option("sqlalchemy.url", f"postgresql://{username}:{password}"
-                        f"@{app_config['db']['db_host']}:{app_config['db']['db_port']}/{app_config['db']['db_database'].value}")
+                        f"@{app_config.db.db_host}:{app_config.db.db_port}/{app_config.db.db_database.value}")
 
 # Set up loggers
 # fileConfig(config.config_file_name, disable_existing_loggers=False) # from alembic.ini

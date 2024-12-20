@@ -12,9 +12,9 @@ import alembic.config
 
 project_root_dir = os.path.abspath(os.path.join(__file__, "../" * 3))
 sys.path.insert(0, project_root_dir)
-from backend_main.main import create_app
+from backend_main.app import create_app
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_, migrate as migrate_
-from backend_main.config import hide_config_values
+from backend_main.config import Config
 
 from tests.util import get_test_name
 from tests.data_generators.sessions import admin_token
@@ -49,24 +49,22 @@ def config(config_path, test_uuid):
         config["db"]["db_database"] = get_test_name(config["db"]["db_database"], test_uuid)
         config["db"]["db_username"] = get_test_name(config["db"]["db_username"], test_uuid)
 
-        hide_config_values(config)
-
-        return config
+        return Config(**config)
 
 
 @pytest.fixture(scope="module")
 def config_with_search(config):
     config_with_search = deepcopy(config)
-    config_with_search["auxillary"]["enable_searchables_updates"] = True
+    config_with_search.auxillary.enable_searchables_updates = True
     return config_with_search
 
 
 @pytest.fixture(scope="module")
 def init_db_cursor(config):
     """ psycopg2.Cursor object for creating and dropping test user and database. """
-    connection = psycopg2.connect(host=config["db"]["db_host"], port=config["db"]["db_port"], 
-                    database=config["db"]["db_init_database"].value, user=config["db"]["db_init_username"].value, 
-                    password=config["db"]["db_init_password"].value)
+    connection = psycopg2.connect(host=config.db.db_host, port=config.db.db_port,
+                    database=config.db.db_init_database.value, user=config.db.db_init_username.value,
+                    password=config.db.db_init_password.value)
     connection.set_session(autocommit=True)
     cursor = connection.cursor()
     yield cursor
@@ -78,20 +76,20 @@ def init_db_cursor(config):
 @pytest.fixture(scope="module")
 def db_and_user(config, init_db_cursor):
     """ Temporary user and database for running tests. """
-    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"].value}""")
-    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"].value}""")
-    init_db_cursor.execute(f"""CREATE USER {config["db"]["db_username"].value} PASSWORD \'{config["db"]["db_password"].value}\' LOGIN;""")
-    init_db_cursor.execute(f"""CREATE DATABASE {config["db"]["db_database"].value} ENCODING 'UTF-8' OWNER {config["db"]["db_username"].value} TEMPLATE template0;""")
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config.db.db_database.value}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {config.db.db_username.value}""")
+    init_db_cursor.execute(f"""CREATE USER {config.db.db_username.value} PASSWORD \'{config.db.db_password.value}\' LOGIN;""")
+    init_db_cursor.execute(f"""CREATE DATABASE {config.db.db_database.value} ENCODING 'UTF-8' OWNER {config.db.db_username.value} TEMPLATE template0;""")
     yield
 
     init_db_cursor.execute(f"""
                     SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
-                    WHERE pg_stat_activity.datname = '{config["db"]["db_database"].value}'
+                    WHERE pg_stat_activity.datname = '{config.db.db_database.value}'
                     AND pid <> pg_backend_pid();
     """)
-    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config["db"]["db_database"].value}""")
-    init_db_cursor.execute(f"""DROP USER IF EXISTS {config["db"]["db_username"].value}""")
+    init_db_cursor.execute(f"""DROP DATABASE IF EXISTS {config.db.db_database.value}""")
+    init_db_cursor.execute(f"""DROP USER IF EXISTS {config.db.db_username.value}""")
 
 
 @pytest.fixture(scope="module")
@@ -109,9 +107,13 @@ def migrate(config, config_path, test_uuid, db_and_user, migrate_as_superuser):
 @pytest.fixture(scope="module")
 def db_cursor(config, migrate):
     """ psycopg2.cursor object for performing queries against the test database. """
-    connection = psycopg2.connect(host=config["db"]["db_host"], port=config["db"]["db_port"], 
-                    database=config["db"]["db_database"].value, user=config["db"]["db_username"].value, 
-                    password=config["db"]["db_password"].value)
+    connection = psycopg2.connect(
+        host=config.db.db_host,
+        port=config.db.db_port,
+        database=config.db.db_database.value,
+        user=config.db.db_username.value,
+        password=config.db.db_password.value
+    )
     connection.set_session(autocommit=True)
     cursor = connection.cursor()
     yield cursor
@@ -131,9 +133,9 @@ def insert_data(config, db_cursor):
 
     # Insert admin
     current_time = datetime.now(tz=timezone.utc)
-    login = config["app"]["default_user"]["login"].value
-    password = config["app"]["default_user"]["password"].value
-    username = config["app"]["default_user"]["username"]
+    login = config.app.default_user.login.value
+    password = config.app.default_user.password.value
+    username = config.app.default_user.username
     db_cursor.execute(f"""INSERT INTO users (registered_at, login, password, username, user_level, can_login, can_edit_objects)
                    VALUES ('{current_time}', '{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE, TRUE)""")
     

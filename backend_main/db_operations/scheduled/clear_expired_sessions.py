@@ -20,8 +20,13 @@ def main(config = None):
         logger = get_logger("clear_expired_sessions", config)
 
         # Connect to the database
-        cursor = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_database"].value,
-                            user=config["db"]["db_username"].value, password=config["db"]["db_password"].value)
+        cursor = connect(
+            host=config.db.db_host,
+            port=config.db.db_port,
+            database=config.db.db_database.value,
+            user=config.db.db_username.value,
+            password=config.db.db_password.value
+        )
         logger.info("Connected to the database.")
         
         # Delete sessions, which are expired or belong to users who can't login

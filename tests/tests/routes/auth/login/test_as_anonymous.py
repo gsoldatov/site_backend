@@ -177,7 +177,7 @@ async def test_logging_in_with_correct_admin_credentials(cli, db_cursor, config)
     assert "auth" in data
     assert "access_token" in data["auth"]
     expiration_time = datetime.fromisoformat(data["auth"]["access_token_expiration_time"])
-    assert datetime.now(tz=timezone.utc) + timedelta(seconds=config["app"]["token_lifetime"]) \
+    assert datetime.now(tz=timezone.utc) + timedelta(seconds=config.app.token_lifetime) \
         - expiration_time < timedelta(seconds=1)
     assert data["auth"]["user_id"] == user["user_id"]
     assert data["auth"]["user_level"] == user["user_level"]

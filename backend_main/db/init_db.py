@@ -36,8 +36,8 @@ def drop_user_and_db(config, cursor, force):
 
     # Validate `db_database` and `db_username` values
     logger.info("Deleting existing user and database...")
-    db_init_username, db_init_database = config["db"]["db_init_username"].value, config["db"]["db_init_database"].value
-    db_username, db_database = config["db"]["db_username"].value, config["db"]["db_database"].value
+    db_init_username, db_init_database = config.db.db_init_username.value, config.db.db_init_database.value
+    db_username, db_database = config.db.db_username.value, config.db.db_database.value
     
     if db_init_database == db_database: raise InitDBException("db_init_database and db_database cannot be equal.")    
     if db_database == "template0": raise InitDBException("db_database cannot be equal to 'template0'.")
@@ -73,8 +73,8 @@ def drop_user_and_db(config, cursor, force):
         # https://dba.stackexchange.com/questions/155332/find-objects-linked-to-a-postgresql-role
         cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname NOT IN ('template0', '{db_init_database}')")
         for (database_name, ) in cursor.fetchall():
-            database_cursor = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=database_name,
-                user=db_init_username, password=config["db"]["db_init_password"].value)
+            database_cursor = connect(host=config.db.db_host, port=config.db.db_port, database=database_name,
+                user=db_init_username, password=config.db.db_init_password.value)
             database_cursor.execute(f"""REASSIGN OWNED BY {db_username} TO {db_init_username}; DROP OWNED BY {db_username};""")
             disconnect(database_cursor)
         logger.info("Cleared app user ownership & privileges in existing databases.")
@@ -103,14 +103,14 @@ def drop_user_and_db(config, cursor, force):
 def create_user(config, cursor):
     logger = get_logger("create_user", config)
     logger.info("Creating app user...")
-    cursor.execute(f"""CREATE ROLE {config["db"]["db_username"].value} PASSWORD '{config["db"]["db_password"].value}' LOGIN;""")
+    cursor.execute(f"""CREATE ROLE {config.db.db_username.value} PASSWORD '{config.db.db_password.value}' LOGIN;""")
     logger.info("Finished creating app user.")
 
 
 def create_db(config, cursor):
     logger = get_logger("create_database", config)
     logger.info("Creating app database...")
-    cursor.execute(f"""CREATE DATABASE {config["db"]["db_database"].value} ENCODING 'UTF-8' OWNER {config["db"]["db_username"].value} TEMPLATE template0;""")
+    cursor.execute(f"""CREATE DATABASE {config.db.db_database.value} ENCODING 'UTF-8' OWNER {config.db.db_username.value} TEMPLATE template0;""")
     logger.info("Finished creating app database.")
 
 
@@ -139,8 +139,8 @@ def migrate_as_superuser(config):
     logger = get_logger("migrate_as_superuser", config)
 
     logger.info("Running migrations as superuser...")
-    cursor = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_database"].value,
-                            user=config["db"]["db_init_username"].value, password=config["db"]["db_init_password"].value)
+    cursor = connect(host=config.db.db_host, port=config.db.db_port, database=config.db.db_database.value,
+                            user=config.db.db_init_username.value, password=config.db.db_init_password.value)
     logger.info(f"Connected to the app database.")
     try:
         # Create extension for password storing

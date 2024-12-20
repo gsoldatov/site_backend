@@ -1,12 +1,16 @@
 import asyncio
 
+from aiohttp import web
 
-async def close_connection_pools(app):
+from backend_main.types import app_config_key
+
+
+async def close_connection_pools(app: web.Application):
     # Disable request processing
     app["can_process_requests"]["value"] = False
 
     # Wait for searchable update tasks to complete
-    if app["config"]["auxillary"]["enable_searchables_updates"]:
+    if app[app_config_key].auxillary.enable_searchables_updates:
         while len(app["pending_tasks"]) > 0:
             await asyncio.sleep(0.1)
     

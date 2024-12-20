@@ -19,15 +19,15 @@ def clear_test_users_and_databases():
     """
     # Get test config
     config_file = os.path.join(os.path.dirname(__file__), "test_config.json")
-    db_config = get_config(config_file=config_file)["db"]
+    db_config = get_config(config_file=config_file).db
 
     # Connect to maintenance database
-    cursor = connect(host=db_config["db_host"], port=db_config["db_port"], database=db_config["db_init_database"].value,
-                                user=db_config["db_init_username"].value, password=db_config["db_init_password"].value)
+    cursor = connect(host=db_config.db_host, port=db_config.db_port, database=db_config.db_init_database.value,
+                                user=db_config.db_init_username.value, password=db_config.db_init_password.value)
     
     try:
         # Loop through temp databases and delete them
-        pattern = db_config["db_database"].value + TEST_POSTFIX + "%"
+        pattern = db_config.db_database.value + TEST_POSTFIX + "%"
         cursor.execute(f"SELECT datname FROM pg_catalog.pg_database WHERE datname LIKE '{pattern}'")
         databases = [r[0] for r in cursor.fetchall()]
         for database in databases:
@@ -41,7 +41,7 @@ def clear_test_users_and_databases():
             cursor.execute(f"DROP DATABASE {database};")
         
         # Loop through temp users and delete them
-        pattern = db_config["db_username"].value + TEST_POSTFIX + "%"
+        pattern = db_config.db_username.value + TEST_POSTFIX + "%"
         cursor.execute(f"SELECT usename FROM pg_user WHERE usename LIKE '{pattern}'")
 
         usernames = [r[0] for r in cursor.fetchall()]
@@ -73,9 +73,6 @@ def main():
 
         # Run tests
         cmd = f'pytest -n auto --dist=loadfile --asyncio-mode=auto {args}'
-
-        print("Tests execution started at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        print("Running command", cmd)
 
         os.system(cmd)
         

@@ -6,6 +6,8 @@ import asyncio
 
 from aiohttp import web
 
+from backend_main.types import app_config_key
+
 from backend_main.db_operations.searchables import update_searchables_coro
 
 
@@ -26,7 +28,7 @@ def dispatch_searchables_update_coro(request):
     and any searchable item was changed during a request.
     """
     # Exit if searchable update is disabled or no data was updated
-    if not request.app["config"]["auxillary"]["enable_searchables_updates"]: return
+    if not request.config_dict[app_config_key].auxillary.enable_searchables_updates: return
 
     tag_ids = tuple((_ for _ in request.get("searchable_updates_tag_ids", set())))
     object_ids = tuple((_ for _ in request.get("searchable_updates_object_ids", set())))
@@ -44,5 +46,5 @@ def dispatch_searchables_update_coro(request):
 
     # Store a reference on the task during its execution 
     # to avoid it being destroyed by the garbage collector
-    request.app["pending_tasks"].add(task)
-    task.add_done_callback(request.app["pending_tasks"].discard)
+    request.config_dict["pending_tasks"].add(task)
+    task.add_done_callback(request.config_dict["pending_tasks"].discard)

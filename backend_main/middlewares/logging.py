@@ -48,4 +48,4 @@ async def logging_middleware(request, handler):
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):
-            request.app["log_access"](request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)
+            request.config_dict["log_access"](request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)

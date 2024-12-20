@@ -1,67 +1,143 @@
-import os
+from pathlib import Path
 import json
+from typing import Annotated, Any, Literal
 
-from jsonschema import validate
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from backend_main.validation.schemas.config import config_schema
+from backend_main.validation.types import Port, NonEmptyString, HiddenString
 
 
-def get_config(config_file = None):
-    if not config_file:
-        config_file = os.path.join(os.path.dirname(__file__), "config.json")
+class _DefaultUser(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    login: HiddenString
+    password: HiddenString
+    username: str = Field(min_length=1, max_length=255)
+
+    @field_validator("login", mode="plain")
+    @classmethod
+    def login_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `login` attribute & convert it to `HiddenValue`. """
+        return HiddenString(value, "<default_app_user_login>", 1, 255)
     
-    config = _read_config(config_file)
-    _validate_and_set_values(config)
-    hide_config_values(config)
+    @field_validator("password", mode="plain")
+    @classmethod
+    def password_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `password` attribute & convert it to `HiddenValue`. """
+        return HiddenString(value, "<password>", 8, 72)
+
+
+class _AppConfig(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    host: NonEmptyString
+    port: Port
+    use_forwarded: bool
+    debug: bool
+    default_user: _DefaultUser
+    token_lifetime: int = Field(ge=1, le=90 * 24 * 60 * 60)
+    composite_hierarchy_max_depth: int = Field(ge=1, le=10)
+
+
+class _DBConfig(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    db_host: NonEmptyString
+    db_port: Port
+    db_init_database: HiddenString
+    db_init_username: HiddenString
+    db_init_password: HiddenString
     
+    db_database: HiddenString
+    db_password: HiddenString
+    db_username: HiddenString
+
+    @field_validator("db_init_database", mode="plain")
+    @classmethod
+    def db_init_database_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_init_database` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<db_name>", 1)
+    
+    @field_validator("db_init_username", mode="plain")
+    @classmethod
+    def db_init_username_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_init_username` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<username>", 1)
+    
+    @field_validator("db_init_password", mode="plain")
+    @classmethod
+    def db_init_password_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_init_password` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<password>", 1)
+    
+
+    @field_validator("db_database", mode="plain")
+    @classmethod
+    def db_database_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_database` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<db_name>", 1)
+    
+    @field_validator("db_username", mode="plain")
+    @classmethod
+    def db_username_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_username` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<username>", 1)
+    
+    @field_validator("db_password", mode="plain")
+    @classmethod
+    def db_password_to_hidden_value(cls, value: Any) -> HiddenString:
+        """ Validate `db_password` & convert it to `HiddenValue` instances. """
+        return HiddenString(value, "<password>", 1)
+
+
+class _AuxillaryConfig(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    enable_searchables_updates: bool
+
+
+_AppLoggingModes = Literal["file", "stdout", "off"]
+
+
+class _LoggingConfig(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    folder: str
+    file_separator: str
+    file_separator_replacement: str
+    
+    app_event_log_mode: _AppLoggingModes
+    app_event_log_file_mode_interval: int = Field(ge=1)
+    
+    app_access_log_mode: _AppLoggingModes
+    app_access_log_file_mode_interval: int = Field(ge=1)
+    
+    db_mode: _AppLoggingModes
+    scheduled_mode: _AppLoggingModes
+
+
+class Config(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    app: _AppConfig
+    cors_urls: list[Annotated[str, Field(min_length=1)]] = Field(min_length=1)
+    db: _DBConfig
+    auxillary: _AuxillaryConfig
+    logging: _LoggingConfig
+
+
+# TODO test default config path
+def get_config(config_file: str | None = None) -> Config:
+    # Set default config path
+    path = Path(config_file) if config_file else Path(__file__).parent / "config.json"
+
+    # Read & parse config JSON
+    if not path.is_file:
+        raise FileNotFoundError(f"File {path} does not exist.")
+    
+    with open(path, "r") as read_stream:
+        config_json = json.load(read_stream)
+    
+    # Get a validated config
+    config = Config(**config_json)
     return config
-
-
-def _read_config(config_file):
-    if not os.path.exists(config_file):
-        raise FileNotFoundError(f"File {config_file} does not exist.")
-
-    with open(config_file, "r") as read_stream:
-        return json.load(read_stream)
-
-
-def _validate_and_set_values(config):
-    if config:
-        validate(instance=config, schema=config_schema)
-        return config
-    else:
-        raise ValueError("No config data provided.")
-
-
-def hide_config_values(config):
-    """
-    Replaces secret configuration values with unprintable wrappers.
-    """
-    # Hide default user credentials
-    for attr, replacement_string in (("login", "<default_app_user_login>"), ("password", "<password>")):
-        config["app"]["default_user"][attr] = HiddenValue(config["app"]["default_user"][attr], replacement_string=replacement_string)
-    
-    # Hide default database info
-    for attr, replacement_string in (("db_init_database", "<db name>"), ("db_init_username", "<username>"), ("db_init_password", "<password>")):
-        config["db"][attr] = HiddenValue(config["db"][attr], replacement_string=replacement_string)
-    
-    # Hide app database info
-    for attr, replacement_string in (("db_database", "<db name>"), ("db_username", "<username>"), ("db_password", "<password>")):
-        config["db"][attr] = HiddenValue(config["db"][attr], replacement_string=replacement_string)
-    
-    return config
-
-
-class HiddenValue:
-    """
-    Protects the `value` from being printed by returning `replacement_string` instead of it.
-    """
-    def __init__(self, value, replacement_string = "***"):
-        self.value = value
-        self._replacement_string = replacement_string
-    
-    def __repr__(self):
-        return self._replacement_string
-    
-    def __str__(self):
-        return self._replacement_string

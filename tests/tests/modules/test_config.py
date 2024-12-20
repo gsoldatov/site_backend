@@ -5,14 +5,14 @@ import os, sys
 from copy import deepcopy
 
 import pytest
-from jsonschema import ValidationError
+from pydantic import ValidationError
 
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 4)))
     from tests.util import run_pytest_tests
 
-from backend_main.config import _validate_and_set_values
+from backend_main.config import Config
 
 
 def test_top_level(base_config):
@@ -22,8 +22,7 @@ def test_top_level(base_config):
     assert sorted(top_level_keys) == sorted(base_config.keys()), "Expected and received top-level config setting names do not match."
 
     # Check empty config
-    with pytest.raises(ValueError):
-        _validate_and_set_values({})
+    _assert_validation_exception({}, f"Empty dict validation did not fail.")
     
     # Check lack of setting groups
     for k in top_level_keys:
@@ -36,7 +35,7 @@ def test_app_config(base_config):
     # Incorrect settings for `app` and `default_user` config parts
     incorrect_app_setting_values = {
         "host": ("", 0, True),
-        "port": (1024, 65536, "str", True),
+        "port": (1023, 65536, "str", True),
         "use_forwarded": (1, "str"),
         "debug": (1, "str"),
         "default_user": (1, "str", True),
@@ -45,9 +44,9 @@ def test_app_config(base_config):
     }
 
     incorrect_default_user_values = {
-        "login": ("", 1, True),
+        "login": ("", "a" * 256, 1, True),
         "password": ("a" * 7, "a" * 73, 1, True),
-        "username": ("", 1, True)
+        "username": ("", "a" * 256, 1, True)
     }
 
     # Check if expected and received app setting names match
@@ -95,7 +94,7 @@ def test_db_config(base_config):
     # Incorrect settings for `db` config part
     incorrect_db_config_values = {
         "db_host": ("", 1, True),
-        "db_port": (1024, 65536, "str", True),
+        "db_port": (1023, 65536, "str", True),
         "db_init_database": ("", 1, True),
         "db_init_username": ("", 1, True),
         "db_init_password": ("", 1, True),
@@ -176,12 +175,12 @@ def test_logging_config(base_config):
 
 
 def test_correct_config(base_config):
-    _validate_and_set_values(base_config)
+    Config(**base_config)
 
 
-def _assert_validation_exception(config, msg):
+def _assert_validation_exception(config: dict, msg: str) -> None:
     try:
-        _validate_and_set_values(config)
+        Config(**config)
         pytest.fail(msg)
     except ValidationError:
         pass

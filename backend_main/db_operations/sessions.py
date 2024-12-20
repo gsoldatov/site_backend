@@ -7,6 +7,8 @@ from uuid import uuid4
 from aiohttp import web
 from sqlalchemy import select, and_
 
+from backend_main.types import app_config_key
+
 from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
 from backend_main.util.json import error_json
 
@@ -23,7 +25,7 @@ async def prolong_access_token_and_get_user_info(request):
     users = request.config_dict["tables"]["users"]
     sessions = request.config_dict["tables"]["sessions"]
     request_time = request["time"]
-    expiration_time = request_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
+    expiration_time = request_time + timedelta(seconds=request.config_dict[app_config_key].app.token_lifetime)
 
     # Update expiration time and return user information corresponding to the updated token 
     # in a single query using CTE.
@@ -69,7 +71,7 @@ async def add_session(request, user_id):
     data = {
         "user_id": user_id,
         "access_token": uuid4().hex,
-        "expiration_time": request_time + timedelta(seconds=request.config_dict["config"]["app"]["token_lifetime"])
+        "expiration_time": request_time + timedelta(seconds=request.config_dict[app_config_key].app.token_lifetime)
     }
 
     await request["conn"].execute(

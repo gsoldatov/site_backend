@@ -5,7 +5,7 @@ Revises: f09e2de355b2
 Create Date: 2021-08-29 12:52:30.874486
 
 """
-from datetime import datetime
+from datetime import datetime, timezone
 
 from alembic import op
 import sqlalchemy as sa
@@ -70,10 +70,10 @@ def upgrade():
     op.execute("INSERT INTO settings VALUES ('non_admin_registration_allowed', 'FALSE')")
 
     # Add default user
-    current_time = datetime.utcnow()
-    login = app_config["app"]["default_user"]["login"].value
-    password = app_config["app"]["default_user"]["password"].value
-    username = app_config["app"]["default_user"]["username"]
+    current_time = datetime.now(tz=timezone.utc)
+    login = app_config.app.default_user.login.value
+    password = app_config.app.default_user.password.value
+    username = app_config.app.default_user.username
     op.execute(f"""INSERT INTO users (registered_at, login, password, username, user_level, can_login, can_edit_objects)
                    VALUES ('{current_time}', '{login}', crypt('{password}', gen_salt('bf')), '{username}', 'admin', TRUE, TRUE)""")
 

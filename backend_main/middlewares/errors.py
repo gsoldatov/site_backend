@@ -6,7 +6,8 @@ from json.decoder import JSONDecodeError
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation, OperationalError
 
-from backend_main.logging.loggers.app import setup_request_event_logging
+from backend_main.types import app_config_key
+
 from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException
 
@@ -56,7 +57,7 @@ def _raise_500(request, exception):
     If app is in debug mode, simply raises `exception` to allow aiohttp.server logger to capture error stacktrace.
     Otherwise raises web.HTTPInternalServerError with an overriden text.
     """
-    if request.config_dict["config"]["app"]["debug"]:
+    if request.config_dict[app_config_key].app.debug:
         raise exception
     else:
         raise web.HTTPInternalServerError(text="Server failed to process request.")

@@ -18,19 +18,19 @@ def get_handler(config, level):
     - `stdout` => StreamHandler, which writes to stdout;
     - `off` => no handler is returned.
     """
-    db_mode = config["logging"]["db_mode"]
+    db_mode = config.logging.db_mode
 
     if db_mode == "file":
         global _file_handler
         if _file_handler: return _file_handler
 
         # Log folder (can be absolute or relative to project root folder)
-        folder = config["logging"]["folder"] if os.path.isabs(config["logging"]["folder"]) \
-            else os.path.abspath(os.path.join(root_folder, config["logging"]["folder"]))
+        folder = config.logging.folder if os.path.isabs(config.logging.folder) \
+            else os.path.abspath(os.path.join(root_folder, config.logging.folder))
         
         # Formatter instance
-        separator = config["logging"]["file_separator"]
-        separator_replacement = config["logging"]["file_separator_replacement"]
+        separator = config.logging.file_separator
+        separator_replacement = config.logging.file_separator_replacement
         fmt = separator.join(["%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"])
         formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 

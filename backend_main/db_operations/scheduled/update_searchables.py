@@ -75,7 +75,7 @@ def main(mode, config = None):
         config = config or get_config()
         global logger 
         logger = get_logger("update_searchables", config)
-        enable_searchables_updates = config["auxillary"]["enable_searchables_updates"]
+        enable_searchables_updates = config.auxillary.enable_searchables_updates
 
         # Exit if search is disabled
         if not enable_searchables_updates:
@@ -83,8 +83,13 @@ def main(mode, config = None):
             return
 
         # Connect to the database
-        conn = connect(host=config["db"]["db_host"], port=config["db"]["db_port"], database=config["db"]["db_database"].value,
-                            user=config["db"]["db_username"].value, password=config["db"]["db_password"].value)
+        conn = connect(
+            host=config.db.db_host,
+            port=config.db.db_port,
+            database=config.db.db_database.value,
+            user=config.db.db_username.value,
+            password=config.db.db_password.value
+        )
         logger.info("Connected to the database.")
         
         # Get IDs of tags & objects, which should be updated

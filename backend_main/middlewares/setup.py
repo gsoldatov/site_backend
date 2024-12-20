@@ -1,4 +1,7 @@
+from aiohttp import web
 from aiohttp_remotes import ForwardedRelaxed
+
+from backend_main.types import app_config_key
 
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
@@ -9,8 +12,8 @@ from backend_main.middlewares.tasks import tasks_middleware
 # from backend_main.middlewares.threading import threading_middleware
 
 
-def setup_middlewares(app):
-    use_forwarded = app["config"]["app"]["use_forwarded"]
+def setup_middlewares(app: web.Application):
+    use_forwarded = app[app_config_key].app.use_forwarded
     if use_forwarded:
         forwarded = ForwardedRelaxed()
         app.middlewares.append(forwarded.middleware)
