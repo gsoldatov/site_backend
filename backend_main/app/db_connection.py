@@ -3,14 +3,14 @@ import asyncio
 from aiohttp import web
 from aiopg.sa import create_engine
 
-from backend_main.app.types import app_config_key
+from backend_main.app.types import app_config_key, app_engine_key, app_pending_tasks_key
 
 
 async def setup_connection_pools(app: web.Application):
     db_config = app[app_config_key].db
 
     # aiopg.sa engine for database connections in main app functionality
-    app["engine"] = await create_engine(
+    app[app_engine_key] = await create_engine(
         maxsize=20,
         host=db_config.db_host, 
         port=db_config.db_port, 
@@ -44,13 +44,13 @@ async def close_connection_pools(app: web.Application):
 
     # Wait for searchable update tasks to complete
     if app[app_config_key].auxillary.enable_searchables_updates:
-        while len(app["pending_tasks"]) > 0:
+        while len(app[app_pending_tasks_key]) > 0:
             await asyncio.sleep(0.1)
     
     # Close connection pool
-    if "engine" in app:
-        app["engine"].close()
-        await app["engine"].wait_closed()
+    if app_engine_key in app:
+        app[app_engine_key].close()
+        await app[app_engine_key].wait_closed()
         app["log_event"]("INFO", "app_cleanup", "Closed main connection pool.")
 
     # NOTE: Threaded connection pool is no longer used

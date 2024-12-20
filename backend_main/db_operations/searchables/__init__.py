@@ -1,3 +1,5 @@
+from backend_main.app.types import app_engine_key
+
 from backend_main.db_operations.searchables.tag_processing import process_tag_batch
 from backend_main.db_operations.searchables.tag_processing_async import process_tag_batch_coro
 from backend_main.db_operations.searchables.object_processing import process_object_batch
@@ -27,7 +29,7 @@ async def update_searchables_coro(request, tag_ids, object_ids):
     """
     Runs batched updates of searchable data for provided `tag_ids` and `object_ids`
     """
-    async with request.config_dict["engine"].acquire() as conn:
+    async with request.config_dict[app_engine_key].acquire() as conn:
         request["conn_searchables"] = conn
 
         # Process updated tags in batches

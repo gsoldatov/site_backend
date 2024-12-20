@@ -1,4 +1,6 @@
 from aiohttp import web
+from aiopg.sa.engine import Engine
+from asyncio import Task
 
 from backend_main.app.config import Config
 
@@ -16,22 +18,12 @@ Possible options for typing are:
 
 The first option is not supported by request storage by default, however the second will fail to propagate
 types from app storage accessed via `request.config_dict`.
-
-TODO
-? test request subclass with web.AppKey support for request storage;
-
-- use typed dict for app & cast it to web.Application whenever required
-- replace access to app config via prop with dict access;
-- replace request.app["... with request.config_dict["...;
-
-- add comments of typing approach (multiple inheritance with TypedDict, subclassing with custom props (not working with subapps)),
-    web.AppKey usage (requires implementation)
 """
 app_config_key = web.AppKey("app_config_key", Config)
 # event_logger: Any
 # access_logger: Any
 
-# engine: Any
+app_engine_key = web.AppKey("app_engine_key", Engine)
 # tables: Any
-# pending_tasks: Any
+app_pending_tasks_key = web.AppKey("app_pending_tasks_key", set[Task])
 # can_process_requests: Any

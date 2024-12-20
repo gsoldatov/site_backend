@@ -12,7 +12,7 @@ from backend_main.middlewares.setup import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
-from backend_main.app.types import app_config_key
+from backend_main.app.types import app_config_key, app_pending_tasks_key
 
 
 async def create_app(config_file: str | None = None, config: Config | None = None) -> web.Application:
@@ -33,7 +33,7 @@ async def create_app(config_file: str | None = None, config: Config | None = Non
 
         # Create a storage for running tasks references to avoid them
         # being destroyed by the garbage collector before they complete
-        app["pending_tasks"] = set()
+        app[app_pending_tasks_key] = set()
         
         # Set flag for request bounce middleware 
         # NOTE: dict is used to avoid warnings about state change of a frozen app

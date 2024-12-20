@@ -1,5 +1,4 @@
-import aiohttp_cors # type: ignore
-# TODO ignore specific error
+import aiohttp_cors # type: ignore[import-untyped]
 
 from aiohttp import web
 

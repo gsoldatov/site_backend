@@ -5,6 +5,8 @@
 """
 from aiohttp import web
 
+from backend_main.app.types import app_engine_key
+
 from backend_main.util.login_rate_limits import IncorrectCredentialsException
 from backend_main.util.json import error_json
 
@@ -14,7 +16,7 @@ async def connection_middleware(request, handler):
     # Skip middleware for CORS requests
     if request.method in ("OPTIONS", "HEAD"): return await handler(request)
     
-    async with request.config_dict["engine"].acquire() as conn:
+    async with request.config_dict[app_engine_key].acquire() as conn:
         request["conn"] = conn
         
         try:
