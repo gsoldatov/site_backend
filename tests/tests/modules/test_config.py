@@ -3,6 +3,7 @@ config.py tests
 """
 import os, sys
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -12,7 +13,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 4)))
     from tests.util import run_pytest_tests
 
-from backend_main.config import Config
+from backend_main.config import Config, get_config_file_path
 
 
 def test_top_level(base_config):
@@ -176,6 +177,55 @@ def test_logging_config(base_config):
 
 def test_correct_config(base_config):
     Config(**base_config)
+
+
+def test_hidden_strings(base_config):
+    config = Config(**base_config)
+
+    # app.default_user.login
+    assert config.app.default_user.login.__repr__() == "<default_app_user_login>"
+    assert str(config.app.default_user.login) == "<default_app_user_login>"
+    assert config.app.default_user.login.value == base_config["app"]["default_user"]["login"]
+
+    # app.default_user.password
+    assert config.app.default_user.password.__repr__() == "<password>"
+    assert str(config.app.default_user.password) == "<password>"
+    assert config.app.default_user.password.value == base_config["app"]["default_user"]["password"]
+
+    # db.db_init_database
+    assert config.db.db_init_database.__repr__() == "<db_name>"
+    assert str(config.db.db_init_database) == "<db_name>"
+    assert config.db.db_init_database.value == base_config["db"]["db_init_database"]
+
+    # db.db_init_username
+    assert config.db.db_init_username.__repr__() == "<username>"
+    assert str(config.db.db_init_username) == "<username>"
+    assert config.db.db_init_username.value == base_config["db"]["db_init_username"]
+
+    # db.db_init_password
+    assert config.db.db_init_password.__repr__() == "<password>"
+    assert str(config.db.db_init_password) == "<password>"
+    assert config.db.db_init_password.value == base_config["db"]["db_init_password"]
+
+    # db.db_database
+    assert config.db.db_database.__repr__() == "<db_name>"
+    assert str(config.db.db_database) == "<db_name>"
+    assert config.db.db_database.value == base_config["db"]["db_database"]
+
+    # db.db_username
+    assert config.db.db_username.__repr__() == "<username>"
+    assert str(config.db.db_username) == "<username>"
+    assert config.db.db_username.value == base_config["db"]["db_username"]
+
+    # db.db_password
+    assert config.db.db_password.__repr__() == "<password>"
+    assert str(config.db.db_password) == "<password>"
+    assert config.db.db_password.value == base_config["db"]["db_password"]
+
+
+def default_config_path():
+    project_root_dir = Path(__file__).parent.parent.parent.parent
+    assert get_config_file_path() == Path(project_root_dir) / "backend_main" / "config.json"
 
 
 def _assert_validation_exception(config: dict, msg: str) -> None:

@@ -126,10 +126,9 @@ class Config(BaseModel):
     logging: _LoggingConfig
 
 
-# TODO test default config path
 def get_config(config_file: str | None = None) -> Config:
     # Set default config path
-    path = Path(config_file) if config_file else Path(__file__).parent / "config.json"
+    path = get_config_file_path(config_file)
 
     # Read & parse config JSON
     if not path.is_file:
@@ -141,3 +140,11 @@ def get_config(config_file: str | None = None) -> Config:
     # Get a validated config
     config = Config(**config_json)
     return config
+
+
+def get_config_file_path(config_file: str | None = None) -> Path:
+    """
+    Returns a `Path` object for the provided `config_file`
+    or a default config path (`backend_main/config.json`).
+    """
+    return Path(config_file) if config_file else Path(__file__).parent / "config.json"
