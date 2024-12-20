@@ -1,7 +1,10 @@
 from logging.handlers import BaseRotatingHandler
-from logging.handlers import _MIDNIGHT # type: ignore
+from logging.handlers import _MIDNIGHT  # type: ignore[attr-defined]
 import os, time, re
 from stat import ST_MTIME
+
+from datetime import datetime
+from typing import Any, cast
 
 
 class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
@@ -10,7 +13,17 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
     NOTE: patches are applied only to when = 'S' case.
     Patches are marked with "patch" comment.
     """
-    def __init__(self, filename, when='h', interval=1, backupCount=0, encoding=None, delay=False, utc=False, atTime=None):
+    def __init__(
+            self,
+            filename: str,
+            when: str ='h',
+            interval: int = 1,
+            backupCount: int = 0,
+            encoding: str | None = None,
+            delay: bool = False,
+            utc: bool = False,
+            atTime: datetime | None = None
+        ):
         BaseRotatingHandler.__init__(self, filename, 'a', encoding, delay)
         self.when = when.upper()
         self.backupCount = backupCount
@@ -56,7 +69,7 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
         else:
             raise ValueError("Invalid rollover interval specified: %s" % self.when)
 
-        self.extMatch = re.compile(self.extMatch, re.ASCII)
+        self.extMatch = re.compile(self.extMatch, re.ASCII) # type: ignore[assignment]
         self.interval = self.interval * interval # multiply by units requested
         # The following line added because the filename passed in could be a
         # path object (see Issue #27493), but self.baseFilename will be a string
@@ -67,7 +80,7 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
             t = int(time.time())
         self.rolloverAt = self.computeRollover(t)
 
-    def computeRollover(self, currentTime):
+    def computeRollover(self, currentTime: float):
         """
         Work out the rollover time based on the specified time.
         """
@@ -91,7 +104,7 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
             currentDay = t[6]
             # r is the number of seconds left between now and the next rotation
             if self.atTime is None:
-                rotate_ts = _MIDNIGHT
+                rotate_ts = cast(float, _MIDNIGHT)
             else:
                 rotate_ts = ((self.atTime.hour * 60 + self.atTime.minute)*60 +
                     self.atTime.second)
@@ -102,7 +115,7 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
                 # Rotate time is before the current time (for example when
                 # self.rotateAt is 13:45 and it now 14:15), rotation is
                 # tomorrow.
-                r += _MIDNIGHT
+                r += cast(float, _MIDNIGHT)
                 currentDay = (currentDay + 1) % 7
             result = currentTime + r
             # If we are rolling over on a certain day, add in the number of days until
@@ -140,7 +153,7 @@ class PatchedTimedRotatingFileHandler(BaseRotatingHandler):
                     result = newRolloverAt
         return result
 
-    def shouldRollover(self, record):
+    def shouldRollover(self, record: Any):
         """
         Determine if rollover should occur.
 

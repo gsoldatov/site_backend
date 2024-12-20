@@ -1,8 +1,16 @@
+from logging import Formatter
 import os
+
 from backend_main.logging.handlers.patched_timed_rotation_file_handler import PatchedTimedRotatingFileHandler
 
 
-def get_file_handler_with_timed_rotation(folder, name, level, formatter, interval = 24 * 60 * 60):
+def get_file_handler_with_timed_rotation(
+        folder: str,
+        name: str,
+        level: int,
+        formatter: Formatter,
+        interval: int = 24 * 60 * 60
+    ):
     """
     Returns a FileHandler instance.
     `folder` is the asbolute path to the log (created if missing).

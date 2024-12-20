@@ -12,7 +12,7 @@ from backend_main.middlewares.setup import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
-from backend_main.app.types import app_config_key, app_pending_tasks_key
+from backend_main.app.types import app_config_key, app_pending_tasks_key, app_log_event_key
 
 
 async def create_app(config_file: str | None = None, config: Config | None = None) -> web.Application:
@@ -37,23 +37,25 @@ async def create_app(config_file: str | None = None, config: Config | None = Non
         
         # Set flag for request bounce middleware 
         # NOTE: dict is used to avoid warnings about state change of a frozen app
-        app["can_process_requests"] = { "value": True } 
+        app["can_process_requests"] = { "value": True }
 
         # Setup routes
         setup_routes(app)
         setup_cors(app)
 
-        app["log_event"]("INFO", "app_start", "Finished app setup.")
+        app[app_log_event_key]("INFO", "app_start", "Finished app setup.")
 
         return app
     
     except OperationalError:
-        app["log_event"]("CRITICAL", "app_start", "Failed to setup database connection pools.")
+        app[app_log_event_key]("CRITICAL", "app_start", "Failed to setup database connection pools.")
         raise web.GracefulExit()    # Close the app gracefully
     
     except Exception:
-        if getattr(app, "log_event", None):
-            app["log_event"]("CRITICAL", "app_start", "Unhandled exception during app setup.", exc_info=True)
+        try:
+            app[app_log_event_key]("CRITICAL", "app_start", "Unhandled exception during app setup.", exc_info=True)
+        except KeyError:
+            pass
         await close_connection_pools(app)   # Ensure connection pools and loggers are cleaned up
         await cleanup_loggers(app)
         raise

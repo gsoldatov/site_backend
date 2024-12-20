@@ -1,7 +1,7 @@
 from aiohttp import web
 from aiohttp_remotes import ForwardedRelaxed
 
-from backend_main.app.types import app_config_key
+from backend_main.app.types import app_config_key, app_log_event_key
 
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware
@@ -26,4 +26,4 @@ def setup_middlewares(app: web.Application):
     app.middlewares.append(connection_middleware)
     app.middlewares.append(auth_middleware)
 
-    app["log_event"]("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")
+    app[app_log_event_key]("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")

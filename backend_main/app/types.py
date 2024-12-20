@@ -1,6 +1,8 @@
 from aiohttp import web
 from aiopg.sa.engine import Engine
 from asyncio import Task
+from logging import Logger
+from typing import Protocol
 
 from backend_main.app.config import Config
 
@@ -20,8 +22,35 @@ The first option is not supported by request storage by default, however the sec
 types from app storage accessed via `request.config_dict`.
 """
 app_config_key = web.AppKey("app_config_key", Config)
-# event_logger: Any
-# access_logger: Any
+
+app_event_logger_key = web.AppKey("app_event_logger_key", Logger)
+app_access_logger_key = web.AppKey("app_access_logger_key", Logger)
+
+class LogAccess(Protocol):
+    """ `log_access` function signature definition. """
+    def __call__(self,
+        request_id: str,
+        path: str,
+        method: str,
+        status: int,
+        elapsed_time: float,
+        user_id: int | str,
+        remote: str | None,
+        user_agent: str,
+        referer: str
+    ) -> None: ...
+app_log_access_key = web.AppKey("app_log_access_key", LogAccess)
+
+class LogEvent(Protocol):
+    """ `log_event` function signature definition. """
+    def __call__(self,
+        level: str,
+        event_type: str,
+        message: str,
+        details: str = "",
+        exc_info: bool | None = None
+    ) -> None: ...
+app_log_event_key = web.AppKey("app_log_event_key", LogEvent)
 
 app_engine_key = web.AppKey("app_engine_key", Engine)
 # tables: Any

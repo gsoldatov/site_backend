@@ -1,9 +1,15 @@
 import logging
 
+from backend_main.app.types import Config
+
 from backend_main.logging.handlers.scheduled import get_handler
 
 
-def get_logger(name, config, level = logging.DEBUG):
+def get_logger(
+        name: str,
+        config: Config,
+        level: int = logging.DEBUG
+    ):
     """
     Returns a new logger with the specified `name`.
     Writes messages to a file or stdout, based on the config settings.

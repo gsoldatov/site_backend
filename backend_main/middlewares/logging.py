@@ -6,6 +6,7 @@ from aiohttp import web
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from backend_main.app.types import app_log_access_key
 from backend_main.logging.loggers.app import setup_request_event_logging
 
 
@@ -48,4 +49,6 @@ async def logging_middleware(request, handler):
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):
-            request.config_dict["log_access"](request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer)
+            request.config_dict[app_log_access_key](
+                request_id, path, method, status, elapsed_time, user_id, remote, user_agent, referer
+            )

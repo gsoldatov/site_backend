@@ -8,7 +8,14 @@ class MultilineFormatter(logging.Formatter):
     Message is sanitized from containing log separator char.
     Extra params are sanitized from containing log separator and newline chars.
     """
-    def __init__(self, fmt, separator = None, separator_replacement = None, *args, **kwargs):
+    def __init__(
+        self,
+        fmt: str,
+        separator: str | None = None,
+        separator_replacement: str | None = None,
+        *args,
+        **kwargs
+    ):
         super().__init__(fmt, *args, **kwargs)
         self.separator = separator
         self.separator_replacement = separator_replacement
@@ -49,12 +56,13 @@ class MultilineFormatter(logging.Formatter):
         # Return merged texts of line records
         return "\n".join(records_text)
     
-    def sanitize(self, text):
+    def sanitize(self, text: str):
         """ Replaces new line and separator chars in `text`. """
         text = str(text).replace("\n", " ")
         if self.separator:
+            assert self.separator_replacement is not None
             text = text.replace(self.separator, self.separator_replacement)
         return text
 
 
-_default_log_record_params = set((k for k in logging.LogRecord(*[None] * 7).__dict__))  # type: ignore
+_default_log_record_params = set((k for k in logging.LogRecord(*[None] * 7).__dict__))    # type: ignore[arg-type]

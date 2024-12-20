@@ -1,9 +1,15 @@
+from logging import Formatter
 import os
 from datetime import datetime
 import logging
 
 
-def get_file_handler(folder, name, level, formatter):
+def get_file_handler(
+        folder: str,
+        name: str,
+        level: int,
+        formatter: Formatter
+    ):
     """
     Returns a FileHandler instance.
     `folder` is the asbolute path to the log (created if missing).
