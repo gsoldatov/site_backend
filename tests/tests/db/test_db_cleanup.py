@@ -4,7 +4,7 @@ db/cleanup.py tests
 import os, sys
 
 sys.path.insert(0, os.path.join(sys.path[0], "../" * 3))
-from backend_main.db.cleanup import close_connection_pools
+from backend_main.app.db_connection import close_connection_pools
 from tests.util import run_pytest_tests
 
 

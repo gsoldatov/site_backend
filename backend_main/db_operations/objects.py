@@ -7,7 +7,7 @@ from sqlalchemy.sql import and_, or_
 from sqlalchemy.sql.expression import true
 from sqlalchemy.sql.functions import coalesce
 
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause

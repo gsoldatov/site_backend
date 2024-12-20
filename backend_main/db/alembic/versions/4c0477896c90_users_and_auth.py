@@ -13,7 +13,7 @@ from sqlalchemy.schema import FetchedValue
 from sqlalchemy.dialects import postgresql
 
 from alembic import context
-from backend_main.config import get_config
+from backend_main.app.config import get_config
 
 # revision identifiers, used by Alembic.
 revision = '4c0477896c90'

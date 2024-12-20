@@ -8,7 +8,7 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(sys.path[0])))
 
-    from backend_main.config import get_config
+    from backend_main.app.config import get_config
     from backend_main.db.init_db import InitDBException, connect, disconnect, \
         drop_user_and_db, create_user, create_db, revision, migrate_as_superuser, migrate
     

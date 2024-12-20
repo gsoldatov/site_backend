@@ -1,10 +1,9 @@
-from aiopg.sa import create_engine
-# from psycopg2.pool import ThreadedConnectionPool
-from aiohttp import web
+import asyncio
 
-from backend_main.db.cleanup import close_connection_pools
-from backend_main.types import app_config_key
-# TODO move to app subdir & add comments (also move `close_connection_pools`)
+from aiohttp import web
+from aiopg.sa import create_engine
+
+from backend_main.app.types import app_config_key
 
 
 async def setup_connection_pools(app: web.Application):
@@ -37,3 +36,26 @@ async def setup_connection_pools(app: web.Application):
 
     # Close connection pools on cleanup
     app.on_cleanup.append(close_connection_pools)
+
+
+async def close_connection_pools(app: web.Application):
+    # Disable request processing
+    app["can_process_requests"]["value"] = False
+
+    # Wait for searchable update tasks to complete
+    if app[app_config_key].auxillary.enable_searchables_updates:
+        while len(app["pending_tasks"]) > 0:
+            await asyncio.sleep(0.1)
+    
+    # Close connection pool
+    if "engine" in app:
+        app["engine"].close()
+        await app["engine"].wait_closed()
+        app["log_event"]("INFO", "app_cleanup", "Closed main connection pool.")
+
+    # NOTE: Threaded connection pool is no longer used
+    # if "threaded_pool" in app:
+    #     app["threaded_pool"].closeall()
+    #     app["log_event"]("INFO", "app_cleanup", "Closed threaded connection pool.")
+    
+    return app

@@ -6,7 +6,7 @@ from json.decoder import JSONDecodeError
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation, OperationalError
 
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException

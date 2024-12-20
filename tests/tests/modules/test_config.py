@@ -13,7 +13,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 4)))
     from tests.util import run_pytest_tests
 
-from backend_main.config import Config, get_config_file_path
+from backend_main.app.config import Config, get_config_file_path
 
 
 def test_top_level(base_config):
@@ -223,7 +223,7 @@ def test_hidden_strings(base_config):
     assert config.db.db_password.value == base_config["db"]["db_password"]
 
 
-def default_config_path():
+def test_default_config_path():
     project_root_dir = Path(__file__).parent.parent.parent.parent
     assert get_config_file_path() == Path(project_root_dir) / "backend_main" / "config.json"
 

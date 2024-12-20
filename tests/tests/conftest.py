@@ -13,8 +13,8 @@ import alembic.config
 project_root_dir = os.path.abspath(os.path.join(__file__, "../" * 3))
 sys.path.insert(0, project_root_dir)
 from backend_main.app import create_app
+from backend_main.app.config import Config
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_, migrate as migrate_
-from backend_main.config import Config
 
 from tests.util import get_test_name
 from tests.data_generators.sessions import admin_token

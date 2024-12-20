@@ -4,18 +4,16 @@ from concurrent.futures import ThreadPoolExecutor
 from aiohttp import web
 from psycopg2.errors import OperationalError
 
-from backend_main.config import get_config, Config
-from backend_main.cors import setup_cors
-from backend_main.db.setup import setup_connection_pools
-from backend_main.db.cleanup import close_connection_pools
+from backend_main.app.config import get_config, Config
+from backend_main.app.cors import setup_cors
+from backend_main.app.db_connection import setup_connection_pools, close_connection_pools
 from backend_main.logging.loggers.app import setup_loggers, cleanup_loggers
 from backend_main.middlewares.setup import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
-# TODO move app & related types & functions to a subdir
 
 async def create_app(config_file: str | None = None, config: Config | None = None) -> web.Application:
     try:

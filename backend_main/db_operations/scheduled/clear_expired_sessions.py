@@ -8,7 +8,7 @@ from psycopg2.extensions import cursor as CursorClass
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))))
 
-from backend_main.config import get_config
+from backend_main.app.config import get_config
 from backend_main.db.init_db import connect, disconnect
 from backend_main.logging.loggers.scheduled import get_logger
     

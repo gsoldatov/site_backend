@@ -7,7 +7,7 @@ import asyncio
 from aiohttp import web
 
 from backend_main.app import create_app
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 
 def main():

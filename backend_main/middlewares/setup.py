@@ -1,7 +1,7 @@
 from aiohttp import web
 from aiohttp_remotes import ForwardedRelaxed
 
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 from backend_main.middlewares.auth import auth_middleware
 from backend_main.middlewares.errors import error_middleware

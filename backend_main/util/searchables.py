@@ -1,4 +1,4 @@
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 
 def add_searchable_updates_for_tags(request, tag_ids):

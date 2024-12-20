@@ -11,7 +11,7 @@ from psycopg2 import connect
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))))
 
-from backend_main.config import get_config
+from backend_main.app.config import get_config
 from backend_main.logging.loggers.scheduled import get_logger
 from backend_main.db_operations.searchables import update_searchables
 

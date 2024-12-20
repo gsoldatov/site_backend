@@ -7,7 +7,7 @@ from uuid import uuid4
 from aiohttp import web
 from sqlalchemy import select, and_
 
-from backend_main.types import app_config_key
+from backend_main.app.types import app_config_key
 
 from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
 from backend_main.util.json import error_json

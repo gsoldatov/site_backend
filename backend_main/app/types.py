@@ -1,6 +1,6 @@
 from aiohttp import web
 
-from backend_main.config import Config
+from backend_main.app.config import Config
 
 
 """

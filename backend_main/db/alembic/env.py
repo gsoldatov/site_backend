@@ -12,7 +12,7 @@ sys.path.insert(0, root_folder)
 
 import urllib.parse
 
-from backend_main.config import get_config
+from backend_main.app.config import get_config
 from backend_main.logging.loggers.db import get_logger
 from backend_main.db.tables import get_tables
 from tests.util import get_test_name

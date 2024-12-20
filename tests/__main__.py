@@ -8,7 +8,7 @@ if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "..", "..")))
 
-from backend_main.config import get_config
+from backend_main.app.config import get_config
 from backend_main.db.init_db import connect, disconnect
 from tests.util import TEST_POSTFIX
 

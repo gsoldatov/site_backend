@@ -131,7 +131,7 @@ def get_config(config_file: str | None = None) -> Config:
     path = get_config_file_path(config_file)
 
     # Read & parse config JSON
-    if not path.is_file:
+    if not path.is_file():
         raise FileNotFoundError(f"File {path} does not exist.")
     
     with open(path, "r") as read_stream:
@@ -147,4 +147,4 @@ def get_config_file_path(config_file: str | None = None) -> Path:
     Returns a `Path` object for the provided `config_file`
     or a default config path (`backend_main/config.json`).
     """
-    return Path(config_file) if config_file else Path(__file__).parent / "config.json"
+    return Path(config_file) if config_file else Path(__file__).parent.parent / "config.json"
