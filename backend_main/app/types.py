@@ -2,7 +2,7 @@ from aiohttp import web
 from aiopg.sa.engine import Engine
 from asyncio import Task
 from logging import Logger
-from typing import Protocol
+from typing import Protocol, TypedDict
 
 from backend_main.app.config import Config
 
@@ -26,7 +26,7 @@ app_config_key = web.AppKey("app_config_key", Config)
 app_event_logger_key = web.AppKey("app_event_logger_key", Logger)
 app_access_logger_key = web.AppKey("app_access_logger_key", Logger)
 
-class LogAccess(Protocol):
+class _LogAccess(Protocol):
     """ `log_access` function signature definition. """
     def __call__(self,
         request_id: str,
@@ -39,9 +39,9 @@ class LogAccess(Protocol):
         user_agent: str,
         referer: str
     ) -> None: ...
-app_log_access_key = web.AppKey("app_log_access_key", LogAccess)
+app_log_access_key = web.AppKey("app_log_access_key", _LogAccess)
 
-class LogEvent(Protocol):
+class _LogEvent(Protocol):
     """ `log_event` function signature definition. """
     def __call__(self,
         level: str,
@@ -50,9 +50,14 @@ class LogEvent(Protocol):
         details: str = "",
         exc_info: bool | None = None
     ) -> None: ...
-app_log_event_key = web.AppKey("app_log_event_key", LogEvent)
+app_log_event_key = web.AppKey("app_log_event_key", _LogEvent)
 
 app_engine_key = web.AppKey("app_engine_key", Engine)
 # tables: Any
+
 app_pending_tasks_key = web.AppKey("app_pending_tasks_key", set[Task])
-# can_process_requests: Any
+
+# NOTE: dict is used to avoid warnings about state change of a frozen app
+_CanProcessRequests = TypedDict("_CanProcessRequests", {"value": bool})
+
+app_can_process_requests_key = web.AppKey("app_can_process_requests_key", _CanProcessRequests)

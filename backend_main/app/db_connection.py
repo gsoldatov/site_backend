@@ -3,7 +3,8 @@ import asyncio
 from aiohttp import web
 from aiopg.sa import create_engine
 
-from backend_main.app.types import app_config_key, app_engine_key, app_pending_tasks_key, app_log_event_key
+from backend_main.app.types import app_config_key, app_engine_key, app_pending_tasks_key, \
+    app_log_event_key, app_can_process_requests_key
 
 
 async def setup_connection_pools(app: web.Application):
@@ -40,8 +41,8 @@ async def setup_connection_pools(app: web.Application):
 
 async def close_connection_pools(app: web.Application):
     # Disable request processing
-    if "can_process_requests" in app:
-        app["can_process_requests"]["value"] = False
+    if app_can_process_requests_key in app:
+        app[app_can_process_requests_key]["value"] = False
 
     # Wait for searchable update tasks to complete
     if app_config_key in app and app[app_config_key].auxillary.enable_searchables_updates:

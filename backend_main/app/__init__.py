@@ -12,7 +12,8 @@ from backend_main.middlewares.setup import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
-from backend_main.app.types import app_config_key, app_pending_tasks_key, app_log_event_key
+from backend_main.app.types import app_config_key, app_pending_tasks_key, \
+    app_log_event_key, app_can_process_requests_key
 
 
 async def create_app(config_file: str | None = None, config: Config | None = None) -> web.Application:
@@ -35,9 +36,8 @@ async def create_app(config_file: str | None = None, config: Config | None = Non
         # being destroyed by the garbage collector before they complete
         app[app_pending_tasks_key] = set()
         
-        # Set flag for request bounce middleware 
-        # NOTE: dict is used to avoid warnings about state change of a frozen app
-        app["can_process_requests"] = { "value": True }
+        # Set flag for request bounce middleware
+        app[app_can_process_requests_key] = { "value": True }   # type: ignore[misc]
 
         # Setup routes
         setup_routes(app)
