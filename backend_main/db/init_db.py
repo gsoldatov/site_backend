@@ -4,6 +4,7 @@ import psycopg2
 from psycopg2.extensions import cursor as CursorClass
 import alembic.config
 
+from backend_main.app.types import Config
 from backend_main.logging.loggers.db import get_logger
 
 
@@ -11,21 +12,27 @@ class InitDBException(Exception):
     pass
 
 
-def connect(host, port, database, user, password):
+def connect(
+        host: str,
+        port: int,
+        database: str,
+        user: str,
+        password: str
+    ):
     connection = psycopg2.connect(host=host, port=port, database=database, \
                             user=user, password=password)
     connection.set_session(autocommit=True)
     return connection.cursor()
 
 
-def disconnect(cursor):
+def disconnect(cursor: CursorClass | None):
     if cursor:
         if cursor.connection:
             cursor.close()
             cursor.connection.close()
 
 
-def drop_user_and_db(config, cursor, force):
+def drop_user_and_db(config: Config, cursor: CursorClass, force: bool):
     """
     Removes user and database with `db_username` and `db_database` names specified in the config respectively, if `force` flag is true.
     Checks all existing databases, reassigns all owned objects to default user and removes all privileges granted to default user.
@@ -100,21 +107,21 @@ def drop_user_and_db(config, cursor, force):
         logger.info("Finished deleting app database.")
 
 
-def create_user(config, cursor):
+def create_user(config: Config, cursor: CursorClass):
     logger = get_logger("create_user", config)
     logger.info("Creating app user...")
     cursor.execute(f"""CREATE ROLE {config.db.db_username.value} PASSWORD '{config.db.db_password.value}' LOGIN;""")
     logger.info("Finished creating app user.")
 
 
-def create_db(config, cursor):
+def create_db(config: Config, cursor: CursorClass):
     logger = get_logger("create_database", config)
     logger.info("Creating app database...")
     cursor.execute(f"""CREATE DATABASE {config.db.db_database.value} ENCODING 'UTF-8' OWNER {config.db.db_username.value} TEMPLATE template0;""")
     logger.info("Finished creating app database.")
 
 
-def revision(config, message):
+def revision(config: Config, message: CursorClass):
     # Get logger
     logger = get_logger("revision", config)
 
@@ -133,7 +140,7 @@ def revision(config, message):
     logger.info("Revision command finished running.")
 
 
-def migrate_as_superuser(config):
+def migrate_as_superuser(config: Config):
     """Additional migration commands which require as superuser privilege."""
     # Get logger
     logger = get_logger("migrate_as_superuser", config)
@@ -153,7 +160,7 @@ def migrate_as_superuser(config):
             logger.info(f"Disconnected from the app database.")
 
 
-def migrate(config, config_file = None, test_uuid = None):
+def migrate(config: Config, config_file: str | None = None, test_uuid: str | None = None):
     # Get logger
     logger = get_logger("migrate", config)
 

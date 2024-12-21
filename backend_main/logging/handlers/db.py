@@ -34,7 +34,7 @@ def get_handler(config: Config, level: int):
         separator = config.logging.file_separator
         separator_replacement = config.logging.file_separator_replacement
         fmt = separator.join(["%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"])
-        formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
+        formatter: logging.Formatter = MultilineFormatter(fmt, separator=separator, separator_replacement=separator_replacement)
 
         # Create and return handler
         _file_handler = get_file_handler(folder, "db_module", level, formatter)

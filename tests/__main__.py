@@ -12,6 +12,8 @@ from backend_main.app.config import get_config
 from backend_main.db.init_db import connect, disconnect
 from tests.util import TEST_POSTFIX
 
+log = print
+
 
 def clear_test_users_and_databases():
     """
@@ -73,6 +75,9 @@ def main():
 
         # Run tests
         cmd = f'pytest -n auto --dist=loadfile --asyncio-mode=auto {args}'
+
+        log("Tests execution started at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        log("Running command", cmd)
 
         os.system(cmd)
         

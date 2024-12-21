@@ -2,6 +2,7 @@
 Database initialization + migration utility.
 """
 import argparse
+from dataclasses import dataclass
 from psycopg2.extensions import cursor as CursorClass
 
 if __name__ == "__main__":
@@ -15,6 +16,15 @@ if __name__ == "__main__":
     from backend_main.logging.loggers.db import get_logger
 
 
+@dataclass
+class _DBArgs:
+    """ DB utility cli args dataclass, required for typing support. """
+    force: bool
+    revision: bool
+    migrate: bool
+    message: str | None = None
+
+
 def parse_args():
     # Parse CLI args
     parser = argparse.ArgumentParser()
@@ -26,7 +36,7 @@ def parse_args():
     parser.add_argument("--migrate", help="Apply migrations to the database only.",
                         action="store_true")
     parser.set_defaults(force=False, revision=False, migrate=False)
-    args = parser.parse_args()
+    args = _DBArgs(**parser.parse_args())
 
     if args.revision and (args.message is None):
         parser.error("--revision argument must be specified with --message.")
