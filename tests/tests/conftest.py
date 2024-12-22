@@ -14,6 +14,7 @@ project_root_dir = os.path.abspath(os.path.join(__file__, "../" * 3))
 sys.path.insert(0, project_root_dir)
 from backend_main.app import create_app
 from backend_main.app.config import Config
+from backend_main.app.types import app_tables_key
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_, migrate as migrate_
 
 from tests.util import get_test_name
@@ -155,7 +156,7 @@ async def app(config, db_cursor, insert_data):
     app = await create_app(config=config)
     yield app
 
-    for table in app["tables"]:
+    for table in app[app_tables_key].__dict__:
         db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
 
 
@@ -178,7 +179,7 @@ async def app_with_search(config_with_search, db_cursor, insert_data, aiohttp_cl
     app = await create_app(config=config_with_search)
     yield app
 
-    for table in app["tables"]:
+    for table in app[app_tables_key].__dict__:
         db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
 
 

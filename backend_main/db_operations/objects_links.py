@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 
 from backend_main.util.json import link_data_row_proxy_to_dict, error_json
@@ -20,7 +22,7 @@ async def add_links(request, obj_ids_and_data):
     for nl in new_links:
         validate_link(nl["link"])
     
-    links = request.config_dict["tables"]["links"]
+    links = request.config_dict[app_tables_key].links
     await request["conn"].execute(
         links.insert()
         .values(new_links)
@@ -39,7 +41,7 @@ async def update_links(request, obj_ids_and_data):
         }
         validate_link(new_link["link"])
         
-        links = request.config_dict["tables"]["links"]
+        links = request.config_dict[app_tables_key].links
         result = await request["conn"].execute(
             links.update()
             .where(links.c.object_id == o["object_id"])
@@ -58,7 +60,7 @@ async def update_links(request, obj_ids_and_data):
 
 
 async def view_links(request, object_ids):
-    links = request.config_dict["tables"]["links"]
+    links = request.config_dict[app_tables_key].links
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, links.c.object_id, object_ids)

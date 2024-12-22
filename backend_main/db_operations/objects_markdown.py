@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 
 from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
@@ -13,7 +15,7 @@ from backend_main.util.searchables import add_searchable_updates_for_objects
 async def add_markdown(request, obj_ids_and_data):
     object_data = [{"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]} for o in obj_ids_and_data]
 
-    markdown = request.config_dict["tables"]["markdown"]
+    markdown = request.config_dict[app_tables_key].markdown
     await request["conn"].execute(
         markdown.insert()
         .values(object_data)
@@ -24,7 +26,7 @@ async def add_markdown(request, obj_ids_and_data):
 
 
 async def update_markdown(request, obj_ids_and_data):
-    markdown = request.config_dict["tables"]["markdown"]
+    markdown = request.config_dict[app_tables_key].markdown
 
     for o in obj_ids_and_data:
         object_data = {"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]}
@@ -47,7 +49,7 @@ async def update_markdown(request, obj_ids_and_data):
 
 
 async def view_markdown(request, object_ids):
-    markdown = request.config_dict["tables"]["markdown"]
+    markdown = request.config_dict[app_tables_key].markdown
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, markdown.c.object_id, object_ids)

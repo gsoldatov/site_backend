@@ -4,6 +4,8 @@
 from aiohttp import web
 from sqlalchemy import select
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
 
@@ -13,8 +15,8 @@ from backend_main.validation.db_operations.object_data import validate_to_do_lis
 
 
 async def add_to_do_lists(request, obj_ids_and_data):
-    to_do_lists = request.config_dict["tables"]["to_do_lists"]
-    to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
+    to_do_lists = request.config_dict[app_tables_key].to_do_lists
+    to_do_list_items = request.config_dict[app_tables_key].to_do_list_items
 
     new_to_do_lists = []
     new_to_do_list_items = []
@@ -60,8 +62,8 @@ async def update_to_do_lists(request, obj_ids_and_data):
         object_data = o["object_data"]
         validate_to_do_list(object_data["items"])
 
-        to_do_lists = request.config_dict["tables"]["to_do_lists"]
-        to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
+        to_do_lists = request.config_dict[app_tables_key].to_do_lists
+        to_do_list_items = request.config_dict[app_tables_key].to_do_list_items
 
         new_to_do_list = {"object_id": o["object_id"], "sort_type": object_data["sort_type"]}
         new_to_do_list_items = [{
@@ -107,8 +109,8 @@ async def update_to_do_lists(request, obj_ids_and_data):
 
 
 async def view_to_do_lists(request, object_ids):
-    to_do_lists = request.config_dict["tables"]["to_do_lists"]
-    to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
+    to_do_lists = request.config_dict[app_tables_key].to_do_lists
+    to_do_list_items = request.config_dict[app_tables_key].to_do_list_items
 
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, to_do_lists.c.object_id, object_ids)

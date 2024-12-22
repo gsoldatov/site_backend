@@ -4,6 +4,8 @@ Database operations with app settings.
 from sqlalchemy import select, true
 from sqlalchemy.dialects.postgresql import insert
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
 
 from backend_main.util.settings import serialize_settings, deserialize_setting
@@ -14,7 +16,7 @@ async def update_settings(request, settings):
     Serializes and update setting values provided in the `setting` dict.
     """
     data = serialize_settings(settings)
-    settings = request.config_dict["tables"]["settings"]
+    settings = request.config_dict[app_tables_key].settings
 
     insert_stmt = insert(settings).values(data)
     
@@ -37,7 +39,7 @@ async def view_settings(request, setting_names = None):
         debounce_anonymous(request)
         debounce_authenticated_non_admins(request)
     
-    settings = request.config_dict["tables"]["settings"]
+    settings = request.config_dict[app_tables_key].settings
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()
 
     result = await request["conn"].execute(

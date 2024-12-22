@@ -5,6 +5,8 @@ from aiohttp import web
 from sqlalchemy import select, and_
 from sqlalchemy.sql import text
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 
 from backend_main.db_operations.sessions import delete_sessions
@@ -25,7 +27,7 @@ async def get_user_by_credentials(request, user_id = None, login = None, passwor
     # Exit if argument values are incorrect
     if len(password) < 8 or len(password) > 72: return None
     
-    users = request.config_dict["tables"]["users"]
+    users = request.config_dict[app_tables_key].users
     user_id_or_login_clause = users.c.user_id == user_id if user_id is not None else users.c.login == login
     password_clause = text("password = crypt(:submitted_password, password)")
 
@@ -45,7 +47,7 @@ async def add_user(request, data):
     Adds a user with properties specified in `data` to the database.
     All auth and data checks are performed in /auth/register route handler.
     """
-    users = request.config_dict["tables"]["users"]
+    users = request.config_dict[app_tables_key].users
 
     # Use encryption function on the password
     password = data["password"]
@@ -94,7 +96,7 @@ async def update_user(request, data):
     await start_transaction(request)
     
     # Update user
-    users = request.config_dict["tables"]["users"]
+    users = request.config_dict[app_tables_key].users
     values = {k: data["user"][k] for k in ("login", "username", "user_level", "can_login", "can_edit_objects") if k in data["user"]}
     if "password" in data["user"]:
         values["password"] = text("crypt(:password, gen_salt('bf'))")
@@ -123,7 +125,7 @@ async def check_if_user_ids_exist(request, user_ids):
     Raises 400 if not.
     """
     if len(user_ids) == 0: return
-    users = request.config_dict["tables"]["users"]
+    users = request.config_dict[app_tables_key].users
 
     result = await request["conn"].execute(
         select(users.c.user_id)
@@ -155,7 +157,7 @@ async def view_users(request, user_ids, full_view_mode):
                 raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
     # Query and return data
-    users = request.config_dict["tables"]["users"]
+    users = request.config_dict[app_tables_key].users
 
     columns = [users.c.user_id, users.c.registered_at, users.c.username, users.c.user_level, users.c.can_login, users.c.can_edit_objects] \
         if full_view_mode else [users.c.user_id, users.c.registered_at, users.c.username]

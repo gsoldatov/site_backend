@@ -6,6 +6,8 @@ from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.sql import and_
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
 from backend_main.middlewares.connection import start_transaction
@@ -24,9 +26,9 @@ async def update_composite(request, obj_ids_and_data):
 
 
 async def view_composite(request, object_ids):
-    objects = request.config_dict["tables"]["objects"]
-    composite = request.config_dict["tables"]["composite"]
-    composite_properties = request.config_dict["tables"]["composite_properties"]
+    objects = request.config_dict[app_tables_key].objects
+    composite = request.config_dict[app_tables_key].composite
+    composite_properties = request.config_dict[app_tables_key].composite_properties
 
     # Objects filter for non 'admin` user level
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
@@ -241,7 +243,7 @@ async def _update_composite_properties(request, obj_ids_and_data):
 
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
-    composite_properties = request.config_dict["tables"]["composite_properties"]
+    composite_properties = request.config_dict[app_tables_key].composite_properties
 
     # Prepare data for insertion
     inserted_data = []
@@ -271,8 +273,8 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
     
-    objects = request.config_dict["tables"]["objects"]
-    composite = request.config_dict["tables"]["composite"]
+    objects = request.config_dict[app_tables_key].objects
+    composite = request.config_dict[app_tables_key].composite
 
     # Prepare composite object data for insertion
     composite_object_data = []
@@ -318,7 +320,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
 
 
 async def _delete_subobjects(request, obj_ids_and_data):
-    composite = request.config_dict["tables"]["composite"]
+    composite = request.config_dict[app_tables_key].composite
 
     # Delete marked for full deletion subobjects
     marked_for_full_deletion = set()

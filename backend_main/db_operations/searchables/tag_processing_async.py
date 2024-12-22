@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
 
@@ -14,7 +16,7 @@ async def process_tag_batch_coro(request, tag_ids):
     """
     if len(tag_ids) == 0: return
 
-    searchables = request.config_dict["tables"]["searchables"]
+    searchables = request.config_dict[app_tables_key].searchables
     conn = request["conn_searchables"]
     modified_at = datetime.now(tz=timezone.utc)
 
@@ -43,7 +45,7 @@ async def _process_tags_coro(request, tag_ids):
     Returns searchable text from `tags` table for the provided `tag_ids`.
     """
     # Fetch tag attributes
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
 
     cursor = await request["conn_searchables"].execute(
         select(tags.c.tag_id, tags.c.tag_name, tags.c.tag_description)

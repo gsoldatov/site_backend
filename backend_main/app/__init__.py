@@ -13,7 +13,7 @@ from backend_main.middlewares.setup import setup_middlewares
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
 from backend_main.app.types import app_config_key, app_pending_tasks_key, \
-    app_log_event_key, app_can_process_requests_key
+    app_log_event_key, app_tables_key, app_can_process_requests_key
 
 
 async def create_app(config_file: str | None = None, config: Config | None = None) -> web.Application:
@@ -25,7 +25,7 @@ async def create_app(config_file: str | None = None, config: Config | None = Non
 
         # Setup connection pool & tables
         await setup_connection_pools(app)
-        app["tables"] = get_tables()[0]
+        app[app_tables_key] = get_tables()[0]
 
         # Setup async thread pool executor
         pool_size = 10  # limit pool size to 1/2 of connection pool; it may be worth moving both of these into the config file

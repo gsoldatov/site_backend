@@ -3,6 +3,8 @@ from functools import partial
 
 from sqlalchemy import select
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
 
@@ -13,7 +15,7 @@ async def process_object_batch_coro(request, object_ids):
     """
     if len(object_ids) == 0: return
 
-    searchables = request.config_dict["tables"]["searchables"]
+    searchables = request.config_dict[app_tables_key].searchables
     conn = request["conn_searchables"]
     modified_at = request["time"]
 
@@ -43,7 +45,7 @@ async def _process_objects_coro(request, object_ids):
     """
     # Fetch object attributes
     conn = request["conn_searchables"]
-    objects = request.config_dict["tables"]["objects"]
+    objects = request.config_dict[app_tables_key].objects
 
     cursor = await conn.execute(
         select(objects.c.object_id, objects.c.object_name, 
@@ -76,7 +78,7 @@ async def _process_objects_coro(request, object_ids):
 
     # Process `link` object data
     if len(types["link"]) > 0:
-        links = request.config_dict["tables"]["links"]
+        links = request.config_dict[app_tables_key].links
 
         cursor = await conn.execute(
             select(links.c.object_id, links.c.link)
@@ -88,7 +90,7 @@ async def _process_objects_coro(request, object_ids):
     
     # Process `markdown` object data
     if len(types["markdown"]) > 0:
-        markdown = request.config_dict["tables"]["markdown"]
+        markdown = request.config_dict[app_tables_key].markdown
 
         cursor = await conn.execute(
             select(markdown.c.object_id, markdown.c.raw_text)
@@ -104,7 +106,7 @@ async def _process_objects_coro(request, object_ids):
     
     # Process `to_do_list` object data
     if len(types["to_do_list"]) > 0:
-        to_do_list_items = request.config_dict["tables"]["to_do_list_items"]
+        to_do_list_items = request.config_dict[app_tables_key].to_do_list_items
 
         cursor = await conn.execute(
             select(to_do_list_items.c.object_id, to_do_list_items.c.item_text, to_do_list_items.c.commentary)

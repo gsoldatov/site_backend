@@ -5,6 +5,7 @@ from logging import Logger
 from typing import Protocol, TypedDict
 
 from backend_main.app.config import Config
+from backend_main.db.types import AppTables
 
 
 """
@@ -53,7 +54,7 @@ class _LogEvent(Protocol):
 app_log_event_key = web.AppKey("app_log_event_key", _LogEvent)
 
 app_engine_key = web.AppKey("app_engine_key", Engine)
-# tables: Any
+app_tables_key = web.AppKey("app_tables_key", AppTables)
 
 app_pending_tasks_key = web.AppKey("app_pending_tasks_key", set[Task])
 

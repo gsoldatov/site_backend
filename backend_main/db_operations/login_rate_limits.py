@@ -8,13 +8,15 @@ from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
+from backend_main.app.types import app_tables_key
+
 
 async def add_login_rate_limit_to_request(request):
     """
     Gets login rate limit information for the request sender and adds it to request.
     If `cant_login_until` exceeds current time, raises 403.
     """
-    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict[app_tables_key].login_rate_limits
     request_time = request["time"]
 
     result = await request["conn"].execute(
@@ -36,7 +38,7 @@ async def upsert_login_rate_limit(request, login_rate_limit_info):
     """
     Upserts provided `login_rate_limit_info` into the database.
     """
-    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict[app_tables_key].login_rate_limits
     data = {attr: getattr(login_rate_limit_info, attr) for attr in ("ip_address", "failed_login_attempts", "cant_login_until")}
 
     await request["conn"].execute(
@@ -53,7 +55,7 @@ async def delete_login_rate_limits(request, ip_addresses):
     """
     Deletes login rate limits for the specified `ip_addresses`.
     """
-    login_rate_limits = request.config_dict["tables"]["login_rate_limits"]
+    login_rate_limits = request.config_dict[app_tables_key].login_rate_limits
 
     result = await request["conn"].execute(
         login_rate_limits.delete()

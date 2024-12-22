@@ -5,6 +5,7 @@ from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_, or_
 
+from backend_main.app.types import app_tables_key
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 from backend_main.db_operations.settings import view_settings
 from backend_main.util.json import error_json
@@ -22,7 +23,7 @@ async def check_if_user_owns_objects(request, object_ids):
     debounce_anonymous(request)
 
     if request["user_info"].user_level != "admin":
-        objects = request.config_dict["tables"]["objects"]
+        objects = request.config_dict[app_tables_key].objects
         user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
@@ -50,8 +51,8 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
     debounce_anonymous(request)
 
     if request["user_info"].user_level != "admin":
-        objects = request.config_dict["tables"]["objects"]
-        objects_tags = request.config_dict["tables"]["objects_tags"]
+        objects = request.config_dict[app_tables_key].objects
+        objects_tags = request.config_dict[app_tables_key].objects_tags
         user_id = request["user_info"].user_id
 
         result = await request["conn"].execute(
@@ -95,7 +96,7 @@ def get_objects_auth_filter_clause(request, object_ids = None, object_ids_subque
 
     `object_ids` or `object_ids_subquery` are used to specify object IDs, which are checked for being marked with non-published tags.
     """
-    objects = request.config_dict["tables"]["objects"]
+    objects = request.config_dict[app_tables_key].objects
     ui = request["user_info"]
 
     if ui.is_anonymous:
@@ -118,7 +119,7 @@ def get_objects_data_auth_filter_clause(request, object_id_column, object_ids):
     """
     Returns an SQL Alchemy 'where' clause with a subquery for applying objects' auth filters for `object_id_column`.
     """
-    objects = request.config_dict["tables"]["objects"]
+    objects = request.config_dict[app_tables_key].objects
     ui = request["user_info"]
 
     if ui.user_level == "admin":
@@ -148,9 +149,9 @@ def get_objects_with_published_tags_only_clause(request, object_ids = None, obje
     if object_ids is None and object_ids_subquery is None:
         raise RuntimeError("Either `object_ids` or `object_ids_subquery` must be provided.")
     
-    objects = request.config_dict["tables"]["objects"]
-    tags = request.config_dict["tables"]["tags"]
-    objects_tags = request.config_dict["tables"]["objects_tags"]
+    objects = request.config_dict[app_tables_key].objects
+    tags = request.config_dict[app_tables_key].tags
+    objects_tags = request.config_dict[app_tables_key].objects_tags
     ui = request["user_info"]
 
     if ui.user_level == "admin": return true()
@@ -175,7 +176,7 @@ def get_tags_auth_filter_clause(request, is_published = True):
     - tags.is_published = `is_published` if user has 'user' level;
     - tags.is_published = `is_published` if user is anonymous.
     """
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     ui = request["user_info"]
 
     if ui.user_level == "admin": return true()

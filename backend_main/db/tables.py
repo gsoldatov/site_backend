@@ -4,7 +4,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import FetchedValue
-from sqlalchemy.sql.expression import false
+
+from backend_main.db.types import AppTables
 
 
 def get_tables():
@@ -17,9 +18,10 @@ def get_tables():
         "pk": "pk_%(table_name)s"
     })
 
-    return {
+
+    return AppTables(
         # App settings
-        "settings": Table(
+        settings=Table(
             "settings",
             meta,
             Column("setting_name", String(255), primary_key=True),
@@ -28,7 +30,7 @@ def get_tables():
         ),
 
         # Users, sessions and log in rate limiting
-        "users": Table(
+        users=Table(
             "users",
             meta,
             Column("user_id", Integer, primary_key=True, server_default=FetchedValue()),
@@ -41,7 +43,7 @@ def get_tables():
             Column("can_edit_objects", Boolean, nullable=False)
         ),
 
-        "sessions": Table(
+        sessions=Table(
             "sessions",
             meta,
             Column("user_id", Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False),
@@ -49,7 +51,7 @@ def get_tables():
             Column("expiration_time", DateTime(timezone=True), nullable=False)
         ),
 
-        "login_rate_limits": Table(
+        login_rate_limits=Table(
             "login_rate_limits",
             meta,
             Column("ip_address", postgresql.INET, primary_key=True),
@@ -58,7 +60,7 @@ def get_tables():
         ),
 
         # Objects and tags
-        "tags": Table(
+        tags=Table(
             "tags", 
             meta,
             Column("tag_id", Integer, primary_key=True, server_default=FetchedValue()),
@@ -70,7 +72,7 @@ def get_tables():
             Index("ix_tag_name_lowered", text("lower(tag_name)"), unique=True)
         ),
     
-        "objects": Table(
+        objects=Table(
             "objects", 
             meta,
             Column("object_id", Integer, primary_key=True, server_default=FetchedValue()),
@@ -87,7 +89,7 @@ def get_tables():
             Column("show_description", Boolean, nullable=False)
         ),
 
-        "objects_tags": Table(
+        objects_tags=Table(
             "objects_tags", 
             meta,
             Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), nullable=False),
@@ -95,7 +97,7 @@ def get_tables():
             Index("ix_object_id_tag_id", "object_id", "tag_id", unique=True),
         ),
 
-        "links": Table(
+        links=Table(
             "links", 
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
@@ -103,21 +105,21 @@ def get_tables():
             Column("show_description_as_link", Boolean, nullable=False)
         ),
 
-        "markdown": Table(
+        markdown=Table(
             "markdown", 
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
             Column("raw_text", Text, nullable=False)
         ),
 
-        "to_do_lists": Table(
+        to_do_lists=Table(
             "to_do_lists",
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
             Column("sort_type", String(32), nullable=False)
         ),
 
-        "to_do_list_items": Table(
+        to_do_list_items=Table(
             "to_do_list_items",
             meta,
             Column("object_id", Integer, ForeignKey("to_do_lists.object_id", ondelete = "CASCADE")),
@@ -129,7 +131,7 @@ def get_tables():
             Column("is_expanded", Boolean, nullable=False)
         ),
 
-        "composite_properties": Table(
+        composite_properties=Table(
             "composite_properties",
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE"), unique=True),
@@ -137,7 +139,7 @@ def get_tables():
             Column("numerate_chapters", Boolean, nullable=False)
         ),
 
-        "composite": Table(
+        composite=Table(
             "composite",
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
@@ -151,7 +153,7 @@ def get_tables():
             Column("show_description_as_link_composite", Text, nullable=False)
         ),
 
-        "searchables": Table(
+        searchables=Table(
             "searchables",
             meta,
             Column("object_id", Integer, ForeignKey("objects.object_id", ondelete="CASCADE")),
@@ -165,7 +167,7 @@ def get_tables():
             Index("ix_searchable_russian", "searchable_tsv_russian", postgresql_using="gin")
             # Index("searchable_tsv_english", "searchable_tsv_english", postgresql_using="gin")
         )
-    } \
+    ) \
     , meta
 
 

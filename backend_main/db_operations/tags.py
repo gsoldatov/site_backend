@@ -5,6 +5,8 @@ from aiohttp import web
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_tags_auth_filter_clause
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
 from backend_main.util.json import error_json
@@ -16,7 +18,7 @@ async def add_tag(request, tag_attributes):
         Insert a new row into "tags" table with provided object_attributes.
         Returns a RowProxy object with the inserted data.
     """
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     
     # Forbid to add non-published tags for non-admins
     debounce_non_admin_changing_object_owner(request, tag_attributes)
@@ -43,7 +45,7 @@ async def update_tag(request, tag_attributes):
         Returns a RowProxy object with the inserted data.
         Raises a 404 error if tag does not exist.
     """
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     tag_id = tag_attributes["tag_id"]
 
     # Forbid to add non-published tags for non-admins
@@ -75,7 +77,7 @@ async def view_tags(request, tag_ids):
         Returns a collection of RowProxy objects with tag attributes for provided tag_ids.
         Raises a 404 error tags do not exist.
     """
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
 
     # Tags auth filter for non-admin user levels
     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
@@ -101,7 +103,7 @@ async def delete_tags(request, tag_ids):
         Deletes tag attributes for provided tag_ids.
         Raises a 404 error if tags do not exist.
     """
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     result = await request["conn"].execute(
         tags.delete()
         .where(tags.c.tag_id.in_(tag_ids))
@@ -122,7 +124,7 @@ async def get_page_tag_ids_data(request, pagination_info):
         Raises a 404 error if no tags match the pagination info.
     """
     # Set query params
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     order_by = tags.c.modified_at if pagination_info["order_by"] == "modified_at" else tags.c.tag_name
     order_asc = pagination_info["sort_order"] == "asc"
     items_per_page = pagination_info["items_per_page"]
@@ -185,7 +187,7 @@ async def search_tags(request, query):
         Raises a 404 error if no tags match the query.
     """
     # Set query params
-    tags = request.config_dict["tables"]["tags"]
+    tags = request.config_dict[app_tables_key].tags
     query_text = "%" + query["query_text"] + "%"
     maximum_values = query.get("maximum_values", 10)
     existing_ids = query.get("existing_ids", [])

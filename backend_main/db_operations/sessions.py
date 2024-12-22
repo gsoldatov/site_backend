@@ -7,7 +7,7 @@ from uuid import uuid4
 from aiohttp import web
 from sqlalchemy import select, and_
 
-from backend_main.app.types import app_config_key
+from backend_main.app.types import app_config_key, app_tables_key
 
 from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
 from backend_main.util.json import error_json
@@ -22,8 +22,8 @@ async def prolong_access_token_and_get_user_info(request):
     # Exit if anonymous
     if request["user_info"].is_anonymous: return
     
-    users = request.config_dict["tables"]["users"]
-    sessions = request.config_dict["tables"]["sessions"]
+    users = request.config_dict[app_tables_key].users
+    sessions = request.config_dict[app_tables_key].sessions
     request_time = request["time"]
     expiration_time = request_time + timedelta(seconds=request.config_dict[app_config_key].app.token_lifetime)
 
@@ -65,7 +65,7 @@ async def add_session(request, user_id):
     """
     Adds a new session for the provided `user_id` and returns the generated access token.
     """
-    sessions = request.config_dict["tables"]["sessions"]
+    sessions = request.config_dict[app_tables_key].sessions
     request_time = request["time"]
     
     data = {
@@ -89,7 +89,7 @@ async def delete_sessions(request, user_ids = None, access_tokens = None):
     # Raise if provided arguments are incorrect
     if user_ids is None and access_tokens is None: raise TypeError("Either `user_ids` or `access_tokens` must be provided.")
 
-    sessions = request.config_dict["tables"]["sessions"]
+    sessions = request.config_dict[app_tables_key].sessions
     clause = sessions.c.user_id.in_(user_ids) if user_ids is not None else sessions.c.access_token.in_(access_tokens)
 
     await request["conn"].execute(

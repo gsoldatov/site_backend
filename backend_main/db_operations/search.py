@@ -2,6 +2,8 @@ from aiohttp import web
 from sqlalchemy import select, func, text
 from sqlalchemy.sql import and_, or_
 
+from backend_main.app.types import app_tables_key
+
 from backend_main.db_operations.auth import get_objects_auth_filter_clause, get_tags_auth_filter_clause
 
 from backend_main.util.json import error_json
@@ -17,9 +19,9 @@ async def search_items(request, query):
     
     Raises a 404 error if no items match the query.
     """
-    searchables = request.config_dict["tables"]["searchables"]
-    objects = request.config_dict["tables"]["objects"]
-    tags = request.config_dict["tables"]["tags"]
+    searchables = request.config_dict[app_tables_key].searchables
+    objects = request.config_dict[app_tables_key].objects
+    tags = request.config_dict[app_tables_key].tags
     query_text = query["query_text"]
     items_per_page = query["items_per_page"]
     offset = (query["page"] - 1) * items_per_page
