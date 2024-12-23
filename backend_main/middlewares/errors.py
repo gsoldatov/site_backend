@@ -5,16 +5,17 @@ from aiohttp import web
 from json.decoder import JSONDecodeError
 from jsonschema.exceptions import ValidationError
 from psycopg2.errors import UniqueViolation, OperationalError
+from typing import NoReturn
 
 from backend_main.util.json import error_json
 from backend_main.validation.util import RequestValidationException
 
 from backend_main.types.app import app_config_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import Request, Handler, request_log_event_key
 
 
 @web.middleware
-async def error_middleware(request, handler):
+async def error_middleware(request: Request, handler: Handler) -> web.Response:
     try:
         return await handler(request)
 
@@ -52,7 +53,7 @@ async def error_middleware(request, handler):
         _raise_500(request, e)
 
 
-def _raise_500(request, exception):
+def _raise_500(request: Request, exception: Exception) -> NoReturn:
     """
     Handles 500 error raising.
     If app is in debug mode, simply raises `exception` to allow aiohttp.server logger to capture error stacktrace.
@@ -64,7 +65,7 @@ def _raise_500(request, exception):
         raise web.HTTPInternalServerError(text="Server failed to process request.")
 
 
-def _get_unique_violation_error_message(e):
+def _get_unique_violation_error_message(e: Exception) -> str:
     """
     Generates an error message to return in HTTP response in case of a UniqueViolation error.
     """

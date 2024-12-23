@@ -9,11 +9,11 @@ from aiohttp import web
 from backend_main.db_operations.searchables import update_searchables_coro
 
 from backend_main.types.app import app_config_key, app_pending_tasks_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import Request, Handler, request_log_event_key
 
 
 @web.middleware
-async def tasks_middleware(request, handler):
+async def tasks_middleware(request: Request, handler: Handler) -> web.Response:
     result = await handler(request)
 
     # Skip middleware for CORS requests
@@ -23,7 +23,7 @@ async def tasks_middleware(request, handler):
     return result
 
 
-def dispatch_searchables_update_coro(request):
+def dispatch_searchables_update_coro(request: Request):
     """
     Dispatches an async task to update searchable data, if seachable updates are enabled in the configuration
     and any searchable item was changed during a request.
