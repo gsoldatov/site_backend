@@ -10,14 +10,14 @@ from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def add_markdown(request, obj_ids_and_data):
     object_data = [{"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]} for o in obj_ids_and_data]
 
     markdown = request.config_dict[app_tables_key].markdown
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         markdown.insert()
         .values(object_data)
     )
@@ -32,7 +32,7 @@ async def update_markdown(request, obj_ids_and_data):
     for o in obj_ids_and_data:
         object_data = {"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]}
 
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             markdown.update()
             .where(markdown.c.object_id == o["object_id"])
             .values(object_data)
@@ -55,7 +55,7 @@ async def view_markdown(request, object_ids):
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, markdown.c.object_id, object_ids)
 
-    records = await request["conn"].execute(
+    records = await request[request_connection_key].execute(
         select(markdown.c.object_id, markdown.c.raw_text)
         .where(objects_data_auth_filter_clause)
     )

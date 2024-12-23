@@ -7,7 +7,7 @@ from backend_main.db_operations.auth import get_objects_auth_filter_clause, get_
 from backend_main.util.json import error_json
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def search_items(request, query):
@@ -44,7 +44,7 @@ async def search_items(request, query):
     )
 
     # Query database
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(searchables.c.tag_id, searchables.c.object_id,
             # set bit flags for ts_rank function to normalize ranks (2 divides the rank by the document length; 32 divides the rank by itself + 1)
             func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")
@@ -76,7 +76,7 @@ async def search_items(request, query):
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Query total number of items
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(func.count())
         .select_from(
             searchables

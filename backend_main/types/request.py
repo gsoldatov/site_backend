@@ -1,4 +1,5 @@
 from aiohttp import web
+from aiopg.sa.connection import SAConnection, Transaction
 from datetime import datetime
 
 from typing import TypeVar, overload, Any, Union, Awaitable, Callable, Protocol
@@ -39,8 +40,12 @@ class UserInfo:
 
 request_user_info_key = web.AppKey("request_user_info_key", UserInfo)
 
+request_connection_key = web.AppKey("request_connection_key", SAConnection)
+request_transaction_key = web.AppKey("request_transaction_key", Transaction) 
+
 
 _T = TypeVar("_T")
+_U = TypeVar("_U")
 
 
 class Request(web.Request):
@@ -64,6 +69,18 @@ class Request(web.Request):
 
     def __setitem__(self, key: Union[str, web.AppKey[_T]], value: Any) -> None:
         self._state[key] = value    # type: ignore[index]
+    
+    @overload  # type: ignore[override]
+    def get(self, key: web.AppKey[_T], default: None = ...) ->_T | None: ...
+
+    @overload
+    def get(self, key: web.AppKey[_T], default: _U) -> Union[_T, _U]: ...
+
+    @overload
+    def get(self, key: str, default: Any = ...) -> Any: ...
+
+    def get(self, key: Union[str, web.AppKey[_T]], default: Any = None) -> Any:
+        return self._state.get(key, default)    # type: ignore[arg-type]
 
 
 Handler = Callable[[web.Request], Awaitable[web.Response]]

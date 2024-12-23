@@ -15,7 +15,7 @@ from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 
 from backend_main.types.app import app_config_key, app_tables_key
-from backend_main.types.request import request_time_key, request_log_event_key
+from backend_main.types.request import request_time_key, request_log_event_key, request_connection_key
 
 
 async def add_objects(request, objects_attributes):
@@ -35,7 +35,7 @@ async def add_objects(request, objects_attributes):
     # Insert new objects
     objects = request.config_dict[app_tables_key].objects
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         objects.insert()
         .returning(objects.c.object_id, objects.c.object_type, objects.c.created_at, objects.c.modified_at,
                 objects.c.object_name, objects.c.object_description, objects.c.is_published, 
@@ -76,7 +76,7 @@ async def update_objects(request, objects_attributes):
     for oa in objects_attributes:
         object_id = oa["object_id"]
     
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             objects.update()
             .where(objects.c.object_id == object_id)
             .values(oa)
@@ -107,7 +107,7 @@ async def view_objects(request, object_ids):
     # Objects filter for non 'admin` user level
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_id, objects.c.object_type, objects.c.created_at,
             objects.c.modified_at, objects.c.object_name, objects.c.object_description, objects.c.is_published, 
             objects.c.display_in_feed, objects.c.feed_timestamp, objects.c.show_description, objects.c.owner_id)
@@ -128,7 +128,7 @@ async def view_objects_types(request, object_ids):
     # Objects filter for non 'admin` user level
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_type)
         .distinct()
         .where(and_(
@@ -154,7 +154,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     subobject_ids_to_delete = []
     if delete_subobjects:
         # Get all subobject IDs of deleted subobjects
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(composite.c.subobject_id)
             .distinct()
             .where(composite.c.object_id.in_(object_ids))
@@ -162,7 +162,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
         subobjects_of_deleted_objects = set((row["subobject_id"] for row in await result.fetchall()))
 
         # Get subobject IDs which are present in other composite objects
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(composite.c.subobject_id)
             .distinct()
             .where(and_(
@@ -181,7 +181,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     await check_if_user_owns_objects(request, object_and_subobject_ids)
 
     # Run delete query & return result
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         objects.delete()
         .where(objects.c.object_id.in_(object_and_subobject_ids))
         .returning(objects.c.object_id)
@@ -271,7 +271,7 @@ async def get_page_object_ids_data(request, pagination_info):
         )
 
     # Get object ids
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         with_where_clause(
             select(objects.c.object_id)
         )
@@ -289,7 +289,7 @@ async def get_page_object_ids_data(request, pagination_info):
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Get object count
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         with_where_clause(
             select(func.count())
             .select_from(objects)
@@ -332,7 +332,7 @@ async def search_objects(request, query):
     ))
 
     # Get object ids
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_id)
         .where(and_(
             objects_auth_filter_clause,
@@ -365,7 +365,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
 
     # Check if object is composite and can be viewed by request sender
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=[object_id])
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_type)
         .where(and_(
             objects_auth_filter_clause,
@@ -393,7 +393,7 @@ async def get_elements_in_composite_hierarchy(request, object_id):
 
     while len(parent_object_ids) > 0 and current_depth < request.config_dict[app_config_key].app.composite_hierarchy_max_depth:
         # Query all subobjects of current parents
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(composite.c.subobject_id, objects.c.object_type)
             .select_from(composite.join(objects, composite.c.subobject_id == objects.c.object_id))
             .where(composite.c.object_id.in_(parent_object_ids))    # Do not apply auth filter here (it will be applied when objects' attributes & data are fetched)
@@ -425,7 +425,7 @@ async def set_modified_at(request, object_ids, modified_at = None):
 
     # Update modified_at
     objects = request.config_dict[app_tables_key].objects
-    await request["conn"].execute(objects.update()
+    await request[request_connection_key].execute(objects.update()
         .where(objects.c.object_id.in_(object_ids))
         .values(modified_at=modified_at)
     )

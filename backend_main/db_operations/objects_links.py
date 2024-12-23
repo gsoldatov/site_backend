@@ -11,7 +11,7 @@ from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.validation.db_operations.object_data import validate_link
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def add_links(request, obj_ids_and_data):
@@ -24,7 +24,7 @@ async def add_links(request, obj_ids_and_data):
         validate_link(nl["link"])
     
     links = request.config_dict[app_tables_key].links
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         links.insert()
         .values(new_links)
     )
@@ -43,7 +43,7 @@ async def update_links(request, obj_ids_and_data):
         validate_link(new_link["link"])
         
         links = request.config_dict[app_tables_key].links
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             links.update()
             .where(links.c.object_id == o["object_id"])
             .values(new_link)
@@ -66,7 +66,7 @@ async def view_links(request, object_ids):
     # Objects filter for non 'admin` user level (also filters objects with provided `object_ids`)
     objects_data_auth_filter_clause = get_objects_data_auth_filter_clause(request, links.c.object_id, object_ids)
 
-    records = await request["conn"].execute(
+    records = await request[request_connection_key].execute(
         select(links.c.object_id, links.c.link, links.c.show_description_as_link)
         .where(objects_data_auth_filter_clause)
     )

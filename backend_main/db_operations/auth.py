@@ -10,7 +10,7 @@ from backend_main.db_operations.settings import view_settings
 from backend_main.util.json import error_json
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key, request_user_info_key
+from backend_main.types.request import request_log_event_key, request_user_info_key, request_connection_key
 
 
 async def check_if_user_owns_objects(request, object_ids):
@@ -28,7 +28,7 @@ async def check_if_user_owns_objects(request, object_ids):
         objects = request.config_dict[app_tables_key].objects
         user_id = request[request_user_info_key].user_id
 
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(objects.c.object_id, objects.c.owner_id)
             .where(objects.c.object_id.in_(object_ids))
         )
@@ -57,7 +57,7 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
         objects_tags = request.config_dict[app_tables_key].objects_tags
         user_id = request[request_user_info_key].user_id
 
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(objects.c.object_id, objects.c.owner_id)
             .where(objects.c.object_id.in_(
                 select(objects_tags.c.object_id)

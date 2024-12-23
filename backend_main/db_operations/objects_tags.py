@@ -14,7 +14,7 @@ from backend_main.util.searchables import add_searchable_updates_for_tags
 from backend_main.validation.util import RequestValidationException
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
+from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, request_connection_key
 
 
 async def view_objects_tags(request, object_ids = None, tag_ids = None):
@@ -35,7 +35,7 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
         # Objects filter for non 'admin` user level
         objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
         select(objects_tags.c.object_id, objects_tags.c.tag_id)
         .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply objects auth filter
         .where(and_(
@@ -55,7 +55,7 @@ async def view_objects_tags(request, object_ids = None, tag_ids = None):
         ))
 
         # Get pairs wihtout filtering objects with non-published tags
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
         select(objects_tags.c.object_id, objects_tags.c.tag_id)
         .select_from(
                 objects_tags
@@ -126,7 +126,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     
     if len(tag_ids) > 0:
         # Check if all of the provided tag_ids exist
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(tags.c.tag_id)
             .where(tags.c.tag_id.in_(tag_ids))
         )
@@ -144,7 +144,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
 
     # Get existing tag_ids for provided string tag_names
     if len(tag_names) > 0:
-        records = await request["conn"].execute(
+        records = await request[request_connection_key].execute(
             select(tags.c.tag_id, func.lower(tags.c.tag_name).label("lowered_tag_name"))
             .where(func.lower(tags.c.tag_name).in_(lowered_tag_names))
         )
@@ -162,7 +162,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     
     # Check if non-admins add published existing tags only
     if request[request_user_info_key].user_level != "admin":
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(func.count())
             .where(get_tags_auth_filter_clause(request, is_published=False))
         )
@@ -181,7 +181,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
         request_time = request[request_time_key]
         new_tag_ids = []
 
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             tags.insert()
             .returning(tags.c.tag_id)
             .values([{
@@ -211,7 +211,7 @@ async def _add_tags_for_objects(request, objects_tags_data):
     objects_tags = request.config_dict[app_tables_key].objects_tags
     pairs = [{"object_id": object_id, "tag_id": tag_id} for object_id in objects_tags_data["object_ids"] for tag_id in tag_ids]
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         objects_tags.insert()
         .values(pairs)
     )
@@ -230,7 +230,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
     # Check if non-admins delete published tags only
     if request[request_user_info_key].user_level != "admin":
         removed_tags_clause = true() if objects_tags_data.get("remove_all_tags") else objects_tags.c.tag_id.in_(objects_tags_data["removed_tag_ids"])
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(func.count())
             .select_from(objects_tags.join(tags, objects_tags.c.tag_id == tags.c.tag_id))
             .where(and_(
@@ -246,7 +246,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
 
     # 1
     if "object_ids" in objects_tags_data and "removed_tag_ids" in objects_tags_data:
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             objects_tags.delete()
             .where(and_(
                     objects_tags.c.object_id.in_(objects_tags_data["object_ids"]), 
@@ -258,7 +258,7 @@ async def _remove_tags_for_objects(request, objects_tags_data):
     
     # 2
     elif "object_ids" in objects_tags_data and objects_tags_data.get("remove_all_tags"):
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             objects_tags.delete()
             .where(objects_tags.c.object_id.in_(objects_tags_data["object_ids"]))
             .returning(objects_tags.c.tag_id)
@@ -288,7 +288,7 @@ async def _add_objects_for_tags(request, objects_tags_data):
     objects_tags = request.config_dict[app_tables_key].objects_tags
     pairs = [{"object_id": object_id, "tag_id": tag_id} for object_id in added_object_ids for tag_id in objects_tags_data["tag_ids"]]
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         objects_tags.insert()
         .values(pairs)
     )
@@ -305,7 +305,7 @@ async def _remove_objects_for_tags(request, objects_tags_data):
 
     # 1
     if "tag_ids" in objects_tags_data and "removed_object_ids" in objects_tags_data:
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             objects_tags.delete()
             .where(and_(
                     objects_tags.c.object_id.in_(objects_tags_data["removed_object_ids"]), 
@@ -317,7 +317,7 @@ async def _remove_objects_for_tags(request, objects_tags_data):
     
     # 2
     elif "tag_ids" in objects_tags_data and objects_tags_data.get("remove_all_objects"):
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             objects_tags.delete()
             .where(objects_tags.c.tag_id.in_(objects_tags_data["tag_ids"]))
             .returning(objects_tags.c.object_id)
@@ -332,7 +332,7 @@ async def _check_object_ids(request, checked_object_ids):
     if type(checked_object_ids) != set:
         checked_object_ids = set(checked_object_ids)
     objects = request.config_dict[app_tables_key].objects
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_id)
         .where(objects.c.object_id.in_(checked_object_ids))
     )

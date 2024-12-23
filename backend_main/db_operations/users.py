@@ -15,7 +15,7 @@ from backend_main.util.constants import forbidden_non_admin_user_modify_attribut
 from backend_main.util.json import error_json
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key, request_user_info_key
+from backend_main.types.request import request_log_event_key, request_user_info_key, request_connection_key
 
 
 async def get_user_by_credentials(request, user_id = None, login = None, password = None):
@@ -33,7 +33,7 @@ async def get_user_by_credentials(request, user_id = None, login = None, passwor
     user_id_or_login_clause = users.c.user_id == user_id if user_id is not None else users.c.login == login
     password_clause = text("password = crypt(:submitted_password, password)")
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(users.c.user_id, users.c.username, users.c.user_level, 
             users.c.can_login, users.c.can_edit_objects)
         .where(and_(
@@ -55,7 +55,7 @@ async def add_user(request, data):
     password = data["password"]
     data["password"] = text("crypt(:password, gen_salt('bf'))")
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         users.insert()
         .returning(users.c.user_id, users.c.registered_at, users.c.login, users.c.username,
                 users.c.user_level, users.c.can_login, users.c.can_edit_objects)
@@ -103,7 +103,7 @@ async def update_user(request, data):
     if "password" in data["user"]:
         values["password"] = text("crypt(:password, gen_salt('bf'))")
     
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         users.update()
         .where(users.c.user_id == data["user"]["user_id"])
         .values(values)
@@ -129,7 +129,7 @@ async def check_if_user_ids_exist(request, user_ids):
     if len(user_ids) == 0: return
     users = request.config_dict[app_tables_key].users
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(users.c.user_id)
         .where(users.c.user_id.in_(user_ids))
     )
@@ -164,7 +164,7 @@ async def view_users(request, user_ids, full_view_mode):
     columns = [users.c.user_id, users.c.registered_at, users.c.username, users.c.user_level, users.c.can_login, users.c.can_edit_objects] \
         if full_view_mode else [users.c.user_id, users.c.registered_at, users.c.username]
     
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(*columns)
         .where(users.c.user_id.in_(user_ids))
     )

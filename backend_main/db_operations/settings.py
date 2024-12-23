@@ -9,6 +9,7 @@ from backend_main.auth.route_access_checks.util import debounce_anonymous, debou
 from backend_main.util.settings import serialize_settings, deserialize_setting
 
 from backend_main.types.app import app_tables_key
+from backend_main.types.request import request_connection_key
 
 
 async def update_settings(request, settings):
@@ -20,7 +21,7 @@ async def update_settings(request, settings):
 
     insert_stmt = insert(settings).values(data)
     
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         insert_stmt
         .on_conflict_do_update(
             index_elements=[settings.c.setting_name],
@@ -42,7 +43,7 @@ async def view_settings(request, setting_names = None):
     settings = request.config_dict[app_tables_key].settings
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(settings.c.setting_name, settings.c.setting_value, settings.c.is_public)
         .where(clause)
     )

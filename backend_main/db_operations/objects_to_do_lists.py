@@ -12,7 +12,7 @@ from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.validation.db_operations.object_data import validate_to_do_list
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def add_to_do_lists(request, obj_ids_and_data):
@@ -42,13 +42,13 @@ async def add_to_do_lists(request, obj_ids_and_data):
     await start_transaction(request)
 
     # Insert to-do list general object data
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         to_do_lists.insert()
         .values(new_to_do_lists)
     )
 
     # Insert to-do list items
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         to_do_list_items.insert()
         .values(new_to_do_list_items)
     )
@@ -81,7 +81,7 @@ async def update_to_do_lists(request, obj_ids_and_data):
         await start_transaction(request)
 
         # Update to-do list general object data
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             to_do_lists.update()
             .where(to_do_lists.c.object_id == o["object_id"])
             .values(new_to_do_list)
@@ -95,12 +95,12 @@ async def update_to_do_lists(request, obj_ids_and_data):
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
         # Update to-do list items
-        await request["conn"].execute(
+        await request[request_connection_key].execute(
             to_do_list_items.delete()
             .where(to_do_list_items.c.object_id == o["object_id"])
         )
 
-        await request["conn"].execute(
+        await request[request_connection_key].execute(
             to_do_list_items.insert()
             .values(new_to_do_list_items)
         )
@@ -118,7 +118,7 @@ async def view_to_do_lists(request, object_ids):
     objects_data_auth_filter_clause_items = get_objects_data_auth_filter_clause(request, to_do_list_items.c.object_id, object_ids)
 
     # Query to-do list general object data
-    records = await request["conn"].execute(
+    records = await request[request_connection_key].execute(
         select(to_do_lists.c.object_id, to_do_lists.c.sort_type)
         .where(objects_data_auth_filter_clause)
     )
@@ -128,7 +128,7 @@ async def view_to_do_lists(request, object_ids):
         data[row["object_id"]] = { "sort_type": row["sort_type"], "items": [] }
 
     # Query to-do list items
-    items = await request["conn"].execute(
+    items = await request[request_connection_key].execute(
         select(to_do_list_items.c.object_id, to_do_list_items.c.item_number, to_do_list_items.c.item_state, to_do_list_items.c.item_text,
                 to_do_list_items.c.commentary, to_do_list_items.c.indent, to_do_list_items.c.is_expanded)
         .where(objects_data_auth_filter_clause_items)

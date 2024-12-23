@@ -15,7 +15,7 @@ from backend_main.validation.db_operations.object_data import validate_composite
 from backend_main.util.object_type_route_handler_resolving import object_type_func_name_mapping, get_object_type_route_handler
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
+from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, request_connection_key
 
 
 async def add_composite(request, obj_ids_and_data):
@@ -35,7 +35,8 @@ async def view_composite(request, object_ids):
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     # Query subobjects
-    records = await request["conn"].execute(    # Return all existing composite objects with provided object ids, including those which don't have any subobjects
+    ## Return all existing composite objects with provided object ids, including those which don't have any subobjects
+    records = await request[request_connection_key].execute(
         select(
             objects.c.object_id,
             composite.c.subobject_id,
@@ -70,7 +71,7 @@ async def view_composite(request, object_ids):
         subobject_data[object_id] = subobjects
     
     # Query composite properties
-    records = await request["conn"].execute(
+    records = await request[request_connection_key].execute(
         select(composite_properties.c.object_id, composite_properties.c.display_mode, composite_properties.c.numerate_chapters)
         .select_from(objects.outerjoin(composite_properties, objects.c.object_id == composite_properties.c.object_id))
         .where(and_(
@@ -258,12 +259,12 @@ async def _update_composite_properties(request, obj_ids_and_data):
     
     # Delete existing & insert new composite object data
     object_ids = [obj_id_and_data["object_id"] for obj_id_and_data in obj_ids_and_data]
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         composite_properties.delete()
         .where(composite_properties.c.object_id.in_(object_ids))
     )
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         composite_properties.insert()
         .values(inserted_data)
     )
@@ -296,7 +297,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     
     # Check if all subobject IDs exist as objects
     new_subobject_ids = [data["subobject_id"] for data in composite_object_data]
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(objects.c.object_id)
         .where(objects.c.object_id.in_(new_subobject_ids))
     )
@@ -309,12 +310,12 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     
     # Delete existing & insert new composite object data
     object_ids = [obj_id_and_data["object_id"] for obj_id_and_data in obj_ids_and_data]
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         composite.delete()
         .where(composite.c.object_id.in_(object_ids))
     )
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         composite.insert()
         .values(composite_object_data)
     )
@@ -333,7 +334,7 @@ async def _delete_subobjects(request, obj_ids_and_data):
     
     if len(marked_for_full_deletion) > 0:
         # Check which subobjects marked for full deletion are not referenced by other composite objects
-        result = await request["conn"].execute(
+        result = await request[request_connection_key].execute(
             select(composite.c.subobject_id)
             .distinct()
             .where(composite.c.subobject_id.in_(marked_for_full_deletion))

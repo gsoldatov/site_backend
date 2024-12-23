@@ -11,7 +11,7 @@ from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
 from backend_main.util.json import error_json
 
 from backend_main.types.app import app_config_key, app_tables_key
-from backend_main.types.request import request_time_key, request_user_info_key
+from backend_main.types.request import request_time_key, request_user_info_key, request_connection_key
 
 
 async def prolong_access_token_and_get_user_info(request):
@@ -41,7 +41,7 @@ async def prolong_access_token_and_get_user_info(request):
         .returning(sessions.c.user_id.label("user_id"))
     ).cte("update_cte")
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(users.c.user_id, users.c.user_level, users.c.can_edit_objects)
         .where(and_(
             users.c.user_id.in_(select(update_cte.c.user_id)),
@@ -75,7 +75,7 @@ async def add_session(request, user_id):
         "expiration_time": request_time + timedelta(seconds=request.config_dict[app_config_key].app.token_lifetime)
     }
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         sessions.insert()
         .values(data)
     )
@@ -93,7 +93,7 @@ async def delete_sessions(request, user_ids = None, access_tokens = None):
     sessions = request.config_dict[app_tables_key].sessions
     clause = sessions.c.user_id.in_(user_ids) if user_ids is not None else sessions.c.access_token.in_(access_tokens)
 
-    await request["conn"].execute(
+    await request[request_connection_key].execute(
         sessions.delete()
         .where(clause)
     )

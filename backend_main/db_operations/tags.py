@@ -13,7 +13,7 @@ from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def add_tag(request, tag_attributes):
@@ -26,7 +26,7 @@ async def add_tag(request, tag_attributes):
     # Forbid to add non-published tags for non-admins
     debounce_non_admin_changing_object_owner(request, tag_attributes)
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         tags.insert()
         .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
                 tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
@@ -54,7 +54,7 @@ async def update_tag(request, tag_attributes):
     # Forbid to add non-published tags for non-admins
     debounce_non_admin_changing_object_owner(request, tag_attributes)
 
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         tags.update()
         .where(tags.c.tag_id == tag_id)
         .values(tag_attributes)
@@ -85,7 +85,7 @@ async def view_tags(request, tag_ids):
     # Tags auth filter for non-admin user levels
     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
 
-    rows = await request["conn"].execute(
+    rows = await request[request_connection_key].execute(
         select(tags)
         .where(and_(
             tags_auth_filter_clause,
@@ -107,7 +107,7 @@ async def delete_tags(request, tag_ids):
         Raises a 404 error if tags do not exist.
     """
     tags = request.config_dict[app_tables_key].tags
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         tags.delete()
         .where(tags.c.tag_id.in_(tag_ids))
         .returning(tags.c.tag_id)
@@ -147,7 +147,7 @@ async def get_page_tag_ids_data(request, pagination_info):
         )
 
     # Get tag ids
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         with_where_clause(
             select(tags.c.tag_id)
         )
@@ -165,7 +165,7 @@ async def get_page_tag_ids_data(request, pagination_info):
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Get tag count
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         with_where_clause(
             select(func.count())
             .select_from(tags)
@@ -199,7 +199,7 @@ async def search_tags(request, query):
     tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
 
     # Get tag ids
-    result = await request["conn"].execute(
+    result = await request[request_connection_key].execute(
         select(tags.c.tag_id)
         .where(and_(
             tags_auth_filter_clause,
