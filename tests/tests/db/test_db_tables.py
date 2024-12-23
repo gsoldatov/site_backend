@@ -8,7 +8,8 @@ from sqlalchemy import Table
 
 sys.path.insert(0, os.path.join(sys.path[0], "../" * 3))
 from backend_main.db.tables import get_tables
-from backend_main.db.types import AppTables
+from backend_main.types.db import AppTables
+
 from tests.util import run_pytest_tests
 
 

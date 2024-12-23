@@ -12,7 +12,8 @@ from backend_main.middlewares import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes
-from backend_main.app.types import app_config_key, app_pending_tasks_key, \
+
+from backend_main.types.app import app_config_key, app_pending_tasks_key, \
     app_log_event_key, app_tables_key, app_can_process_requests_key
 
 

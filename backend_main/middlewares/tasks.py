@@ -6,10 +6,9 @@ import asyncio
 
 from aiohttp import web
 
-from backend_main.app.types import app_config_key, app_pending_tasks_key
-
 from backend_main.db_operations.searchables import update_searchables_coro
 
+from backend_main.types.app import app_config_key, app_pending_tasks_key
 from backend_main.types.request import request_log_event_key
 
 

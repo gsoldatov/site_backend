@@ -1,9 +1,9 @@
-from backend_main.app.types import app_engine_key
-
 from backend_main.db_operations.searchables.tag_processing import process_tag_batch
 from backend_main.db_operations.searchables.tag_processing_async import process_tag_batch_coro
 from backend_main.db_operations.searchables.object_processing import process_object_batch
 from backend_main.db_operations.searchables.object_processing_async import process_object_batch_coro
+
+from backend_main.types.app import app_engine_key
 
 
 def update_searchables(conn, tag_ids = None, object_ids = None):

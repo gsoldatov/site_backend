@@ -4,8 +4,9 @@
 """
 from aiohttp import web
 
-from backend_main.app.types import app_can_process_requests_key
 from backend_main.util.json import error_json
+
+from backend_main.types.app import app_can_process_requests_key
 
 
 @web.middleware

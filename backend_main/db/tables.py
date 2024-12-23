@@ -5,7 +5,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import FetchedValue
 
-from backend_main.db.types import AppTables
+from backend_main.types.db import AppTables
 
 
 def get_tables():

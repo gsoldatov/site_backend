@@ -4,10 +4,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from backend_main.app.types import app_tables_key
-
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
+
+from backend_main.types.app import app_tables_key
 
 
 async def process_tag_batch_coro(request, tag_ids):

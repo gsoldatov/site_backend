@@ -4,13 +4,12 @@
 from aiohttp import web
 from sqlalchemy import select
 
-from backend_main.app.types import app_tables_key
-
 from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 
 from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 
+from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key
 
 

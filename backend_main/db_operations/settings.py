@@ -4,11 +4,11 @@ Database operations with app settings.
 from sqlalchemy import select, true
 from sqlalchemy.dialects.postgresql import insert
 
-from backend_main.app.types import app_tables_key
-
 from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
 
 from backend_main.util.settings import serialize_settings, deserialize_setting
+
+from backend_main.types.app import app_tables_key
 
 
 async def update_settings(request, settings):

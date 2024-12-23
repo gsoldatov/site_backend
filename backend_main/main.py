@@ -3,11 +3,10 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(sys.path[0]))
 
 import asyncio
-
 from aiohttp import web
 
 from backend_main.app import create_app
-from backend_main.app.types import app_config_key
+from backend_main.types.app import app_config_key
 
 
 def main():

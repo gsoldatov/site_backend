@@ -1,8 +1,7 @@
 import aiohttp_cors # type: ignore[import-untyped]
-
 from aiohttp import web
 
-from backend_main.app.types import app_config_key
+from backend_main.types.app import app_config_key
 
 
 def setup_cors(app: web.Application):

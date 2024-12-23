@@ -5,10 +5,10 @@
 """
 from aiohttp import web
 
-from backend_main.app.types import app_engine_key
-
 from backend_main.util.login_rate_limits import IncorrectCredentialsException
 from backend_main.util.json import error_json
+
+from backend_main.types.app import app_engine_key
 
 
 @web.middleware

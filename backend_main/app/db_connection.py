@@ -3,7 +3,7 @@ import asyncio
 from aiohttp import web
 from aiopg.sa import create_engine
 
-from backend_main.app.types import app_config_key, app_engine_key, app_pending_tasks_key, \
+from backend_main.types.app import app_config_key, app_engine_key, app_pending_tasks_key, \
     app_log_event_key, app_can_process_requests_key
 
 

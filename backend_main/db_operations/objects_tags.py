@@ -5,8 +5,6 @@ from aiohttp import web
 from sqlalchemy import select, func, true
 from sqlalchemy.sql import and_
 
-from backend_main.app.types import app_tables_key
-
 from backend_main.db_operations.auth import check_if_user_owns_objects, \
     check_if_user_owns_all_tagged_objects, get_objects_auth_filter_clause, get_tags_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
@@ -15,6 +13,7 @@ from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
 from backend_main.validation.util import RequestValidationException
 
+from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
 
 

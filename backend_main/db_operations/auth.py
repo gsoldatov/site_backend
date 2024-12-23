@@ -5,11 +5,11 @@ from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_, or_
 
-from backend_main.app.types import app_tables_key
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 from backend_main.db_operations.settings import view_settings
 from backend_main.util.json import error_json
 
+from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key, request_user_info_key
 
 

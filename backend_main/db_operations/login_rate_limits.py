@@ -8,7 +8,7 @@ from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from backend_main.app.types import app_tables_key
+from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_time_key
 
 

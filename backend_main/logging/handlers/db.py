@@ -1,11 +1,11 @@
 import os
 import logging
 
-from backend_main.app.types import Config
-
 from backend_main.logging.handlers.file_handler import get_file_handler
 from backend_main.logging.handlers.stream import get_stream_handler
 from backend_main.logging.formatters.multiline import MultilineFormatter
+
+from backend_main.types.app import Config
 
 
 root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "../" * 3))

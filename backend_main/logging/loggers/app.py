@@ -2,12 +2,11 @@ import logging
 from aiohttp import web
 from typing import cast
 
-from backend_main.app.types import app_config_key, app_event_logger_key, app_access_logger_key, \
-    app_log_access_key, app_log_event_key
-
 from backend_main.logging.handlers.app import get_access_logger_handler, get_event_logger_handler
 from backend_main.logging.handlers.patched_timed_rotation_file_handler import PatchedTimedRotatingFileHandler
 
+from backend_main.types.app import app_config_key, app_event_logger_key, app_access_logger_key, \
+    app_log_access_key, app_log_event_key
 from backend_main.types.request import Request, request_id_key, request_log_event_key
 
 

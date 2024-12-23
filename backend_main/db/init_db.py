@@ -4,8 +4,9 @@ import psycopg2
 from psycopg2.extensions import cursor as CursorClass
 import alembic.config
 
-from backend_main.app.types import Config
 from backend_main.logging.loggers.db import get_logger
+
+from backend_main.types.app import Config
 
 
 class InitDBException(Exception):

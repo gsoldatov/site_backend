@@ -5,7 +5,8 @@ from logging import Logger
 from typing import Protocol, TypedDict
 
 from backend_main.app.config import Config
-from backend_main.db.types import AppTables
+
+from backend_main.types.db import AppTables
 
 
 """

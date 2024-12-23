@@ -6,9 +6,9 @@ from aiohttp import web
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from backend_main.app.types import app_log_access_key
 from backend_main.logging.loggers.app import setup_request_event_logging
 
+from backend_main.types.app import app_log_access_key
 from backend_main.types.request import Request, Handler, request_time_key, request_id_key, \
     request_monotonic_time_key, request_log_event_key, request_user_info_key
 

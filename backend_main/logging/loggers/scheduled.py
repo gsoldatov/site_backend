@@ -1,8 +1,8 @@
 import logging
 
-from backend_main.app.types import Config
-
 from backend_main.logging.handlers.scheduled import get_handler
+
+from backend_main.types.app import Config
 
 
 def get_logger(
