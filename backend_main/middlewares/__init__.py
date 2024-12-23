@@ -27,6 +27,6 @@ def setup_middlewares(app: web.Application):
         connection_middleware,
         auth_middleware
     ]:
-        app.middlewares.append(middleware)
+        app.middlewares.append(middleware)  # type: ignore[arg-type]
 
     app[app_log_event_key]("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")

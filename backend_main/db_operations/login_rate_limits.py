@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_time_key, request_connection_key
+from backend_main.types.request import LoginRateLimitInfo, request_time_key, request_connection_key, \
+    request_login_rate_limits_info_key
 
 
 async def add_login_rate_limit_to_request(request):
@@ -28,7 +29,7 @@ async def add_login_rate_limit_to_request(request):
     ip_address = request.remote
     failed_login_attempts = row[0] if row is not None else 0
     cant_login_until = row[1] if row is not None else request_time + timedelta(minutes=-1)
-    request["login_rate_limit_info"] = LoginRateLimitInfo(ip_address, failed_login_attempts, cant_login_until)
+    request[request_login_rate_limits_info_key] = LoginRateLimitInfo(ip_address, failed_login_attempts, cant_login_until)
 
     seconds_until_logging_in_is_available = ceil((cant_login_until - request_time).total_seconds())
     if seconds_until_logging_in_is_available > 0:
@@ -65,15 +66,3 @@ async def delete_login_rate_limits(request, ip_addresses):
     )
 
     return ip_addresses
-
-
-class LoginRateLimitInfo:
-    """
-    Dataclass for storing login rate limiting information for the request sender.
-    """
-    __slots__ = ["ip_address", "failed_login_attempts", "cant_login_until"]
-
-    def __init__(self, ip_address, failed_login_attempts, cant_login_until):
-        self.ip_address = ip_address
-        self.failed_login_attempts = failed_login_attempts
-        self.cant_login_until = cant_login_until

@@ -8,11 +8,11 @@ from backend_main.db_operations.sessions import prolong_access_token_and_get_use
 from backend_main.util.json import error_json
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
 
-from backend_main.types.request import UserInfo, request_log_event_key, request_user_info_key
+from backend_main.types.request import Request, Handler, UserInfo, request_log_event_key, request_user_info_key
 
 
 @web.middleware
-async def auth_middleware(request, handler):
+async def auth_middleware(request: Request, handler: Handler) -> web.Response:
     """
     Checks if requested resource can be accessed by a user with the provided access token.
     """
@@ -59,7 +59,7 @@ async def auth_middleware(request, handler):
     return response
 
 
-def _parse_access_token(request):
+def _parse_access_token(request: Request):
     """
     Parses a bearer token from `request` header is it was provided. Adds `user_info` attribute to the `request` object.
     Raises 401 exception if token was provided in an incorrect format.

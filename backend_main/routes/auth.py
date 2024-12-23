@@ -18,7 +18,8 @@ from backend_main.util.constants import forbidden_non_admin_user_modify_attribut
 from backend_main.util.json import error_json, row_proxy_to_dict
 from backend_main.util.login_rate_limits import get_login_attempts_timeout_in_seconds, IncorrectCredentialsException
 
-from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
+from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, \
+    request_login_rate_limits_info_key
 
 
 async def register(request):
@@ -83,7 +84,7 @@ async def login(request):
         request_time = request[request_time_key]
 
         # Update login rate limits
-        lrli = request["login_rate_limit_info"]
+        lrli = request[request_login_rate_limits_info_key]
         lrli.cant_login_until = request_time + \
             timedelta(seconds=get_login_attempts_timeout_in_seconds(lrli.failed_login_attempts))
         lrli.failed_login_attempts += 1

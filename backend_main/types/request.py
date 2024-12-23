@@ -37,8 +37,23 @@ class UserInfo:
         self.can_edit_objects = None
         self.access_token_expiration_time = None
 
-
 request_user_info_key = web.AppKey("request_user_info_key", UserInfo)
+
+
+class LoginRateLimitInfo:
+    """
+    Dataclass for storing login rate limiting information for the request sender.
+    """
+    __slots__ = ["ip_address", "failed_login_attempts", "cant_login_until"]
+
+    def __init__(self, ip_address, failed_login_attempts, cant_login_until):
+        self.ip_address = ip_address
+        self.failed_login_attempts = failed_login_attempts
+        self.cant_login_until = cant_login_until
+
+
+request_login_rate_limits_info_key = web.AppKey("request_login_rate_limits_info_key", LoginRateLimitInfo)
+
 
 request_connection_key = web.AppKey("request_connection_key", SAConnection)
 request_transaction_key = web.AppKey("request_transaction_key", Transaction) 
