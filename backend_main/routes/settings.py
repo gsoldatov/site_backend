@@ -10,6 +10,8 @@ from backend_main.validation.schemas.settings import settings_view_schema, setti
 
 from backend_main.util.json import error_json
 
+from backend_main.types.request import request_log_event_key
+
 
 async def update(request):
     # Validate request body
@@ -17,12 +19,12 @@ async def update(request):
     validate(instance=data, schema=settings_update_schema)
     if len(data["settings"]) == 0:
         msg = "At least one setting must be passed for updating."
-        request["log_event"]("WARNING", "route_handler", msg)
+        request[request_log_event_key]("WARNING", "route_handler", msg)
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Update settings
     await update_settings(request, data["settings"])
-    request["log_event"]("INFO", "route_handler", "Updated settings.", details=f"{data['settings']}")
+    request[request_log_event_key]("INFO", "route_handler", "Updated settings.", details=f"{data['settings']}")
 
     # Return an empty response body
     return {}
@@ -40,10 +42,10 @@ async def view(request):
     # Handle 404
     if len(deserialized_settings) == 0:
         msg = "Setting(-s) not found."
-        request["log_event"]("WARNING", "route_handler", msg, details=f"{setting_names}")
+        request[request_log_event_key]("WARNING", "route_handler", msg, details=f"{setting_names}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
-    request["log_event"]("INFO", "route_handler", "Returning settings.")
+    request[request_log_event_key]("INFO", "route_handler", "Returning settings.")
     return {"settings": deserialized_settings}
 
 

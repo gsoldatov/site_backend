@@ -8,7 +8,7 @@ from backend_main.app.config import get_config, Config
 from backend_main.app.cors import setup_cors
 from backend_main.app.db_connection import setup_connection_pools, close_connection_pools
 from backend_main.logging.loggers.app import setup_loggers, cleanup_loggers
-from backend_main.middlewares.setup import setup_middlewares
+from backend_main.middlewares import setup_middlewares
 
 from backend_main.db.tables import get_tables
 from backend_main.routes import setup_routes

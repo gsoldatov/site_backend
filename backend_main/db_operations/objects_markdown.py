@@ -11,6 +11,8 @@ from backend_main.db_operations.auth import get_objects_data_auth_filter_clause
 from backend_main.util.json import markdown_data_row_proxy_to_dict, error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 
+from backend_main.types.request import request_log_event_key
+
 
 async def add_markdown(request, obj_ids_and_data):
     object_data = [{"object_id": o["object_id"], "raw_text": o["object_data"]["raw_text"]} for o in obj_ids_and_data]
@@ -41,7 +43,7 @@ async def update_markdown(request, obj_ids_and_data):
         # Raise an error if object data does not exist
         if not await result.fetchone():
             msg = "Attempted to update a non-markdown object as a markdown."
-            request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
+            request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         
     # Add objects as pending for `searchables` update

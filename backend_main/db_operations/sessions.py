@@ -12,19 +12,21 @@ from backend_main.app.types import app_config_key, app_tables_key
 from backend_main.util.constants import ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING
 from backend_main.util.json import error_json
 
+from backend_main.types.request import request_time_key, request_user_info_key
+
 
 async def prolong_access_token_and_get_user_info(request):
     """
-    Gets user information for the provided access token and adds it to `request["user_info"]`.
+    Gets user information for the provided access token and adds it to `request[request_user_info_key]`.
     Raises 401 if token is not found or expired, or is user's `can_login` attribute is false.
     Prolongs the lifetime of the token if otherwise.
     """
     # Exit if anonymous
-    if request["user_info"].is_anonymous: return
+    if request[request_user_info_key].is_anonymous: return
     
     users = request.config_dict[app_tables_key].users
     sessions = request.config_dict[app_tables_key].sessions
-    request_time = request["time"]
+    request_time = request[request_time_key]
     expiration_time = request_time + timedelta(seconds=request.config_dict[app_config_key].app.token_lifetime)
 
     # Update expiration time and return user information corresponding to the updated token 
@@ -33,7 +35,7 @@ async def prolong_access_token_and_get_user_info(request):
     update_cte = (
         sessions.update()
         .where(and_(
-            sessions.c.access_token == request["user_info"].access_token,
+            sessions.c.access_token == request[request_user_info_key].access_token,
             sessions.c.expiration_time > request_time
         ))
         .values({"expiration_time": expiration_time})
@@ -56,7 +58,7 @@ async def prolong_access_token_and_get_user_info(request):
         if request.path not in ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING:
             raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
     else:
-        ui = request["user_info"]
+        ui = request[request_user_info_key]
         ui.user_id, ui.user_level, ui.can_edit_objects = info[0], info[1], info[2]
         ui.access_token_expiration_time = expiration_time
 
@@ -66,7 +68,7 @@ async def add_session(request, user_id):
     Adds a new session for the provided `user_id` and returns the generated access token.
     """
     sessions = request.config_dict[app_tables_key].sessions
-    request_time = request["time"]
+    request_time = request[request_time_key]
     
     data = {
         "user_id": user_id,

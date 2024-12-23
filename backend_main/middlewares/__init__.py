@@ -18,12 +18,15 @@ def setup_middlewares(app: web.Application):
         forwarded = ForwardedRelaxed()
         app.middlewares.append(forwarded.middleware)
     
-    app.middlewares.append(logging_middleware)
-    app.middlewares.append(error_middleware)
-    app.middlewares.append(bounce_middleware)
-    app.middlewares.append(tasks_middleware)
-    # app.middlewares.append(threading_middleware)
-    app.middlewares.append(connection_middleware)
-    app.middlewares.append(auth_middleware)
+    for middleware in [
+        logging_middleware,
+        error_middleware,
+        bounce_middleware,
+        tasks_middleware,
+        # threading_middleware,
+        connection_middleware,
+        auth_middleware
+    ]:
+        app.middlewares.append(middleware)
 
     app[app_log_event_key]("INFO", "app_start", "Finished setting up middlewares.", details=f"use_forwarded = {use_forwarded}")

@@ -45,7 +45,7 @@ app_log_access_key = web.AppKey("app_log_access_key", _LogAccess)
 class _LogEvent(Protocol):
     """ `log_event` function signature definition. """
     def __call__(self,
-        level: str,
+        str_level: str,
         event_type: str,
         message: str,
         details: str = "",

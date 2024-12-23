@@ -8,6 +8,8 @@ from backend_main.db_operations.auth import get_objects_auth_filter_clause, get_
 
 from backend_main.util.json import error_json
 
+from backend_main.types.request import request_log_event_key
+
 
 async def search_items(request, query):
     """
@@ -71,7 +73,7 @@ async def search_items(request, query):
     # Handle 404 case
     if len(items) == 0: 
         msg = "Nothing was found."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Query total number of items

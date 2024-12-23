@@ -16,6 +16,8 @@ from backend_main.middlewares.connection import start_transaction
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
+from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
+
 
 async def add(request):
     # Validate request body
@@ -23,7 +25,7 @@ async def add(request):
     validate(instance=data, schema=objects_add_schema)
 
     # Get and set attribute values
-    request_time = request["time"]
+    request_time = request[request_time_key]
     data["object"]["created_at"] = request_time
     data["object"]["modified_at"] = request_time
     data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
@@ -33,7 +35,7 @@ async def add(request):
     # Set owner_id of the object if it's missing
     data["object"]["owner_id_is_autoset"] = False
     if "owner_id" not in data["object"]:
-        data["object"]["owner_id"] = request["user_info"].user_id
+        data["object"]["owner_id"] = request[request_user_info_key].user_id
         data["object"]["owner_id_is_autoset"] = True
     
     # Start a transaction
@@ -56,7 +58,7 @@ async def add(request):
     response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    request["log_event"]("INFO", "route_handler", f"Finished adding object.", details=f"object_id = {object_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished adding object.", details=f"object_id = {object_id}.")
     return {"object": response_data}
 
 
@@ -66,7 +68,7 @@ async def update(request):
     validate(instance=data, schema=objects_update_schema)
 
     # Get and set attribute values
-    request_time = request["time"]
+    request_time = request[request_time_key]
     data["object"]["modified_at"] = request_time
     data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
@@ -94,7 +96,7 @@ async def update(request):
         {"object_ids": [object_id], "added_tags": added_tags, "removed_tag_ids": removed_tag_ids})
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    request["log_event"]("INFO", "route_handler", f"Finished updating object.", details=f"object_id = {object_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished updating object.", details=f"object_id = {object_id}.")
     return {"object": response_data}
 
 
@@ -139,10 +141,10 @@ async def view(request):
             object_data.extend(object_type_data)
     
     if len(object_attrs) == 0 and len(object_data) == 0:
-        request["log_event"]("WARNING", "route_handler", "Object IDs are not found or can't be viewed.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
+        request[request_log_event_key]("WARNING", "route_handler", "Object IDs are not found or can't be viewed.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
         raise web.HTTPNotFound(text=error_json("Objects not found."), content_type="application/json")
 
-    request["log_event"]("INFO", "route_handler", "Returning object attributes and data.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
+    request[request_log_event_key]("INFO", "route_handler", "Returning object attributes and data.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
     return {"objects": object_attrs, "object_data": object_data}
 
 
@@ -157,7 +159,7 @@ async def delete(request):
     await delete_objects(request, object_ids, delete_subobjects)
 
     # Send response
-    request["log_event"]("INFO", "route_handler", "Deleted objects.", details=f"object_ids = {object_ids}, delete_subobjects = {delete_subobjects}")
+    request[request_log_event_key]("INFO", "route_handler", "Deleted objects.", details=f"object_ids = {object_ids}, delete_subobjects = {delete_subobjects}")
     return {"object_ids": object_ids}
 
 
@@ -167,7 +169,7 @@ async def get_page_object_ids(request):
     validate(instance=data, schema=objects_get_page_object_ids_schema)
     
     result = await get_page_object_ids_data(request, data["pagination_info"])
-    request["log_event"]("INFO", "route_handler", "Returning page object IDs.")
+    request[request_log_event_key]("INFO", "route_handler", "Returning page object IDs.")
     return result
 
 
@@ -179,7 +181,7 @@ async def search(request):
     # Search objects
     object_ids = await search_objects(request, data["query"])
 
-    request["log_event"]("INFO", "route_handler", "Returning object IDs which match search query.")
+    request[request_log_event_key]("INFO", "route_handler", "Returning object IDs which match search query.")
     return {"object_ids": object_ids}
 
 
@@ -196,7 +198,7 @@ async def update_tags(request):
     # Set objects' modified_at time
     response_data["modified_at"] = (await set_modified_at(request, data["object_ids"])).isoformat()
 
-    request["log_event"]("INFO", "route_handler", "Updated tags for objects.")
+    request[request_log_event_key]("INFO", "route_handler", "Updated tags for objects.")
     return response_data
 
 
@@ -207,7 +209,7 @@ async def view_composite_hierarchy_elements(request):
 
     # Get and return response
     result = await get_elements_in_composite_hierarchy(request, data["object_id"])
-    request["log_event"]("INFO", "route_handler", "Returning composite hierarchy.")
+    request[request_log_event_key]("INFO", "route_handler", "Returning composite hierarchy.")
     return result
     
 

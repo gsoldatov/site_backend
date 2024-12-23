@@ -16,6 +16,8 @@ from backend_main.util.json import deserialize_str_to_datetime, error_json
 from backend_main.validation.db_operations.object_data import validate_composite
 from backend_main.util.object_type_route_handler_resolving import object_type_func_name_mapping, get_object_type_route_handler
 
+from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key
+
 
 async def add_composite(request, obj_ids_and_data):
     return await _add_update_composite(request, obj_ids_and_data)
@@ -120,7 +122,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
     """
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
-    request_time = request["time"]
+    request_time = request[request_time_key]
 
     # Get new subobjects' attributes and data
     new_objects_attributes = {}
@@ -145,7 +147,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
                     "display_in_feed": so["display_in_feed"],
                     "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
 
-                    "owner_id": so.get("owner_id", request["user_info"].user_id),
+                    "owner_id": so.get("owner_id", request[request_user_info_key].user_id),
                     "owner_id_is_autoset": not ("owner_id" in so)
                 }
 
@@ -184,7 +186,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, sorted_new_subobject_ids)
     
-    request["log_event"]("INFO", "db_operation", "Added new objects as composite subobjects", details=f"object_ids = {list(id_mapping.values())}")
+    request[request_log_event_key]("INFO", "db_operation", "Added new objects as composite subobjects", details=f"object_ids = {list(id_mapping.values())}")
     return id_mapping
 
 
@@ -192,7 +194,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
     """
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
-    request_time = request["time"]
+    request_time = request[request_time_key]
     
     # Get existing subobjects' attributes and data
     updated_objects_attributes = []
@@ -234,7 +236,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
         
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
-        request["log_event"]("INFO", "db_operation", "Updated existing objects as composite subobjects", details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
+        request[request_log_event_key]("INFO", "db_operation", "Updated existing objects as composite subobjects", details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
 
 
 async def _update_composite_properties(request, obj_ids_and_data):
@@ -303,7 +305,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     non_existing_subobject_ids = set(new_subobject_ids).difference(set(existing_subobject_ids))
     if len(non_existing_subobject_ids) > 0:
         msg = "Subobjects do not exist."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"object_ids = {non_existing_subobject_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_ids = {non_existing_subobject_ids}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Delete existing & insert new composite object data
@@ -344,4 +346,4 @@ async def _delete_subobjects(request, obj_ids_and_data):
         # Delete subobjects not present in other composite subobjects
         if len(deletable_ids) > 0:
             await delete_objects(request, deletable_ids)
-            request["log_event"]("INFO", "db_operation", "Fully deleted subobjects.", details=f"object_ids = {deletable_ids}")
+            request[request_log_event_key]("INFO", "db_operation", "Fully deleted subobjects.", details=f"object_ids = {deletable_ids}")

@@ -10,10 +10,13 @@ from backend_main.app.types import app_tables_key
 from backend_main.auth.route_access_checks.util import debounce_anonymous
 
 from backend_main.db_operations.sessions import delete_sessions
+
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
 from backend_main.util.json import error_json
+
+from backend_main.types.request import request_log_event_key, request_user_info_key
 
 
 async def get_user_by_credentials(request, user_id = None, login = None, password = None):
@@ -67,29 +70,29 @@ async def update_user(request, data):
     Updates an existing user with properties specified in `data`.
     """
     # Check if token owner can update data
-    if request["user_info"].user_level != "admin":
-        if request["user_info"].user_id != data["user"]["user_id"]:
+    if request[request_user_info_key].user_level != "admin":
+        if request[request_user_info_key].user_id != data["user"]["user_id"]:
             msg = "Attempted to edit another user as a non-admin."
-            request["log_event"]("WARNING", "db_operation", msg)
+            request[request_log_event_key]("WARNING", "db_operation", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
         
         for attr in forbidden_non_admin_user_modify_attributes:
             if attr in data: 
                 msg = "Attempted to set user privilese as a non-admin."
-                request["log_event"]("WARNING", "db_operation", msg)
+                request[request_log_event_key]("WARNING", "db_operation", msg)
                 raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
     # Additional data validation
     if "password" in data["user"]:
         if data["user"]["password"] != data["user"]["password_repeat"]:
             msg = "Password is not correctly repeated."
-            request["log_event"]("WARNING", "db_operation", msg)
+            request[request_log_event_key]("WARNING", "db_operation", msg)
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Check if token owner submitted a correct password
-    if await get_user_by_credentials(request, user_id=request["user_info"].user_id, password=data["token_owner_password"]) is None:
+    if await get_user_by_credentials(request, user_id=request[request_user_info_key].user_id, password=data["token_owner_password"]) is None:
         msg = "Password is incorrect."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Ensure a transaction is started
@@ -136,7 +139,7 @@ async def check_if_user_ids_exist(request, user_ids):
     if len(user_ids) > len(existing_user_ids):
         non_existing_user_ids = set(user_ids).difference(existing_user_ids)
         msg = "Users do not exist."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"user_ids = {non_existing_user_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"user_ids = {non_existing_user_ids}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
 
@@ -150,10 +153,10 @@ async def view_users(request, user_ids, full_view_mode):
     if full_view_mode:
         debounce_anonymous(request)
         
-        if request["user_info"].user_level != "admin":
-            if len(user_ids) > 1 or user_ids[0] != request["user_info"].user_id:
+        if request[request_user_info_key].user_level != "admin":
+            if len(user_ids) > 1 or user_ids[0] != request[request_user_info_key].user_id:
                 msg = "Attempted to view full information about other users as a non-admin."
-                request["log_event"]("WARNING", "db_operation", msg)
+                request[request_log_event_key]("WARNING", "db_operation", msg)
                 raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
     # Query and return data

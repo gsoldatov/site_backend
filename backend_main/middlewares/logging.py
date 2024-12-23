@@ -9,43 +9,46 @@ from uuid import uuid4
 from backend_main.app.types import app_log_access_key
 from backend_main.logging.loggers.app import setup_request_event_logging
 
+from backend_main.types.request import Request, Handler, request_time_key, request_id_key, \
+    request_monotonic_time_key, request_log_event_key, request_user_info_key
+
 
 @web.middleware
-async def logging_middleware(request, handler):
+async def logging_middleware(request: Request, handler: Handler) -> web.Response:
     # Set request id & time
-    request["time"] = datetime.now(tz=timezone.utc)     # Request start time
-    request["request_id"] = str(uuid4())[:8]
-    request["monotonic_start_time"] = get_running_loop().time()     # Monotonic time from loop timer for measuring elapsed time
+    request[request_time_key] = datetime.now(tz=timezone.utc)     # Request start time
+    request[request_id_key] = str(uuid4())[:8]
+    request[request_monotonic_time_key] = get_running_loop().time()     # Monotonic time from loop timer for measuring elapsed time
 
     # Setup request event logging function
     setup_request_event_logging(request)
 
     try:
-        request["log_event"]("INFO", "request", f"Processing request to {request.rel_url}.")
+        request[request_log_event_key]("INFO", "request", f"Processing request to {request.rel_url}.")
         response = await handler(request)
         status = response.status
         return response
 
     except Exception as e:
-        # All excepted exceptions were wrapped in error middleware
+        # All expected exceptions were processed in error middleware
         status = e.status_code if isinstance(e, web.HTTPException) else 500
         raise
 
     finally:
-        request_id = request["request_id"]
+        request_id = request[request_id_key]
         path = request.path
         method = request.method
-        elapsed_time = round(get_running_loop().time() - request["monotonic_start_time"], 3)
+        elapsed_time = round(get_running_loop().time() - request[request_monotonic_time_key], 3)
         
         user_id = "anonymous"
-        if hasattr(request, "user_info"):
-            if request["user_info"].user_id: user_id = request["user_info"].user_id
+        if request_user_info_key in request:
+            if request[request_user_info_key].user_id: user_id = request[request_user_info_key].user_id
 
         remote = request.remote
         user_agent = request.headers.get("User-Agent", "")
         referer = request.headers.get("Referer", "")
 
-        request["log_event"]("INFO", "request", "Finished processing request.", details=f"status = {status}")
+        request[request_log_event_key]("INFO", "request", "Finished processing request.", details=f"status = {status}")
 
         # Don't log CORS requests
         if request.method not in ("OPTIONS", "HEAD"):

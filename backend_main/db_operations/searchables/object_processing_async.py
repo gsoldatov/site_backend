@@ -8,6 +8,8 @@ from backend_main.app.types import app_tables_key
 from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
 
+from backend_main.types.request import request_time_key
+
 
 async def process_object_batch_coro(request, object_ids):
     """
@@ -17,7 +19,7 @@ async def process_object_batch_coro(request, object_ids):
 
     searchables = request.config_dict[app_tables_key].searchables
     conn = request["conn_searchables"]
-    modified_at = request["time"]
+    modified_at = request[request_time_key]
 
     try:
         trans = await conn.begin()

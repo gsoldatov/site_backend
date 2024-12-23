@@ -8,6 +8,8 @@ from backend_main.validation.schemas.users import users_update_schema, users_vie
 
 from backend_main.util.json import row_proxy_to_dict, error_json
 
+from backend_main.types.request import request_log_event_key
+
 
 async def update(request):
     # Validate request body
@@ -16,7 +18,7 @@ async def update(request):
 
     # Perform additional data validation & update data
     await update_user(request, data)
-    request["log_event"]("INFO", "route_handler", "Updated user.", details=f"user_id = {data['user']['user_id']}")
+    request[request_log_event_key]("INFO", "route_handler", "Updated user.", details=f"user_id = {data['user']['user_id']}")
     return {}
 
 
@@ -34,10 +36,10 @@ async def view(request):
     # Handle 404
     if len(users) == 0:
         msg = "Users not found."
-        request["log_event"]("WARNING", "route_handler", msg, details=f"user_ids = {data['user_ids']}")
+        request[request_log_event_key]("WARNING", "route_handler", msg, details=f"user_ids = {data['user_ids']}")
         raise web.HTTPNotFound(text=error_json("Users not found."), content_type="application/json")
     
-    request["log_event"]("INFO", "route_handler", "Returning users.", details=f"user_ids = {data['user_ids']}")
+    request[request_log_event_key]("INFO", "route_handler", "Returning users.", details=f"user_ids = {data['user_ids']}")
     return {"users": users}
 
 

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from backend_main.app.types import app_tables_key
+from backend_main.types.request import request_time_key
 
 
 async def add_login_rate_limit_to_request(request):
@@ -17,7 +18,7 @@ async def add_login_rate_limit_to_request(request):
     If `cant_login_until` exceeds current time, raises 403.
     """
     login_rate_limits = request.config_dict[app_tables_key].login_rate_limits
-    request_time = request["time"]
+    request_time = request[request_time_key]
 
     result = await request["conn"].execute(
         select(login_rate_limits.c.failed_login_attempts, login_rate_limits.c.cant_login_until)

@@ -13,6 +13,8 @@ from backend_main.util.json import row_proxy_to_dict, error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.validation.db_operations.object_data import validate_to_do_list
 
+from backend_main.types.request import request_log_event_key
+
 
 async def add_to_do_lists(request, obj_ids_and_data):
     to_do_lists = request.config_dict[app_tables_key].to_do_lists
@@ -90,7 +92,7 @@ async def update_to_do_lists(request, obj_ids_and_data):
         # Raise an error if object data does not exist
         if not await result.fetchone():
             msg = "Attempted to update a non to-do list object as a to-do list."
-            request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
+            request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
         # Update to-do list items

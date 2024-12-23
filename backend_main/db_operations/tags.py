@@ -7,10 +7,14 @@ from sqlalchemy.sql import and_
 
 from backend_main.app.types import app_tables_key
 
-from backend_main.db_operations.auth import get_tags_auth_filter_clause
 from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
+
+from backend_main.db_operations.auth import get_tags_auth_filter_clause
+
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
+
+from backend_main.types.request import request_log_event_key
 
 
 async def add_tag(request, tag_attributes):
@@ -35,7 +39,7 @@ async def add_tag(request, tag_attributes):
     # Add tag as pending for `searchables` update
     add_searchable_updates_for_tags(request, [record["tag_id"]])
 
-    request["log_event"]("INFO", "db_operation", "Added tag.", details=f"tag_id = {record['tag_id']}")
+    request[request_log_event_key]("INFO", "db_operation", "Added tag.", details=f"tag_id = {record['tag_id']}")
     return record 
 
 
@@ -62,13 +66,13 @@ async def update_tag(request, tag_attributes):
     record = await result.fetchone()
     if not record:
         msg = "Tag not found."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"tag_id = {tag_id}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_id = {tag_id}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
     # Add tag as pending for `searchables` update
     add_searchable_updates_for_tags(request, [record["tag_id"]])
 
-    request["log_event"]("INFO", "db_operation", "Updated tag.", details=f"tag_id = {record['tag_id']}")
+    request[request_log_event_key]("INFO", "db_operation", "Updated tag.", details=f"tag_id = {record['tag_id']}")
     return record
 
 
@@ -92,7 +96,7 @@ async def view_tags(request, tag_ids):
     result = await rows.fetchall()
     if len(result) == 0:
         msg = "Tag(-s) not found."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
     return result
@@ -112,7 +116,7 @@ async def delete_tags(request, tag_ids):
 
     if not await result.fetchone():
         msg = "Tag(-s) not found."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
 
@@ -158,7 +162,7 @@ async def get_page_tag_ids_data(request, pagination_info):
     
     if len(tag_ids) == 0:
         msg = "No tags found."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Get tag count
@@ -211,7 +215,7 @@ async def search_tags(request, query):
     
     if len(tag_ids) == 0:
         msg = "No tags found."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
     return tag_ids

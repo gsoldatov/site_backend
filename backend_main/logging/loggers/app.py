@@ -1,6 +1,6 @@
 import logging
-
 from aiohttp import web
+from typing import cast
 
 from backend_main.app.types import app_config_key, app_event_logger_key, app_access_logger_key, \
     app_log_access_key, app_log_event_key
@@ -8,7 +8,8 @@ from backend_main.app.types import app_config_key, app_event_logger_key, app_acc
 from backend_main.logging.handlers.app import get_access_logger_handler, get_event_logger_handler
 from backend_main.logging.handlers.patched_timed_rotation_file_handler import PatchedTimedRotatingFileHandler
 
-from typing import cast
+from backend_main.types.request import Request, request_id_key, request_log_event_key
+
 
 
 def setup_loggers(app: web.Application) -> None:
@@ -83,31 +84,43 @@ def setup_app_event_logging(app: web.Application) -> None:
         app[app_event_logger_key].addHandler(handler)
     
     # Set up logging funciton    
-    def log_event(level, event_type, message, details = "", exc_info = None):
+    def log_event(
+            str_level: str,
+            event_type: str,
+            message: str,
+            details: str = "",
+            exc_info: bool | None = None
+        ) -> None:
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if app[app_config_key].logging.app_event_log_mode == "off": return
 
-        level = _get_level(level)
+        level = _get_level(str_level)
         extra = {"event_type": event_type, "request_id": "", "details": details}
         app[app_event_logger_key].log(level, message, extra=extra, exc_info=exc_info)
     
     app[app_log_event_key] = log_event
 
 
-def setup_request_event_logging(request: web.Request) -> None:
+def setup_request_event_logging(request: Request) -> None:
     """ Set up request event logging function and log-related params. """
-    def log(level, event_type, message, details = "", exc_info = None):
+    def log(
+        str_level: str,
+        event_type: str,
+        message: str,
+        details: str = "",
+        exc_info: bool | None = None
+    ) -> None:
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if request.config_dict[app_config_key].logging.app_event_log_mode == "off": return
 
         # Don't log CORS requests
         if request.method in ("OPTIONS", "HEAD"): return
 
-        level = _get_level(level)
-        extra = {"event_type": event_type, "request_id": request["request_id"], "details": details}
+        level = _get_level(str_level)
+        extra = {"event_type": event_type, "request_id": request[request_id_key], "details": details}
         request.config_dict[app_event_logger_key].log(level, message, extra=extra, exc_info=exc_info)
     
-    request["log_event"] = log
+    request[request_log_event_key] = log
 
 
 def _get_level(level: str | int) -> int:

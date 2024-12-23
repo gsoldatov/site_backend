@@ -10,6 +10,8 @@ from backend_main.app.types import app_config_key, app_pending_tasks_key
 
 from backend_main.db_operations.searchables import update_searchables_coro
 
+from backend_main.types.request import request_log_event_key
+
 
 @web.middleware
 async def tasks_middleware(request, handler):
@@ -38,9 +40,9 @@ def dispatch_searchables_update_coro(request):
     async def task_coro(request, tag_ids, object_ids):
         try:
             await update_searchables_coro(request, tag_ids, object_ids)
-            request["log_event"]("INFO", "task_coro", "Updated searchables", details=f"object_ids = {object_ids}, tag_ids = {tag_ids}")
+            request[request_log_event_key]("INFO", "task_coro", "Updated searchables", details=f"object_ids = {object_ids}, tag_ids = {tag_ids}")
         except Exception as e:
-            request["log_event"]("ERROR", "task_coro", "Error during searchables update", exc_info=True)
+            request[request_log_event_key]("ERROR", "task_coro", "Error during searchables update", exc_info=True)
 
     task = asyncio.create_task(task_coro(request, tag_ids, object_ids))
 

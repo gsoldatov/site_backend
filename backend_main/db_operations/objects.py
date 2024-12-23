@@ -3,7 +3,7 @@ Common operations with objects table.
 """
 from aiohttp import web
 from sqlalchemy import select, func
-from sqlalchemy.sql import and_, or_
+from sqlalchemy.sql import and_
 from sqlalchemy.sql.expression import true
 from sqlalchemy.sql.functions import coalesce
 
@@ -15,6 +15,8 @@ from backend_main.db_operations.users import check_if_user_ids_exist
 
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
+
+from backend_main.types.request import request_time_key, request_log_event_key
 
 
 async def add_objects(request, objects_attributes):
@@ -87,7 +89,7 @@ async def update_objects(request, objects_attributes):
 
         if not record:
             msg = "Attempted to update attributes of a non-existing object."
-            request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+            request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         records.append(record)
     
@@ -188,10 +190,10 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
 
     if not await result.fetchone():
         msg = "Attempted to delete non-existing object(-s)."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"object_ids = {object_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_ids = {object_ids}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
-    request["log_event"]("INFO", "db_operation", "Deleted objects.", details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
+    request[request_log_event_key]("INFO", "db_operation", "Deleted objects.", details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
 
 
 async def get_page_object_ids_data(request, pagination_info):
@@ -284,7 +286,7 @@ async def get_page_object_ids_data(request, pagination_info):
     
     if len(object_ids) == 0:
         msg = "No objects found."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Get object count
@@ -346,7 +348,7 @@ async def search_objects(request, query):
     
     if len(object_ids) == 0:
         msg = "No objects found."
-        request["log_event"]("WARNING", "db_operation", msg)
+        request[request_log_event_key]("WARNING", "db_operation", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     return object_ids
 
@@ -376,13 +378,13 @@ async def get_elements_in_composite_hierarchy(request, object_id):
     # Throw 404 if object can't be viewed
     if not row:
         msg = "Object not found."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 
     # Throw 400 if root object is not composite
     if row[0] != "composite":
         msg = "Attempted to loop through a hierarchy of a non-composite object."
-        request["log_event"]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
 
     # Build a hierarchy
@@ -420,7 +422,7 @@ async def set_modified_at(request, object_ids, modified_at = None):
     Sets `modified_at` attribute for the objects with provided `object_ids` to provided value or request time.
     Returns the updated `modified_at` value.
     """
-    modified_at = modified_at or request["time"]
+    modified_at = modified_at or request[request_time_key]
 
     # Update modified_at
     objects = request.config_dict[app_tables_key].objects

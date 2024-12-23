@@ -3,10 +3,12 @@
 """
 from aiohttp import web
 
-from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
 from backend_main.auth.route_access_checks import check_route_access
+from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
 from backend_main.util.json import error_json
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
+
+from backend_main.types.request import UserInfo, request_log_event_key, request_user_info_key
 
 
 @web.middleware
@@ -23,19 +25,19 @@ async def auth_middleware(request, handler):
     # Validate and prolong token, add user info to the request
     try:
         await prolong_access_token_and_get_user_info(request)
-        user_info = request["user_info"]
+        user_info = request[request_user_info_key]
         user_details = "anonymous" if user_info.is_anonymous else \
             f"user_id = {user_info.user_id}, user_level = {user_info.user_level}"
-        request["log_event"]("INFO", "auth", f"Request issued by {user_details}.")
+        request[request_log_event_key]("INFO", "auth", f"Request issued by {user_details}.")
     except web.HTTPUnauthorized:
-        request["log_event"]("WARNING", "auth", f"Received invalid access token.")
+        request[request_log_event_key]("WARNING", "auth", f"Received invalid access token.")
         raise
 
     # Check route access
     try:
         check_route_access(request)
     except web.HTTPException:
-        request["log_event"]("WARNING", "auth", f"Route access is denied.")
+        request[request_log_event_key]("WARNING", "auth", f"Route access is denied.")
         raise
 
     # Call next handler
@@ -65,27 +67,10 @@ def _parse_access_token(request):
     access_token = request.headers.get("Authorization")
     
     if access_token is None:
-        request["user_info"] = UserInfo()
+        request[request_user_info_key] = UserInfo()
     else:
         if access_token.find("Bearer ") == 0 and len(access_token) > 7:
-            request["user_info"] = UserInfo(access_token[7:])
+            request[request_user_info_key] = UserInfo(access_token[7:])
         else:
-            request["log_event"]("WARNING", "auth", f"Invalid Authorization header.")
+            request[request_log_event_key]("WARNING", "auth", f"Invalid Authorization header.")
             raise web.HTTPUnauthorized(text=error_json("Incorrect token format."), content_type="application/json")
-
-
-class UserInfo:
-    """
-    Dataclass for storing user information which corresponds to the provided `token`.
-    """
-    __slots__ = ["access_token", "is_anonymous", "user_id", "user_level", 
-        "can_edit_objects", "access_token_expiration_time"]
-
-    def __init__(self, access_token = None):
-        self.access_token = access_token
-        self.is_anonymous = access_token is None
-        
-        self.user_id = None
-        self.user_level = None
-        self.can_edit_objects = None
-        self.access_token_expiration_time = None
