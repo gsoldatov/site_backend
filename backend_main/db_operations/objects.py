@@ -7,7 +7,7 @@ from sqlalchemy.sql import and_
 from sqlalchemy.sql.expression import true
 from sqlalchemy.sql.functions import coalesce
 
-from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
+from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
 from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
 from backend_main.db_operations.users import check_if_user_ids_exist
 
@@ -24,7 +24,7 @@ async def add_objects(request, objects_attributes):
     Returns a list of RowProxy objects with the inserted data.
     """
     # Forbid to change object owner for non-admins
-    debounce_non_admin_changing_object_owner(request, objects_attributes)
+    forbid_non_admin_changing_object_owner(request, objects_attributes)
     for o in objects_attributes:
         o.pop("owner_id_is_autoset", None)
     
@@ -58,7 +58,7 @@ async def update_objects(request, objects_attributes):
     Raises a 400 error if at least one object does not exist.
     """
     # Forbid to change object owner for non-admins
-    debounce_non_admin_changing_object_owner(request, objects_attributes, is_objects_update=True)
+    forbid_non_admin_changing_object_owner(request, objects_attributes, is_objects_update=True)
     for o in objects_attributes:
         o.pop("owner_id_is_autoset", None)
     

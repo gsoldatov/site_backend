@@ -1,16 +1,18 @@
 """
 Middleware auth checks for /tags/* routes.
 """
-from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
+from backend_main.auth.route_access.common import forbid_anonymous, forbid_authenticated_non_admins
+
+from backend_main.types.request import Request
 
 
-def tags_modify(request):
+def tags_modify(request: Request):
     """
     - if unauthenticated or invalid token, return 401;
     - if not an admin, return 403;
     """
-    debounce_anonymous(request)
-    debounce_authenticated_non_admins(request)
+    forbid_anonymous(request)
+    forbid_authenticated_non_admins(request)
 
 
 tags_checks = {

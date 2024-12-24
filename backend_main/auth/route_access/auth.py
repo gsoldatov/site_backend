@@ -1,31 +1,33 @@
 """
 Middleware auth checks for /auth/* routes.
 """
-from backend_main.auth.route_access_checks.util import debounce_anonymous, \
-    debounce_authenticated_non_admins, debounce_authenticated
+from backend_main.auth.route_access.common import forbid_anonymous, \
+    forbid_authenticated_non_admins, forbid_authenticated
 
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
 
+from backend_main.types.request import Request
 
-def register(request):
+
+def register(request: Request):
     """
     - if authenticated & not an admin, return 403;
     """
-    debounce_authenticated_non_admins(request)
+    forbid_authenticated_non_admins(request)
 
 
-def login(request):
+def login(request: Request):
     """
     - if authenticated or can't login, return 403;
     """
-    debounce_authenticated(request)
+    forbid_authenticated(request)
 
 
-def logout(request):
+def logout(request: Request):
     """
     - if anonymous, return 401;
     """
-    debounce_anonymous(request)
+    forbid_anonymous(request)
 
 auth_checks = {
     f"/{AUTH_SUBAPP_PREFIX}/register": register,

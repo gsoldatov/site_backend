@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import select, true
 from sqlalchemy.sql import and_, or_
 
-from backend_main.auth.route_access_checks.util import debounce_anonymous
+from backend_main.auth.route_access.common import forbid_anonymous
 from backend_main.db_operations.settings import view_settings
 from backend_main.util.json import error_json
 
@@ -22,7 +22,7 @@ async def check_if_user_owns_objects(request, object_ids):
     if len(object_ids) == 0:
         return
     
-    debounce_anonymous(request)
+    forbid_anonymous(request)
 
     if request[request_user_info_key].user_level != "admin":
         objects = request.config_dict[app_tables_key].objects
@@ -50,7 +50,7 @@ async def check_if_user_owns_all_tagged_objects(request, tag_ids):
     if len(tag_ids) == 0:
         return
 
-    debounce_anonymous(request)
+    forbid_anonymous(request)
 
     if request[request_user_info_key].user_level != "admin":
         objects = request.config_dict[app_tables_key].objects

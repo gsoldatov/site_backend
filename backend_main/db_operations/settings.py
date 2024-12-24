@@ -4,7 +4,7 @@ Database operations with app settings.
 from sqlalchemy import select, true
 from sqlalchemy.dialects.postgresql import insert
 
-from backend_main.auth.route_access_checks.util import debounce_anonymous, debounce_authenticated_non_admins
+from backend_main.auth.route_access.common import forbid_anonymous, forbid_authenticated_non_admins
 
 from backend_main.util.settings import serialize_settings, deserialize_setting
 
@@ -37,8 +37,8 @@ async def view_settings(request, setting_names = None):
     """
     # Auth checks for view all settings case (debounce non-admins)
     if setting_names is None:
-        debounce_anonymous(request)
-        debounce_authenticated_non_admins(request)
+        forbid_anonymous(request)
+        forbid_authenticated_non_admins(request)
     
     settings = request.config_dict[app_tables_key].settings
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()
@@ -53,8 +53,8 @@ async def view_settings(request, setting_names = None):
     for row in await result.fetchall():
         # Private settings can only be viewed by admins (skip double check if all settings are being returned)
         if not row[2] and setting_names is not None:
-            debounce_anonymous(request)
-            debounce_authenticated_non_admins(request)
+            forbid_anonymous(request)
+            forbid_authenticated_non_admins(request)
         
         deserialized_settings[row[0]] = deserialize_setting(row[0], row[1])
     return deserialized_settings

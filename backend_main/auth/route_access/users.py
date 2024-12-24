@@ -1,14 +1,16 @@
 """
 Middleware auth checks for /users/* routes.
 """
-from backend_main.auth.route_access_checks.util import debounce_anonymous
+from backend_main.auth.route_access.common import forbid_anonymous
+
+from backend_main.types.request import Request
 
 
-def users_update(request):
+def users_update(request: Request):
     """
     - if unauthenticated or invalid token, return 401;
     """
-    debounce_anonymous(request)
+    forbid_anonymous(request)
 
 
 users_checks = {

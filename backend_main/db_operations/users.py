@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import select, and_
 from sqlalchemy.sql import text
 
-from backend_main.auth.route_access_checks.util import debounce_anonymous
+from backend_main.auth.route_access.common import forbid_anonymous
 
 from backend_main.db_operations.sessions import delete_sessions
 
@@ -150,7 +150,7 @@ async def view_users(request, user_ids, full_view_mode):
     """
     # Check if operation is authorized
     if full_view_mode:
-        debounce_anonymous(request)
+        forbid_anonymous(request)
         
         if request[request_user_info_key].user_level != "admin":
             if len(user_ids) > 1 or user_ids[0] != request[request_user_info_key].user_id:

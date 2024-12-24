@@ -3,7 +3,7 @@
 """
 from aiohttp import web
 
-from backend_main.auth.route_access_checks import check_route_access
+from backend_main.auth.route_access import authorize_route_access
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
 from backend_main.util.json import error_json
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
@@ -35,7 +35,7 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
 
     # Check route access
     try:
-        check_route_access(request)
+        authorize_route_access(request)
     except web.HTTPException:
         request[request_log_event_key]("WARNING", "auth", f"Route access is denied.")
         raise

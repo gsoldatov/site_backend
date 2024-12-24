@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
-from backend_main.auth.route_access_checks.util import debounce_non_admin_changing_object_owner
+from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
 
 from backend_main.db_operations.auth import get_tags_auth_filter_clause
 
@@ -24,7 +24,7 @@ async def add_tag(request, tag_attributes):
     tags = request.config_dict[app_tables_key].tags
     
     # Forbid to add non-published tags for non-admins
-    debounce_non_admin_changing_object_owner(request, tag_attributes)
+    forbid_non_admin_changing_object_owner(request, tag_attributes)
 
     result = await request[request_connection_key].execute(
         tags.insert()
@@ -52,7 +52,7 @@ async def update_tag(request, tag_attributes):
     tag_id = tag_attributes["tag_id"]
 
     # Forbid to add non-published tags for non-admins
-    debounce_non_admin_changing_object_owner(request, tag_attributes)
+    forbid_non_admin_changing_object_owner(request, tag_attributes)
 
     result = await request[request_connection_key].execute(
         tags.update()
