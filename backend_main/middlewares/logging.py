@@ -40,9 +40,9 @@ async def logging_middleware(request: Request, handler: Handler) -> web.Response
         method = request.method
         elapsed_time = round(get_running_loop().time() - request[request_monotonic_time_key], 3)
         
-        user_id = "anonymous"
+        user_id: str | int = "anonymous"
         if request_user_info_key in request:
-            if request[request_user_info_key].user_id: user_id = request[request_user_info_key].user_id
+            if (ui_user_id := request[request_user_info_key].user_id) is not None: user_id = ui_user_id
 
         remote = request.remote
         user_agent = request.headers.get("User-Agent", "")

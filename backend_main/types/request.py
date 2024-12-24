@@ -2,7 +2,7 @@ from aiohttp import web
 from aiopg.sa.connection import SAConnection, Transaction
 from datetime import datetime
 
-from typing import TypeVar, overload, Any, Union, Awaitable, Callable, Protocol
+from typing import TypeVar, overload, Any, Union, Awaitable, Callable, Protocol, Literal
 
 
 request_time_key = web.AppKey("request_time_key", datetime)
@@ -28,14 +28,14 @@ class UserInfo:
     __slots__ = ["access_token", "is_anonymous", "user_id", "user_level", 
         "can_edit_objects", "access_token_expiration_time"]
 
-    def __init__(self, access_token = None):
+    def __init__(self, access_token: str | None = None):
         self.access_token = access_token
-        self.is_anonymous = access_token is None
+        self.is_anonymous: bool = access_token is None
         
-        self.user_id = None
-        self.user_level = None
-        self.can_edit_objects = None
-        self.access_token_expiration_time = None
+        self.user_id: int | None = None
+        self.user_level: Literal["admin", "user"] | None = None
+        self.can_edit_objects: bool | None = None
+        self.access_token_expiration_time: datetime | None = None
 
 request_user_info_key = web.AppKey("request_user_info_key", UserInfo)
 
@@ -46,7 +46,12 @@ class LoginRateLimitInfo:
     """
     __slots__ = ["ip_address", "failed_login_attempts", "cant_login_until"]
 
-    def __init__(self, ip_address, failed_login_attempts, cant_login_until):
+    def __init__(
+            self,
+            ip_address: str,
+            failed_login_attempts: int,
+            cant_login_until: datetime
+        ):
         self.ip_address = ip_address
         self.failed_login_attempts = failed_login_attempts
         self.cant_login_until = cant_login_until

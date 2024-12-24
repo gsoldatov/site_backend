@@ -2,6 +2,8 @@
     Auth middleware.
 """
 from aiohttp import web
+from datetime import datetime
+from typing import cast
 
 from backend_main.auth.route_access import authorize_route_access
 from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
@@ -51,7 +53,8 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
                 
         if not user_info.is_anonymous:
             response["auth"] = response.get("auth", {})
-            response["auth"]["access_token_expiration_time"] = user_info.access_token_expiration_time.isoformat()
+            access_token_expiration_time = cast(datetime, user_info.access_token_expiration_time)
+            response["auth"]["access_token_expiration_time"] = access_token_expiration_time.isoformat()
         
         # Create a Response object
         response = web.json_response(response)

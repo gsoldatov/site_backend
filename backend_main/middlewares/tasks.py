@@ -18,12 +18,12 @@ async def tasks_middleware(request: Request, handler: Handler) -> web.Response:
 
     # Skip middleware for CORS requests
     if request.method not in ("OPTIONS", "HEAD"):
-        dispatch_searchables_update_coro(request)
+        _dispatch_searchables_update_coro(request)
 
     return result
 
 
-def dispatch_searchables_update_coro(request: Request):
+def _dispatch_searchables_update_coro(request: Request):
     """
     Dispatches an async task to update searchable data, if seachable updates are enabled in the configuration
     and any searchable item was changed during a request.
