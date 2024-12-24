@@ -7,7 +7,7 @@ from sqlalchemy.sql import and_
 
 from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
 
-from backend_main.db_operations.auth import get_tags_auth_filter_clause
+from backend_main.auth.query_clauses import get_tags_auth_filter_clause
 
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags

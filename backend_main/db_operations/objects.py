@@ -7,8 +7,9 @@ from sqlalchemy.sql import and_
 from sqlalchemy.sql.expression import true
 from sqlalchemy.sql.functions import coalesce
 
+from backend_main.auth.route_checks import ensure_user_can_edit_objects
 from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
-from backend_main.db_operations.auth import check_if_user_owns_objects, get_objects_auth_filter_clause
+from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 from backend_main.db_operations.users import check_if_user_ids_exist
 
 from backend_main.util.json import error_json
@@ -68,7 +69,7 @@ async def update_objects(request, objects_attributes):
 
     # Check if user can update objects
     object_ids = [o["object_id"] for o in objects_attributes]
-    await check_if_user_owns_objects(request, object_ids)
+    await ensure_user_can_edit_objects(request, object_ids)
 
     objects = request.config_dict[app_tables_key].objects
     records = []
@@ -178,7 +179,7 @@ async def delete_objects(request, object_ids, delete_subobjects = False):
     # Check if user can delete objects and subobjects
     object_and_subobject_ids = [o for o in object_ids]
     object_and_subobject_ids.extend(subobject_ids_to_delete)
-    await check_if_user_owns_objects(request, object_and_subobject_ids)
+    await ensure_user_can_edit_objects(request, object_and_subobject_ids)
 
     # Run delete query & return result
     result = await request[request_connection_key].execute(

@@ -5,7 +5,7 @@ from aiohttp import web
 from datetime import timedelta
 from jsonschema import validate
 
-from backend_main.db_operations.auth import check_if_non_admin_can_register
+from backend_main.auth.route_checks import ensure_non_admin_can_registed
 from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to_request, \
     upsert_login_rate_limit, delete_login_rate_limits
 from backend_main.db_operations.sessions import add_session, delete_sessions
@@ -24,7 +24,7 @@ from backend_main.types.request import request_time_key, request_log_event_key, 
 
 async def register(request):
     # Debounce anonymous if non-admin registration is disabled
-    await check_if_non_admin_can_register(request)
+    await ensure_non_admin_can_registed(request)
 
     # Validate request schema
     data = await request.json()

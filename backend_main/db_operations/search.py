@@ -2,7 +2,7 @@ from aiohttp import web
 from sqlalchemy import select, func, text
 from sqlalchemy.sql import and_, or_
 
-from backend_main.db_operations.auth import get_objects_auth_filter_clause, get_tags_auth_filter_clause
+from backend_main.auth.query_clauses import get_objects_auth_filter_clause, get_tags_auth_filter_clause
 
 from backend_main.util.json import error_json
 

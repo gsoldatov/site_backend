@@ -1,6 +1,23 @@
 from dataclasses import dataclass
 from sqlalchemy import Column
+from sqlalchemy.sql import FromClause
+from sqlalchemy.sql.expression import ColumnOperators
 from typing import Protocol
+
+
+# Common table stubs
+class _TableCommon(Protocol):
+    join: "_TableJoin"
+
+
+class _TableJoin(Protocol):
+    def __call__(
+        self,
+        target: FromClause | _TableCommon,
+        onclause: ColumnOperators | None = None,
+        isouter: bool | None = False,
+        full: bool | None = False
+    ): ...
 
 
 # settings
@@ -10,7 +27,7 @@ class _C_Settings(Protocol):
     is_public: Column
 
 
-class _Settings(Protocol):
+class _Settings(_TableCommon, Protocol):
     c: _C_Settings    
 
 
@@ -26,7 +43,7 @@ class _C_Users(Protocol):
       can_edit_objects: Column
 
 
-class _Users(Protocol):
+class _Users(_TableCommon, Protocol):
      c: _C_Users
 
 
@@ -37,7 +54,7 @@ class _C_Sessions(Protocol):
     expiration_time: Column
 
 
-class _Sessions(Protocol):
+class _Sessions(_TableCommon, Protocol):
      c: _C_Sessions
 
 
@@ -48,7 +65,7 @@ class _C_LoginRateLimits(Protocol):
     cant_login_until: Column
 
 
-class _LoginRateLimits(Protocol):
+class _LoginRateLimits(_TableCommon, Protocol):
      c: _C_LoginRateLimits
 
 
@@ -62,7 +79,7 @@ class _C_Tags(Protocol):
     is_published: Column
 
 
-class _Tags(Protocol):
+class _Tags(_TableCommon, Protocol):
     c: _C_Tags
 
 
@@ -81,7 +98,7 @@ class _C_Objects(Protocol):
     show_description: Column
 
 
-class _Objects(Protocol):
+class _Objects(_TableCommon, Protocol):
     c: _C_Objects
 
 
@@ -91,7 +108,7 @@ class _C_ObjectsTags(Protocol):
      object_id: Column
 
 
-class _ObjectsTags(Protocol):
+class _ObjectsTags(_TableCommon, Protocol):
     c: _C_ObjectsTags
 
 
@@ -102,7 +119,7 @@ class _C_Links(Protocol):
     show_description_as_link: Column
 
 
-class _Links(Protocol):
+class _Links(_TableCommon, Protocol):
     c: _C_Links
 
 
@@ -112,7 +129,7 @@ class _C_Markdown(Protocol):
     raw_text: Column
 
 
-class _Markdown(Protocol):
+class _Markdown(_TableCommon, Protocol):
     c: _C_Markdown
 
 
@@ -122,7 +139,7 @@ class _C_ToDoLists(Protocol):
     sort_type: Column
 
 
-class _ToDoLists(Protocol):
+class _ToDoLists(_TableCommon, Protocol):
     c: _C_ToDoLists
 
 
@@ -137,7 +154,7 @@ class _C_ToDoListItems(Protocol):
     is_expanded: Column
 
 
-class _ToDoListItems(Protocol):
+class _ToDoListItems(_TableCommon, Protocol):
     c: _C_ToDoListItems
 
 
@@ -148,7 +165,7 @@ class _C_CompositeProperties(Protocol):
     numerate_chapters: Column
 
 
-class _CompositeProperties(Protocol):
+class _CompositeProperties(_TableCommon, Protocol):
     c: _C_CompositeProperties
     
 
@@ -164,7 +181,7 @@ class _C_Composite(Protocol):
     show_description_as_link_composite: Column
 
 
-class _Composite(Protocol):
+class _Composite(_TableCommon, Protocol):
     c: _C_Composite
 
 
@@ -179,7 +196,7 @@ class _C_Searchables(Protocol):
     searchable_tsv_russian: Column
 
 
-class _Searchables(Protocol):
+class _Searchables(_TableCommon, Protocol):
     c: _C_Searchables
 
 

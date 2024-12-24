@@ -6,7 +6,7 @@ from aiohttp import web
 from sqlalchemy import select
 from sqlalchemy.sql import and_
 
-from backend_main.db_operations.auth import get_objects_auth_filter_clause
+from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
 from backend_main.middlewares.connection import start_transaction
 
