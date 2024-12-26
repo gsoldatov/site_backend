@@ -4,7 +4,7 @@ from typing import Literal
 from backend_main.validation.types import PositiveInt, Name, Password, Datetime
     
 
-UserLevels = Literal["admin", "user"]
+UserLevel = Literal["admin", "user"]
 
 class User(BaseModel):
     """ Full user data, excluding password. """
@@ -12,7 +12,7 @@ class User(BaseModel):
     login: Name
     username: Name
     registered_at: Datetime
-    user_level: UserLevels
+    user_level: UserLevel
     can_login: bool
     can_edit_objects: bool
 
@@ -23,6 +23,6 @@ class NewUser(BaseModel):
     username: Name
     password: Password
     registered_at: Datetime
-    user_level: UserLevels
+    user_level: UserLevel
     can_login: bool
     can_edit_objects: bool

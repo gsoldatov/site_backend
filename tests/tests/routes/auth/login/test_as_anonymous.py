@@ -35,21 +35,23 @@ async def test_incorrect_request_body(cli, db_cursor):
     resp = await cli.post("/auth/login", json=credentials)
     assert resp.status == 400
 
-    # Incorrect values for general attributes
+    # Incorrect non-string credentials
     for attr in ("login", "password"):
         for value in incorrect_user_attributes[attr]:
-            if attr == "password" and type(value) == str: continue # min and max password lengths are tested separately
+            if type(value) == str: continue # incorrect str values are tested below for 401 response
             credentials = {"login": user["login"], "password": user["password"]}
             credentials[attr] = value
             resp = await cli.post("/auth/login", json=credentials)
-            assert resp.status == 400
-            
+            assert resp.status == 400            
     
-    # Password with exceeing length (should be debounced manually)
-    for value in ("", "a" * 73):
-        credentials = {"login": user["login"], "password": value}
-        resp = await cli.post("/auth/login", json=credentials)
-        assert resp.status == 401 if len(value) == 73 else 400
+    # Incorrect string credentials
+    for attr in ("login", "password"):
+        for value in incorrect_user_attributes[attr]:
+            if type(value) != str: continue # incorrect non str values are tested earlier
+            credentials = {"login": user["login"], "password": user["password"]}
+            credentials[attr] = value
+            resp = await cli.post("/auth/login", json=credentials)
+            assert resp.status == 401
 
 
 async def test_incorrect_credentials(cli, db_cursor):

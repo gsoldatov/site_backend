@@ -2,27 +2,23 @@
     Authorization & authentication routes.
 """
 from aiohttp import web
-from datetime import timedelta
-from jsonschema import validate
 
 from backend_main.auth.route_checks import ensure_non_admin_can_register
 
 from backend_main.domains.auth.register import validate_registered_user_data
-from backend_main.domains.users import add_user
+from backend_main.domains.login_rate_limits import get_request_sender_login_rate_limit, \
+    increase_request_sender_login_rate_limit, delete_request_sender_login_rate_limit
+from backend_main.domains.sessions import add_session
+from backend_main.domains.users import add_user, get_user_by_login_and_password
 
-from backend_main.db_operations.login_rate_limits import add_login_rate_limit_to_request, \
-    upsert_login_rate_limit, delete_login_rate_limits
-from backend_main.db_operations.sessions import add_session, delete_sessions
-from backend_main.db_operations.users import get_user_by_credentials
+from backend_main.db_operations.sessions import delete_sessions
 from backend_main.middlewares.connection import start_transaction
 
-from backend_main.validation.schemas.auth import login_schema
-
 from backend_main.util.json import error_json
-from backend_main.util.login_rate_limits import get_login_attempts_timeout_in_seconds, IncorrectCredentialsException
+from backend_main.util.exceptions import IncorrectCredentialsException
 
-from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key, \
-    request_login_rate_limits_info_key
+from backend_main.types.routes.auth import AuthLoginRequestBody, AuthLoginResponseBody
+from backend_main.types.request import Request, request_log_event_key, request_user_info_key
 
 
 async def register(request: Request):
@@ -30,6 +26,7 @@ async def register(request: Request):
     await ensure_non_admin_can_register(request)
 
     # Validate request body and set default values
+    # TODO validate request body & log errors in route handler
     new_user = await validate_registered_user_data(request)
     
     # Add user
@@ -45,40 +42,30 @@ async def register(request: Request):
     })
 
 
-async def login(request):
+async def login(request: Request):
     # Check and get login rate limits
+    login_rate_limit = await get_request_sender_login_rate_limit(request)
+
+    # Validate request data and get user
     try:
-        await add_login_rate_limit_to_request(request)
-    except web.HTTPTooManyRequests:
-        request[request_log_event_key]("WARNING", "route_handler", "Log in rate limit is exceeded.")
-        raise
-
-    # Validate request schema
-    data = await request.json()
-    validate(instance=data, schema=login_schema)
-
-    # Try to get user data
-    user_data = await get_user_by_credentials(request, login=data["login"], password=data["password"])
+        data = await request.json()
+        credentials = AuthLoginRequestBody(**data)
+        user = await get_user_by_login_and_password(request, credentials.login, credentials.password)
+    except IncorrectCredentialsException:
+        # Raise `IncorrectCredentialsException` after increasing login rate limit below
+        user = None
 
     # User was not found
-    if user_data is None:
-        request_time = request[request_time_key]
-
-        # Update login rate limits
-        lrli = request[request_login_rate_limits_info_key]
-        lrli.cant_login_until = request_time + \
-            timedelta(seconds=get_login_attempts_timeout_in_seconds(lrli.failed_login_attempts))
-        lrli.failed_login_attempts += 1
-        await upsert_login_rate_limit(request, lrli)
-
+    if user is None:
         # Raise 401 with committing database changes
+        await increase_request_sender_login_rate_limit(request, login_rate_limit)
         request[request_log_event_key]("WARNING", "route_handler", f"Incorrect user credentials.")
         raise IncorrectCredentialsException()
     
     # User was found
     else:
-        # If user can't login, raise 403
-        if not user_data.can_login:
+        # User can't login
+        if not user.can_login:
             msg = "User is not allowed to login."
             request[request_log_event_key]("WARNING", "route_handler", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
@@ -87,19 +74,22 @@ async def login(request):
         await start_transaction(request)
         
         # Create a session
-        session = await add_session(request, user_data.user_id)
+        session = await add_session(request, user.user_id)
 
         # Delete login rate limit for the request issuer
-        await delete_login_rate_limits(request, [request.remote])
+        await delete_request_sender_login_rate_limit(request)
 
-        # Return access token
-        request[request_log_event_key]("INFO", "route_handler", f"User {user_data.user_id} logged in.")
-        return web.json_response({"auth": {
-            "access_token": session["access_token"],
-            "access_token_expiration_time": session["expiration_time"].isoformat(),
-            "user_id": user_data.user_id,
-            "user_level": user_data.user_level
+        # Return auth data
+        request[request_log_event_key]("INFO", "route_handler", f"User {user.user_id} logged in.")
+
+        auth_data = AuthLoginResponseBody(**{"auth": {
+            "access_token": session.access_token,
+            "access_token_expiration_time": session.expiration_time,
+            "user_id": user.user_id,
+            "user_level": user.user_level
         }})
+
+        return web.json_response(auth_data.model_dump())
 
 
 async def logout(request):
