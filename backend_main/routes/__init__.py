@@ -9,7 +9,7 @@ from backend_main.routes.search import get_subapp as get_search_subapp
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX
 
 
-def setup_routes(app):
+def setup_routes(app):  # TODO add typing
     for module_name in ("tags", "objects", AUTH_SUBAPP_PREFIX, "users", "settings", "search"):
         factory = globals()[f"get_{module_name}_subapp"]
         module = factory()

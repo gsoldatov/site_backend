@@ -44,26 +44,6 @@ async def get_user_by_credentials(request, user_id = None, login = None, passwor
     return await result.fetchone()
 
 
-async def add_user(request, data):
-    """
-    Adds a user with properties specified in `data` to the database.
-    All auth and data checks are performed in /auth/register route handler.
-    """
-    users = request.config_dict[app_tables_key].users
-
-    # Use encryption function on the password
-    password = data["password"]
-    data["password"] = text("crypt(:password, gen_salt('bf'))")
-
-    result = await request[request_connection_key].execute(
-        users.insert()
-        .returning(users.c.user_id, users.c.registered_at, users.c.login, users.c.username,
-                users.c.user_level, users.c.can_login, users.c.can_edit_objects)
-        .values(data)
-    , password=password)    # password is passed as a bind parameter in order to escape it
-    return await result.fetchone()
-
-
 async def update_user(request, data):
     """
     Updates an existing user with properties specified in `data`.

@@ -73,7 +73,7 @@ async def ensure_user_can_edit_all_tagged_objects(request: Request, tag_ids: lis
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
-async def ensure_non_admin_can_registed(request: Request):
+async def ensure_non_admin_can_register(request: Request):
     """
     Checks if non-admin registration is enabled.
     If request was not sent by an admin and registration is not enabled, raises 403.

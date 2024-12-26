@@ -3,8 +3,9 @@
 """
 from aiohttp import web
 from json.decoder import JSONDecodeError
-from jsonschema.exceptions import ValidationError
+from jsonschema.exceptions import ValidationError as ValidationError_JSONSchema
 from psycopg2.errors import UniqueViolation, OperationalError
+from pydantic import ValidationError
 from typing import NoReturn
 
 from backend_main.util.json import error_json
@@ -22,8 +23,13 @@ async def error_middleware(request: Request, handler: Handler) -> web.Response:
     except JSONDecodeError:
         request[request_log_event_key]("WARNING", "request", "Failed to process JSON in request body.")
         raise web.HTTPBadRequest(text=error_json("Request body must be a valid JSON document."), content_type="application/json")
-
+    
     except ValidationError as e:
+        error_dict = e.json(include_url=False, include_input=False)
+        request[request_log_event_key]("WARNING", "request", "Request body was not validated.", details=str(error_dict))
+        raise web.HTTPBadRequest(text = error_json(error_dict), content_type="application/json")
+
+    except ValidationError_JSONSchema as e:
         path = "JSON root" if len(e.absolute_path) == 0 else f"""'{"' > '".join(map(str, e.absolute_path))}'"""
         msg = f"JSON validation error at {path}: {e.message}"
         request[request_log_event_key]("WARNING", "request", "Request body was not validated.", details=msg)
