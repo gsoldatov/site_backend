@@ -34,3 +34,27 @@ async def add_session(request: Request, user_id: int) -> Session:
     )
 
     return session
+
+
+async def delete_sessions_by_access_tokens(request: Request, access_tokens: list[str]) -> None:
+    """
+    Deletes sessions for with specified `access_tokens`.
+    """
+    sessions = request.config_dict[app_tables_key].sessions
+
+    await request[request_connection_key].execute(
+        sessions.delete()
+        .where(sessions.c.access_token.in_(access_tokens))
+    )
+
+
+async def delete_sessions_by_user_ids(request: Request, user_ids: list[int]) -> None:
+    """
+    Deletes sessions of users with specified `user_ids`.
+    """
+    sessions = request.config_dict[app_tables_key].sessions
+
+    await request[request_connection_key].execute(
+        sessions.delete()
+        .where(sessions.c.user_id.in_(user_ids))
+    )

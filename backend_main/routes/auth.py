@@ -8,10 +8,9 @@ from backend_main.auth.route_checks import ensure_non_admin_can_register
 from backend_main.domains.auth.register import validate_new_user_data
 from backend_main.domains.login_rate_limits import get_request_sender_login_rate_limit, \
     increase_request_sender_login_rate_limit, delete_request_sender_login_rate_limit
-from backend_main.domains.sessions import add_session
+from backend_main.domains.sessions import add_session, delete_session_by_access_token
 from backend_main.domains.users import add_user, get_user_by_login_and_password
 
-from backend_main.db_operations.sessions import delete_sessions
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.exceptions import InvalidNewUserAttributesException, IncorrectCredentialsException
@@ -21,7 +20,7 @@ from backend_main.types.routes.auth import AuthLoginRequestBody, AuthLoginRespon
 from backend_main.types.request import Request, request_log_event_key, request_user_info_key
 
 
-async def register(request: Request):
+async def register(request: Request) -> web.Response:
     # Debounce anonymous if non-admin registration is disabled
     await ensure_non_admin_can_register(request)
 
@@ -46,7 +45,7 @@ async def register(request: Request):
     })
 
 
-async def login(request: Request):
+async def login(request: Request) -> web.Response:
     # Check and get login rate limits
     login_rate_limit = await get_request_sender_login_rate_limit(request)
 
@@ -96,10 +95,10 @@ async def login(request: Request):
         return web.json_response(auth_data.model_dump())
 
 
-async def logout(request):
+async def logout(request: Request) -> web.Response:
     # Delete session (if it does not exist, return 200 anyway)
     user_info = request[request_user_info_key]
-    await delete_sessions(request, access_tokens=[user_info.access_token])
+    await delete_session_by_access_token(request, user_info.access_token)
     request[request_log_event_key]("INFO", "route_handler", f"User {user_info.user_id} logged out.")
     return web.Response()
 
