@@ -5,7 +5,7 @@ from aiohttp import web
 
 from backend_main.auth.route_checks import ensure_non_admin_can_register
 
-from backend_main.domains.auth.register import validate_registered_user_data
+from backend_main.domains.auth.register import validate_new_user_data
 from backend_main.domains.login_rate_limits import get_request_sender_login_rate_limit, \
     increase_request_sender_login_rate_limit, delete_request_sender_login_rate_limit
 from backend_main.domains.sessions import add_session
@@ -14,8 +14,8 @@ from backend_main.domains.users import add_user, get_user_by_login_and_password
 from backend_main.db_operations.sessions import delete_sessions
 from backend_main.middlewares.connection import start_transaction
 
+from backend_main.util.exceptions import InvalidNewUserAttributesException, IncorrectCredentialsException
 from backend_main.util.json import error_json
-from backend_main.util.exceptions import IncorrectCredentialsException
 
 from backend_main.types.routes.auth import AuthLoginRequestBody, AuthLoginResponseBody
 from backend_main.types.request import Request, request_log_event_key, request_user_info_key
@@ -26,8 +26,12 @@ async def register(request: Request):
     await ensure_non_admin_can_register(request)
 
     # Validate request body and set default values
-    # TODO validate request body & log errors in route handler
-    new_user = await validate_registered_user_data(request)
+    try:
+        new_user = await validate_new_user_data(request)
+    except InvalidNewUserAttributesException:
+        msg = "User privileges can only be set by admins."
+        request[request_log_event_key]("WARNING", "route_handler", msg)
+        raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
     # Add user
     user = await add_user(request, new_user)
