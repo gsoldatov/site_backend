@@ -7,7 +7,7 @@ from sqlalchemy.sql import text
 
 from backend_main.auth.route_access.common import forbid_anonymous
 
-from backend_main.db_operations.sessions import delete_sessions
+from backend_main.db_operations2.sessions import delete_sessions_by_user_ids
 
 from backend_main.middlewares.connection import start_transaction
 
@@ -96,7 +96,7 @@ async def update_user(request, data):
     
     # Clear existing sessions if user can no longer login
     if data["user"].get("can_login") == False:
-        await delete_sessions(request, user_ids=[data["user"]["user_id"]])
+        await delete_sessions_by_user_ids(request, user_ids=[data["user"]["user_id"]])
     
     return
 

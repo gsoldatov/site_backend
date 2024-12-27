@@ -1,18 +1,8 @@
 """
 User-related database operations.
 """
-from aiohttp import web
 from sqlalchemy import select, and_
 from sqlalchemy.sql import text
-
-from backend_main.auth.route_access.common import forbid_anonymous
-
-from backend_main.db_operations.sessions import delete_sessions
-
-from backend_main.middlewares.connection import start_transaction
-
-from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
-from backend_main.util.json import error_json
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
