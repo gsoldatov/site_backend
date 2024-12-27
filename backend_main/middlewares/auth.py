@@ -3,6 +3,7 @@
 """
 from aiohttp import web
 from datetime import datetime
+from pydantic import BaseModel
 from typing import cast
 
 from backend_main.auth.route_access import authorize_route_access
@@ -47,17 +48,22 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
 
     # Add new access token expiration time to the response & create web.Response object (except for auth routes)
     if not request.path.startswith(f"/{AUTH_SUBAPP_PREFIX}"):
-        # Check if route returned response of a correct type
-        if type(response) != dict:
-            raise Exception(f"Auth middleware expected {request.path} route handler to return dict, got {type(response)}")
+        # Convert response to dict
+        if isinstance(response, BaseModel):
+            response_dict = response.model_dump()
+        elif isinstance(response, dict):
+            response_dict = response
+        else:
+            raise Exception(f"Auth middleware expected {request.path} route handler to return dict"
+                            f"or pydantic model, got {type(response)}")
                 
         if not user_info.is_anonymous:
-            response["auth"] = response.get("auth", {})
+            response_dict["auth"] = response_dict.get("auth", {})
             access_token_expiration_time = cast(datetime, user_info.access_token_expiration_time)
-            response["auth"]["access_token_expiration_time"] = access_token_expiration_time.isoformat()
+            response_dict["auth"]["access_token_expiration_time"] = access_token_expiration_time.isoformat()
         
         # Create a Response object
-        response = web.json_response(response)
+        response = web.json_response(response_dict)
     
     return response
 

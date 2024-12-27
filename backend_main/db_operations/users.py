@@ -120,32 +120,3 @@ async def check_if_user_ids_exist(request, user_ids):
         msg = "Users do not exist."
         request[request_log_event_key]("WARNING", "db_operation", msg, details=f"user_ids = {non_existing_user_ids}")
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
-
-
-async def view_users(request, user_ids, full_view_mode):
-    """
-    Returns an iterable with RowProxy objects with user information for the provided `user_ids`.
-    If `full_view_mode` is true, returns full information about user, otherwise - only `username` and `registered_at`.
-    `full_view_mode` == true can only be used by admins or users viewing their own information.
-    """
-    # Check if operation is authorized
-    if full_view_mode:
-        forbid_anonymous(request)
-        
-        if request[request_user_info_key].user_level != "admin":
-            if len(user_ids) > 1 or user_ids[0] != request[request_user_info_key].user_id:
-                msg = "Attempted to view full information about other users as a non-admin."
-                request[request_log_event_key]("WARNING", "db_operation", msg)
-                raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
-
-    # Query and return data
-    users = request.config_dict[app_tables_key].users
-
-    columns = [users.c.user_id, users.c.registered_at, users.c.username, users.c.user_level, users.c.can_login, users.c.can_edit_objects] \
-        if full_view_mode else [users.c.user_id, users.c.registered_at, users.c.username]
-    
-    result = await request[request_connection_key].execute(
-        select(*columns)
-        .where(users.c.user_id.in_(user_ids))
-    )
-    return await result.fetchall()

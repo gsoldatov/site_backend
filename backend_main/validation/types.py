@@ -1,8 +1,14 @@
 from datetime import datetime
 from math import inf
-from typing import Annotated
+from typing import Annotated, Iterable
 
-from pydantic import Field, PlainSerializer
+from pydantic import BaseModel, Field, PlainSerializer
+
+
+# Empty model
+class Empty(BaseModel):
+    """ Pydantic model without any attributes. """
+    pass
 
 
 # Numeric
@@ -55,3 +61,15 @@ Datetime = Annotated[datetime, PlainSerializer(
 `datetime` class with custom JSON serializer.
 Can be passed to DB queries.
 """
+
+# Collections
+def has_unique_items(it: Iterable):
+    """
+    Iterable validator, which ensures it has unique items.
+    """
+    existing = set()
+    for element in it:
+        if element in existing:
+            raise ValueError(f"Element '{element}' is not unique.")
+        existing.add(element)
+    return it

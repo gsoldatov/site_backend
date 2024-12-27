@@ -6,6 +6,7 @@ from backend_main.validation.types import PositiveInt, Name, Password, Datetime
 
 UserLevel = Literal["admin", "user"]
 
+
 class User(BaseModel):
     """ Full user data, excluding password. """
     user_id: PositiveInt
@@ -26,3 +27,20 @@ class NewUser(BaseModel):
     user_level: UserLevel
     can_login: bool
     can_edit_objects: bool
+
+
+class UserFull(BaseModel):
+    """ Full set of public user attributes. """
+    user_id: PositiveInt
+    username: Name
+    registered_at: Datetime
+    user_level: UserLevel
+    can_login: bool
+    can_edit_objects: bool
+
+
+class UserMin(BaseModel):
+    """ Minimal set of publi user attributes. """
+    user_id: PositiveInt
+    username: Name
+    registered_at: Datetime

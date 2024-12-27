@@ -6,7 +6,7 @@ from sqlalchemy.sql import text
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
-from backend_main.types.domains.users import NewUser, User
+from backend_main.types.domains.users import NewUser, User, UserFull, UserMin
 
 
 async def add_user(request: Request, new_user: NewUser) -> User:
@@ -91,3 +91,28 @@ async def get_user_by_id_and_password(request: Request, user_id: str, password: 
     row = await result.fetchone()
 
     return User(**row) if row is not None else None
+
+
+async def view_users(request: Request, user_ids: list[int], full_view_mode: bool) -> list[UserFull] | list[UserMin]:
+    """
+    Returns public user attributes for the users with provided `user_ids`.
+    If `full_view_mode` is true, returns full information about user, otherwise - only `username` and `registered_at`.
+    """
+    users = request.config_dict[app_tables_key].users
+    
+    result = await request[request_connection_key].execute(
+        select(
+            users.c.user_id,
+            users.c.username,
+            users.c.registered_at,
+            users.c.user_level,
+            users.c.can_login,
+            users.c.can_edit_objects
+        )
+        .where(users.c.user_id.in_(user_ids))
+    )
+
+    if full_view_mode:
+        return [UserFull.model_validate(row) for row in await result.fetchall()]
+    else:
+        return [UserMin.model_validate(row) for row in await result.fetchall()]
