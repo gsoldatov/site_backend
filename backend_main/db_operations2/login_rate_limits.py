@@ -29,7 +29,7 @@ async def get_login_rate_limit(request: Request, ip_address: str) -> LoginRateLi
 
     row = await result.fetchone()
     return LoginRateLimit(**row) if row is not None else LoginRateLimit(
-        ip_address=request.remote,
+        ip_address=ip_address,
         failed_login_attempts=0,
         cant_login_until=request[request_time_key] + timedelta(minutes=-1)
     )

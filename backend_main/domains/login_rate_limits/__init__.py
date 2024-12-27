@@ -15,7 +15,7 @@ async def get_request_sender_login_rate_limit(request: Request) -> LoginRateLimi
     If a limit is present, raises HTTP 429 exception.
     Otherwise, returns current logim rate limit.
     """
-    limit = await get_login_rate_limit(request, request.remote)
+    limit = await get_login_rate_limit(request, get_request_sender(request))
     seconds_until_logging_in_is_available = ceil((limit.cant_login_until - request[request_time_key]).total_seconds())
     if seconds_until_logging_in_is_available > 0:
         request[request_log_event_key]("WARNING", "domain", "Login rate limit is exceeded.")
@@ -41,7 +41,7 @@ async def increase_request_sender_login_rate_limit(
 
 
 async def delete_request_sender_login_rate_limit(request: Request) -> None:
-    await delete_login_rate_limits(request, [request.remote])
+    await delete_login_rate_limits(request, [get_request_sender(request)])
 
 
 def get_login_attempts_timeout_in_seconds(failed_login_attempts: int) -> int:
@@ -54,3 +54,8 @@ def get_login_attempts_timeout_in_seconds(failed_login_attempts: int) -> int:
     _LOGIN_TIMEOUT_DEFAULT = 3600
 
     return _LOGIN_TIMEOUTS[failed_login_attempts] if failed_login_attempts < len(_LOGIN_TIMEOUTS) else _LOGIN_TIMEOUT_DEFAULT
+
+
+def get_request_sender(request: Request) -> str:
+    """ Type guard for request.remote, which can be None. """
+    return request.remote or "Unknown"

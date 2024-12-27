@@ -2,11 +2,14 @@ from dataclasses import dataclass
 from sqlalchemy import Column
 from sqlalchemy.sql import FromClause
 from sqlalchemy.sql.expression import ColumnOperators
-from typing import Protocol
+from typing import Callable, Protocol, Any
 
 
 # Common table stubs
 class _TableCommon(Protocol):
+    insert: Callable[[], Any]   # Insert, Update & Delete classes have some of their methods
+    update: Callable[[], Any]   # generated in runtime, which is not recognised by MyPy
+    delete: Callable[[], Any]
     join: "_TableJoin"
 
 

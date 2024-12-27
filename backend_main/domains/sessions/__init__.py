@@ -9,5 +9,6 @@ async def add_session(request: Request, user_id: int) -> Session:
     return await _add_session(request, user_id)
 
 
-async def delete_session_by_access_token(request: Request, access_token: str) -> None:
-    return await _delete_sessions_by_access_tokens(request, [access_token])
+async def delete_session_by_access_token(request: Request, access_token: str | None) -> None:
+    if access_token is not None:
+        return await _delete_sessions_by_access_tokens(request, [access_token])

@@ -1,19 +1,16 @@
-from aiohttp import web
-
 from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
 from backend_main.util.exceptions import InvalidNewUserAttributesException
 
 from backend_main.types.routes.auth import AuthRegisterRequestBody
 from backend_main.types.domains.users import NewUser
-from backend_main.types.request import Request, request_user_info_key, request_log_event_key, \
-    request_time_key
+from backend_main.types.request import Request, request_user_info_key, request_time_key
 
 
 async def validate_new_user_data(request: Request) -> NewUser:
     """
     Validates request data for /auth/register route
     """
-    request_user_data = AuthRegisterRequestBody(**(await request.json()))
+    request_user_data = AuthRegisterRequestBody.model_validate(await request.json())
 
     # Check if non-admins are trying to set privileges
     if request[request_user_info_key].user_level != "admin":
@@ -32,4 +29,4 @@ async def validate_new_user_data(request: Request) -> NewUser:
         request_user_data.model_dump(exclude_none=True)
     )
     
-    return NewUser(**user_attributes)
+    return NewUser.model_validate(user_attributes)

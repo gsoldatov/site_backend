@@ -85,7 +85,7 @@ async def login(request: Request) -> web.Response:
         # Return auth data
         request[request_log_event_key]("INFO", "route_handler", f"User {user.user_id} logged in.")
 
-        auth_data = AuthLoginResponseBody(**{"auth": {
+        auth_data = AuthLoginResponseBody.model_validate({"auth": {
             "access_token": session.access_token,
             "access_token_expiration_time": session.expiration_time,
             "user_id": user.user_id,
