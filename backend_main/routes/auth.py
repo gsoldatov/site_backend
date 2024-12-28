@@ -5,7 +5,7 @@ from aiohttp import web
 
 from backend_main.auth.route_checks import ensure_non_admin_can_register
 
-from backend_main.domains.auth.register import validate_new_user_data
+from backend_main.domains.auth import validate_new_user_data
 from backend_main.domains.login_rate_limits import get_request_sender_login_rate_limit, \
     increase_request_sender_login_rate_limit, delete_request_sender_login_rate_limit
 from backend_main.domains.sessions import add_session, delete_session_by_access_token

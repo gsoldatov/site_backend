@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, AfterValidator, model_validat
 from typing import Annotated
 from typing_extensions import Self
 
-from backend_main.validation.types import PositiveInt, Name, Password, has_unique_items, HasNonNullFields
+from backend_main.types.common import PositiveInt, Name, Password, has_unique_items, HasNonNullFields
 from backend_main.types.domains.users import UserFull, UserMin, UserLevel
 
 

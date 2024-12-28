@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from backend_main.validation.types import Datetime
+from backend_main.types.common import Datetime
     
 
 class LoginRateLimit(BaseModel):

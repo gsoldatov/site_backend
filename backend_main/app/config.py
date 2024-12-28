@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from backend_main.validation.types import Port, NonEmptyString, HiddenString
+from backend_main.types.common import Port, NonEmptyString, HiddenString
 
 
 class _DefaultUser(BaseModel):

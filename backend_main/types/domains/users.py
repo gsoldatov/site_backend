@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Literal
 
-from backend_main.validation.types import PositiveInt, Name, Password, Datetime
+from backend_main.types.common import PositiveInt, Name, Password, Datetime
     
 
 UserLevel = Literal["admin", "user"]

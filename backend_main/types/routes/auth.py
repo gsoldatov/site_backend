@@ -3,7 +3,7 @@ from typing_extensions import Self
 
 from backend_main.util.exceptions import IncorrectCredentialsException
 
-from backend_main.validation.types import Name, Password, PositiveInt, Datetime
+from backend_main.types.common import Name, Password, PositiveInt, Datetime
 from backend_main.types.domains.users import UserLevel
 
 

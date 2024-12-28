@@ -4,7 +4,7 @@ from datetime import datetime
 from copy import deepcopy
 import pytest
 
-from backend_main.validation.types import HiddenString
+from backend_main.types.common import HiddenString
 
 
 def ensure_equal_collection_elements(expected: list | set, received: list | set, message: str = "Expected ids check"):
