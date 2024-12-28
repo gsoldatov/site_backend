@@ -2,8 +2,10 @@ from aiohttp import web
 from datetime import timedelta
 from math import ceil
 
-from backend_main.db_operations2.login_rate_limits import get_login_rate_limit, upsert_login_rate_limit, \
-    delete_login_rate_limits
+from backend_main.db_operations2.login_rate_limits import \
+    get_login_rate_limit as _get_login_rate_limit, \
+    upsert_login_rate_limit as _upsert_login_rate_limit, \
+    delete_login_rate_limits as _delete_login_rate_limits
 
 from backend_main.types.domains.login_rate_limits import LoginRateLimit
 from backend_main.types.request import Request, request_time_key, request_log_event_key
@@ -15,7 +17,7 @@ async def get_request_sender_login_rate_limit(request: Request) -> LoginRateLimi
     If a limit is present, raises HTTP 429 exception.
     Otherwise, returns current logim rate limit.
     """
-    limit = await get_login_rate_limit(request, get_request_sender(request))
+    limit = await _get_login_rate_limit(request, get_request_sender(request))
     seconds_until_logging_in_is_available = ceil((limit.cant_login_until - request[request_time_key]).total_seconds())
     if seconds_until_logging_in_is_available > 0:
         request[request_log_event_key]("WARNING", "domain", "Login rate limit is exceeded.")
@@ -37,11 +39,11 @@ async def increase_request_sender_login_rate_limit(
         cant_login_until=cant_login_until
     )
     
-    await upsert_login_rate_limit(request, new_limits)
+    await _upsert_login_rate_limit(request, new_limits)
 
 
 async def delete_request_sender_login_rate_limit(request: Request) -> None:
-    await delete_login_rate_limits(request, [get_request_sender(request)])
+    await _delete_login_rate_limits(request, [get_request_sender(request)])
 
 
 def get_login_attempts_timeout_in_seconds(failed_login_attempts: int) -> int:

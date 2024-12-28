@@ -3,9 +3,9 @@
 """
 from aiohttp import web
 
-from backend_main.auth.route_checks import ensure_non_admin_can_register
+from backend_main.auth.route_checks.auth import authorize_user_registration_with_privileges_set, \
+    authorize_user_registration_by_non_admin
 
-from backend_main.domains.auth import validate_new_user_data
 from backend_main.domains.login_rate_limits import get_request_sender_login_rate_limit, \
     increase_request_sender_login_rate_limit, delete_request_sender_login_rate_limit
 from backend_main.domains.sessions import add_session, delete_session_by_access_token
@@ -13,24 +13,34 @@ from backend_main.domains.users import add_user, get_user_by_login_and_password
 
 from backend_main.middlewares.connection import start_transaction
 
-from backend_main.util.exceptions import InvalidNewUserAttributesException, IncorrectCredentialsException
+from backend_main.util.exceptions import IncorrectCredentialsException
 from backend_main.util.json import error_json
 
-from backend_main.types.routes.auth import AuthLoginRequestBody, AuthLoginResponseBody
-from backend_main.types.request import Request, request_log_event_key, request_user_info_key
+from backend_main.types.domains.users import NewUser
+from backend_main.types.routes.auth import AuthRegisterRequestBody, AuthLoginRequestBody, AuthLoginResponseBody
+from backend_main.types.request import Request, request_log_event_key, request_user_info_key, request_time_key
 
 
 async def register(request: Request) -> web.Response:
-    # Debounce anonymous if non-admin registration is disabled
-    await ensure_non_admin_can_register(request)
+    # Forbid non-admin registration, if its not enabled
+    await authorize_user_registration_by_non_admin(request)
 
-    # Validate request body and set default values
-    try:
-        new_user = await validate_new_user_data(request)
-    except InvalidNewUserAttributesException:
-        msg = "User privileges can only be set by admins."
-        request[request_log_event_key]("WARNING", "route_handler", msg)
-        raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
+    # Validate request body
+    data = AuthRegisterRequestBody.model_validate(await request.json())
+
+    # Check if non-admins are trying to set privileges
+    authorize_user_registration_with_privileges_set(request, data)
+
+    # Set default values & convert to insert format
+    new_user = NewUser.model_validate({
+        **{
+            "registered_at": request[request_time_key],
+            "user_level": "user",
+            "can_login": True,
+            "can_edit_objects": True
+        },
+        **data.model_dump(exclude_none=True)
+    })
     
     # Add user
     user = await add_user(request, new_user)

@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import select, func, true
 from sqlalchemy.sql import and_
 
-from backend_main.auth.route_checks import ensure_user_can_edit_objects, ensure_user_can_edit_all_tagged_objects
+from backend_main.auth.route_checks.objects import authorize_objects_modification, authorize_tagged_objects_modification
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause, get_tags_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
 
@@ -87,7 +87,7 @@ async def update_objects_tags(request, objects_tags_data, check_ids = False):
     # Update tags for objects
     if "object_ids" in objects_tags_data:
         # Check if user can update objects
-        await ensure_user_can_edit_objects(request, objects_tags_data["object_ids"])
+        await authorize_objects_modification(request, objects_tags_data["object_ids"])
 
         # Check if objects exist
         if check_ids:
@@ -350,8 +350,8 @@ async def auth_check_for_tags_update(request, objects_tags_data):
     If `remove_all_objects` flag is passed in `objects_tags_data`, checks all objects to be untagged.
     """
     if "remove_all_objects" in objects_tags_data:
-        await ensure_user_can_edit_all_tagged_objects(request, objects_tags_data["tag_ids"])
+        await authorize_tagged_objects_modification(request, objects_tags_data["tag_ids"])
     else:
         object_ids = [o for o in objects_tags_data["added_object_ids"]] if "added_object_ids" in objects_tags_data else []
         object_ids.extend(objects_tags_data.get("removed_object_ids", []))
-        await ensure_user_can_edit_objects(request, object_ids)
+        await authorize_objects_modification(request, object_ids)
