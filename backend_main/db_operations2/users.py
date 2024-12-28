@@ -3,6 +3,7 @@ User-related database operations.
 """
 from sqlalchemy import select, and_
 from sqlalchemy.sql import text
+from typing import Iterable
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
@@ -139,3 +140,16 @@ async def view_users(request: Request, user_ids: list[int], full_view_mode: bool
         return [UserFull.model_validate(row) for row in await result.fetchall()]
     else:
         return [UserMin.model_validate(row) for row in await result.fetchall()]
+
+
+async def get_existing_user_ids(request: Request, user_ids: Iterable[int]) -> set[int]:
+    """
+    Returns a set with user IDs from `user_ids`, which exist in the database.
+    """
+    users = request.config_dict[app_tables_key].users
+
+    result = await request[request_connection_key].execute(
+        select(users.c.user_id)
+        .where(users.c.user_id.in_(user_ids))
+    )
+    return set((r[0] for r in await result.fetchall()))

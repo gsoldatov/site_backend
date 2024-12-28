@@ -10,7 +10,7 @@ from sqlalchemy.sql.functions import coalesce
 from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
 from backend_main.auth.route_checks.objects import authorize_objects_modification
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause
-from backend_main.db_operations.users import check_if_user_ids_exist
+from backend_main.domains.users import ensure_user_ids_exist
 
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
@@ -31,7 +31,7 @@ async def add_objects(request, objects_attributes):
     
     # Check if assigned object owners exist
     user_ids = list({o["owner_id"] for o in objects_attributes})
-    await check_if_user_ids_exist(request, user_ids)
+    await ensure_user_ids_exist(request, user_ids)
 
     # Insert new objects
     objects = request.config_dict[app_tables_key].objects
@@ -65,7 +65,7 @@ async def update_objects(request, objects_attributes):
     
     # Check if assigned object owners exist
     user_ids = list({o["owner_id"] for o in objects_attributes if "owner_id" in o})
-    await check_if_user_ids_exist(request, user_ids)
+    await ensure_user_ids_exist(request, user_ids)
 
     # Check if user can update objects
     object_ids = [o["object_id"] for o in objects_attributes]
