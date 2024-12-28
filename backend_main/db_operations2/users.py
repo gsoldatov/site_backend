@@ -6,7 +6,7 @@ from sqlalchemy.sql import text
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
-from backend_main.types.domains.users import NewUser, User, UserFull, UserMin
+from backend_main.types.domains.users import NewUser, User, UserFull, UserMin, UserUpdate
 
 
 async def add_user(request: Request, new_user: NewUser) -> User:
@@ -31,6 +31,29 @@ async def add_user(request: Request, new_user: NewUser) -> User:
     , password=new_user.password)    # password is passed as a bind parameter in order to escape it
     
     return User(**(await result.fetchone()))
+
+
+async def update_user(request: Request, user_update: UserUpdate) -> int | None:
+    """
+    Updates an existing user with properties specified from `user_update`.
+    """
+    users = request.config_dict[app_tables_key].users
+    values = user_update.model_dump(exclude_none=True, exclude={"user_id", "password"})
+    if user_update.password is not None:
+        values["password"] = text("crypt(:password, gen_salt('bf'))")
+    
+    result = await request[request_connection_key].execute(
+        users.update()
+        .where(users.c.user_id == user_update.user_id)
+        .values(values)
+        .returning(users.c.user_id)
+    , password=user_update.password)    # password is passed as a bind parameter in order to escape it
+
+    # Handle user not found case
+    if not await result.fetchone(): return None
+
+    # Return user ID if successfully updated
+    return user_update.user_id
 
 
 async def get_user_by_login_and_password(request: Request, login: str, password: str) -> User | None:
@@ -63,7 +86,7 @@ async def get_user_by_login_and_password(request: Request, login: str, password:
     return User(**row) if row is not None else None
 
 
-async def get_user_by_id_and_password(request: Request, user_id: str, password: str) -> User | None:
+async def get_user_by_id_and_password(request: Request, user_id: int, password: str) -> User | None:
     """
     Returns information about the user with provided `user_id` and `password`, if he exists.
     """

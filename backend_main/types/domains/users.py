@@ -40,7 +40,18 @@ class UserFull(BaseModel):
 
 
 class UserMin(BaseModel):
-    """ Minimal set of publi user attributes. """
+    """ Minimal set of public user attributes. """
     user_id: PositiveInt
     username: Name
     registered_at: Datetime
+
+
+class UserUpdate(BaseModel):
+    """ Updated attributes of a user. """
+    user_id: PositiveInt
+    login: Name | None = None
+    username: Name | None = None
+    password: Password | None = None
+    user_level: UserLevel | None = None
+    can_login: bool | None = None
+    can_edit_objects: bool | None = None

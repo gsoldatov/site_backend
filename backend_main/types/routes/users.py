@@ -1,10 +1,44 @@
-from pydantic import BaseModel, ConfigDict, Field, AfterValidator
+from pydantic import BaseModel, ConfigDict, Field, AfterValidator, model_validator
 from typing import Annotated
+from typing_extensions import Self
 
-from backend_main.validation.types import PositiveInt, has_unique_items
-from backend_main.types.domains.users import UserFull, UserMin
+from backend_main.validation.types import PositiveInt, Name, Password, has_unique_items, HasNonNullFields
+from backend_main.types.domains.users import UserFull, UserMin, UserLevel
 
 
+# /users/update
+class _UsersUpdateNonNullFields(HasNonNullFields):
+    """ Any field from the list must be non-null. """
+    __checked_for_nulls_fields__ = ("login", "username", "password", "user_level", "can_login", "can_edit_objects")
+
+
+class _UsersUpdateData(_UsersUpdateNonNullFields, BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    user_id: PositiveInt
+    login: Name | None = None
+    username: Name | None = None
+    password: Password | None = None
+    password_repeat: Password | None = None
+    user_level: UserLevel | None = None
+    can_login: bool | None = None
+    can_edit_objects: bool | None = None
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> Self:
+        if self.password != self.password_repeat:
+            raise ValueError("Password is not correctly repeated.")
+        return self
+    
+
+class UsersUpdateRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    
+    user: _UsersUpdateData
+    token_owner_password: Password
+
+
+# /users/view
 _UserIDs = Annotated[
     list[PositiveInt],
     Field(min_length=1, max_length=1000),

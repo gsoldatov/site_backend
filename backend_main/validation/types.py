@@ -1,14 +1,9 @@
 from datetime import datetime
 from math import inf
-from typing import Annotated, Iterable
+from typing import Annotated, Iterable, cast
+from typing_extensions import Self
 
-from pydantic import BaseModel, Field, PlainSerializer
-
-
-# Empty model
-class Empty(BaseModel):
-    """ Pydantic model without any attributes. """
-    pass
+from pydantic import BaseModel, Field, PlainSerializer, model_validator
 
 
 # Numeric
@@ -73,3 +68,24 @@ def has_unique_items(it: Iterable):
             raise ValueError(f"Element '{element}' is not unique.")
         existing.add(element)
     return it
+
+
+# Mixins
+class HasNonNullFields:
+    """
+    Mixin class with a model validator, which ensures that at least one field is not null.
+    `__checked_for_nulls_fields__` can be overridden to apply the check to a specific subset of attributes only.
+    """
+    __checked_for_nulls_fields__: Iterable[str] | None = None
+
+    @model_validator(mode="after")
+    def validator(self) -> Self:
+        checked_fields = tuple(
+            self.__checked_for_nulls_fields__
+            or cast(BaseModel, self).model_fields.keys()
+        )
+
+        for attr in checked_fields:
+            if getattr(self, attr, None) is not None:
+                return self
+        raise ValueError(f"At least one non-null field from {checked_fields} is required.")

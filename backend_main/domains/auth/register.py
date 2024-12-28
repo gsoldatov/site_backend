@@ -13,6 +13,7 @@ async def validate_new_user_data(request: Request) -> NewUser:
     request_user_data = AuthRegisterRequestBody.model_validate(await request.json())
 
     # Check if non-admins are trying to set privileges
+    # TODO move to auth checks
     if request[request_user_info_key].user_level != "admin":
         for attr in forbidden_non_admin_user_modify_attributes:
             if getattr(request_user_data, attr) is not None:

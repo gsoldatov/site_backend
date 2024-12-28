@@ -49,13 +49,11 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
     # Add new access token expiration time to the response & create web.Response object (except for auth routes)
     if not request.path.startswith(f"/{AUTH_SUBAPP_PREFIX}"):
         # Convert response to dict
-        if isinstance(response, BaseModel):
-            response_dict = response.model_dump()
-        elif isinstance(response, dict):
-            response_dict = response
-        else:
-            raise Exception(f"Auth middleware expected {request.path} route handler to return dict"
-                            f"or pydantic model, got {type(response)}")
+        if isinstance(response, BaseModel): response_dict = response.model_dump()
+        elif isinstance(response, dict): response_dict = response
+        elif response is None: response_dict = {}
+        else: raise Exception(f"Auth middleware expected {request.path} route handler"
+                              f" to return dict or pydantic model, got {type(response)}")
                 
         if not user_info.is_anonymous:
             response_dict["auth"] = response_dict.get("auth", {})

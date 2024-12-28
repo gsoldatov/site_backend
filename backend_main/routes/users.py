@@ -1,26 +1,44 @@
 from aiohttp import web
-from jsonschema import validate
+from typing import cast
 
-from backend_main.db_operations.users import update_user
-from backend_main.domains.users import view_users
+from backend_main.domains.sessions import delete_user_sessions
+from backend_main.domains.users import validate_user_update, check_password_for_user_id, update_user, view_users
+
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.exceptions import UserFullViewModeNotAllowed
 from backend_main.util.json import error_json
 
-from backend_main.types.routes.users import UsersViewRequestBody, UsersViewResponseBody
-from backend_main.validation.schemas.users import users_update_schema
-from backend_main.types.request import Request, request_log_event_key
+from backend_main.types.domains.users import UserUpdate
+from backend_main.types.routes.users import UsersUpdateRequestBody, UsersViewRequestBody, UsersViewResponseBody
+from backend_main.types.request import Request, request_log_event_key, request_user_info_key
 
 
-async def update(request):
+async def update(request: Request) -> None:
     # Validate request body
-    data = await request.json()
-    validate(instance=data, schema=users_update_schema)
+    data = UsersUpdateRequestBody.model_validate(await request.json())
+    user_update = UserUpdate.model_validate(data.user, from_attributes=True)
 
-    # Perform additional data validation & update data
-    await update_user(request, data)
-    request[request_log_event_key]("INFO", "route_handler", "Updated user.", details=f"user_id = {data['user']['user_id']}")
-    return {}
+    # Check if token owner can update data
+    validate_user_update(request, user_update)
+
+    # Ensure a transaction is started
+    await start_transaction(request)
+
+    # Check if token owner submitted a correct password
+    token_owner_user_id = cast(int, request[request_user_info_key].user_id)
+    await check_password_for_user_id(request, token_owner_user_id, data.token_owner_password)
+
+    # Perform user update
+    user_id = await update_user(request, user_update)
+    if user_id is None:
+        raise web.HTTPNotFound(text=error_json(f"User not found."), content_type="application/json")
+    
+    # Delete user sessions, if he can no longer log in
+    if user_update.can_login == False:
+        await delete_user_sessions(request, user_update.user_id)
+    
+    request[request_log_event_key]("INFO", "route_handler", "Updated user.", details=f"user_id = {user_update.user_id}")
 
 
 async def view(request: Request) -> UsersViewResponseBody:
