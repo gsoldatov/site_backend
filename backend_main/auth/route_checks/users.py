@@ -8,7 +8,7 @@ from backend_main.auth.route_access.common import forbid_anonymous
 
 from backend_main.domains.users import get_user_by_id_and_password
 
-from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
+from backend_main.util.constants import USER_PRIVILEGE_ATTRIBUTES
 from backend_main.util.json import error_json
 
 from backend_main.types.domains.users import UserUpdate
@@ -27,7 +27,7 @@ def authorize_user_update(request: Request, user_update: UserUpdate) -> None:
         request[request_log_event_key]("WARNING", "auth", msg)
         raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
-    for attr in forbidden_non_admin_user_modify_attributes:
+    for attr in USER_PRIVILEGE_ATTRIBUTES:
         if getattr(user_update, attr, None) is not None:
             msg = "Attempted to set user privilege as a non-admin."
             request[request_log_event_key]("WARNING", "auth", msg)

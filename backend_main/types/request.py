@@ -28,14 +28,21 @@ class UserInfo:
     __slots__ = ["access_token", "is_anonymous", "user_id", "user_level", 
         "can_edit_objects", "access_token_expiration_time"]
 
-    def __init__(self, access_token: str | None = None):
+    def __init__(
+            self,
+            access_token: str | None = None,
+            user_id: int | None = None,
+            user_level: Literal["admin", "user"] | None = None,
+            can_edit_objects: bool | None = None,
+            access_token_expiration_time: datetime | None = None
+        ):
         self.access_token = access_token
         self.is_anonymous: bool = access_token is None
         
-        self.user_id: int | None = None
-        self.user_level: Literal["admin", "user"] | None = None
-        self.can_edit_objects: bool | None = None
-        self.access_token_expiration_time: datetime | None = None
+        self.user_id = user_id
+        self.user_level = user_level
+        self.can_edit_objects = can_edit_objects
+        self.access_token_expiration_time = access_token_expiration_time
 
 request_user_info_key = web.AppKey("request_user_info_key", UserInfo)
 

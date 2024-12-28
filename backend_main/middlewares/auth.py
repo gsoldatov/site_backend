@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from typing import cast
 
 from backend_main.auth.route_access import authorize_route_access
-from backend_main.db_operations.sessions import prolong_access_token_and_get_user_info
+from backend_main.domains.sessions import prolong_access_token_and_get_user_info
 from backend_main.util.json import error_json
-from backend_main.util.constants import AUTH_SUBAPP_PREFIX
+from backend_main.util.constants import AUTH_SUBAPP_PREFIX, ROUTES_ACCESSIBLE_WITH_INVALID_ACCESS_TOKEN
 
 from backend_main.types.request import Request, Handler, UserInfo, request_log_event_key, request_user_info_key
 
@@ -22,19 +22,25 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
     # Skip middleware for CORS requests
     if request.method in ("OPTIONS", "HEAD"): return await handler(request)
     
-    # Parse access token
-    _parse_access_token(request)
+    # Get parsed access token
+    access_token = _get_access_token(request)
 
-    # Validate and prolong token, add user info to the request
-    try:
-        await prolong_access_token_and_get_user_info(request)
-        user_info = request[request_user_info_key]
+    # Prolong access token and get user info
+    user_info = await prolong_access_token_and_get_user_info(request, access_token)
+
+    # Raise 401 if token was not found or expired, os user is not allowed to login
+    if user_info is None:
+        request[request_user_info_key] = user_info = UserInfo(access_token=access_token)  # add a stub user info
+        request[request_log_event_key]("WARNING", "auth", f"Received invalid access token.")
+        
+        # Allow invalid tokens for some routes
+        if request.path not in ROUTES_ACCESSIBLE_WITH_INVALID_ACCESS_TOKEN:
+            raise web.HTTPUnauthorized(text=error_json("Invalid token."), content_type="application/json")
+    else:
+        request[request_user_info_key] = user_info
         user_details = "anonymous" if user_info.is_anonymous else \
             f"user_id = {user_info.user_id}, user_level = {user_info.user_level}"
         request[request_log_event_key]("INFO", "auth", f"Request issued by {user_details}.")
-    except web.HTTPUnauthorized:
-        request[request_log_event_key]("WARNING", "auth", f"Received invalid access token.")
-        raise
 
     # Check route access
     try:
@@ -66,18 +72,18 @@ async def auth_middleware(request: Request, handler: Handler) -> web.Response:
     return response
 
 
-def _parse_access_token(request: Request):
+def _get_access_token(request: Request) -> str | None:
     """
-    Parses a bearer token from `request` header is it was provided. Adds `user_info` attribute to the `request` object.
-    Raises 401 exception if token was provided in an incorrect format.
+    Returns an access token from the "Authorization" header or `None`, if it was not provided.
+    Raises 401 exception if the token was provided in an incorrect format.
     """
     access_token = request.headers.get("Authorization")
     
     if access_token is None:
-        request[request_user_info_key] = UserInfo()
+        return None
     else:
         if access_token.find("Bearer ") == 0 and len(access_token) > 7:
-            request[request_user_info_key] = UserInfo(access_token[7:])
+            return access_token[7:]
         else:
             request[request_log_event_key]("WARNING", "auth", f"Invalid Authorization header.")
             raise web.HTTPUnauthorized(text=error_json("Incorrect token format."), content_type="application/json")

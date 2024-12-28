@@ -1,8 +1,8 @@
 AUTH_SUBAPP_PREFIX = "auth"
 
-ROUTES_WITHOUT_INVALID_TOKEN_DEBOUNCING = set((
+ROUTES_ACCESSIBLE_WITH_INVALID_ACCESS_TOKEN = set((
     "/auth/logout",
     "/settings/view"
 ))
 
-forbidden_non_admin_user_modify_attributes = ("user_level", "can_login", "can_edit_objects")
+USER_PRIVILEGE_ATTRIBUTES = ("user_level", "can_login", "can_edit_objects")

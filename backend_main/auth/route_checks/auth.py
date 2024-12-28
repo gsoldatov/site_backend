@@ -4,7 +4,7 @@
 from aiohttp import web
 
 from backend_main.db_operations.settings import view_settings
-from backend_main.util.constants import forbidden_non_admin_user_modify_attributes
+from backend_main.util.constants import USER_PRIVILEGE_ATTRIBUTES
 from backend_main.util.json import error_json
 
 from backend_main.types.routes.auth import AuthRegisterRequestBody
@@ -32,7 +32,7 @@ def authorize_user_registration_with_privileges_set(request: Request, request_da
     """
     if request[request_user_info_key].user_level == "admin": return
 
-    for attr in forbidden_non_admin_user_modify_attributes:
+    for attr in USER_PRIVILEGE_ATTRIBUTES:
         if getattr(request_data, attr) is not None:
             msg = "User privileges can only be set by admins."
             request[request_log_event_key]("WARNING", "auth", msg)
