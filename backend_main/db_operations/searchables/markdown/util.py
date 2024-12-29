@@ -2,6 +2,7 @@
 Utilities for markdown parsing.
 """
 from urllib.parse import urlparse
+from xml.etree.ElementTree import Element
 
 from markdown import Markdown
 from markdown.extensions.tables import TableExtension
@@ -9,13 +10,19 @@ from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.util import HTML_PLACEHOLDER_RE
 
-from backend_main.db_operations.searchables.data_classes import SearchableItem
+from backend_main.db_operations.searchables.types import SearchableItem
 from backend_main.db_operations.searchables.markdown.block_processing import BlockFormulaProcessor, PatchedOListProcessor, PatchedUListProcessor
 from backend_main.db_operations.searchables.markdown.inline_processing import InlineFormulaProcessor, INLINE_FORMULA_RE, \
     PatchedHtmlInlineProcessor, HTML_RE, ENTITY_RE
 
+from backend_main.db_operations.searchables.types import TextWeight
 
-def get_markdown_processor(item_id, important_weight, regular_weight):
+
+def get_markdown_processor(
+        item_id: int | None,
+        important_weight: TextWeight,
+        regular_weight: TextWeight
+    ) -> "SearchableMarkdown":
     """
     Returns a new `Markdown` instance with additional extensions, formulae processors and custom output format.
     """
@@ -41,7 +48,14 @@ class SearchableMarkdown(Markdown):
     Child class of Markdown processor. 
     Provides block & inline formula processing & text serialization into a `SearchableItem` instance.
     """
-    def __init__(self, item_id, important_weight, regular_weight, *args, **kwargs):
+    def __init__(
+            self,
+            item_id: int | None,
+            important_weight: TextWeight,
+            regular_weight: TextWeight,
+            *args,
+            **kwargs
+        ):
         super().__init__(*args, **kwargs)
 
         # Additional params
@@ -71,7 +85,7 @@ class SearchableMarkdown(Markdown):
         self.inlinePatterns.register(PatchedHtmlInlineProcessor(HTML_RE, self), "html", 90)
         self.inlinePatterns.register(PatchedHtmlInlineProcessor(ENTITY_RE, self), "entity", 80)
     
-    def _serializer(self, element):
+    def _serializer(self, element: Element) -> str:
         """ 
         Serializes provided XML Element `element` into `SearchableItem`.
         """
@@ -104,5 +118,6 @@ class SearchableMarkdown(Markdown):
         # Return empty text for further processing by markdown lib
         return ""
     
-    def remove_html_placeholders(s):
+    @staticmethod
+    def remove_html_placeholders(s: str) -> str:
         return HTML_PLACEHOLDER_RE.sub("", s)

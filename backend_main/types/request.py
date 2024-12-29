@@ -47,6 +47,7 @@ class UserInfo:
 request_user_info_key = web.AppKey("request_user_info_key", UserInfo)
 
 request_connection_key = web.AppKey("request_connection_key", SAConnection)
+request_searchables_connection_key = web.AppKey("request_searchables_connection_key", SAConnection)
 request_transaction_key = web.AppKey("request_transaction_key", Transaction) 
 
 

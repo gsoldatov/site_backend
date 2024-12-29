@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
 
-from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
+from collections.abc import Sequence
+from psycopg2._psycopg import connection, cursor
+from typing import Any
+
+from backend_main.db_operations.searchables.types import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_to_searchable_item
 
 
-def process_tag_batch(conn, tag_ids):
+def process_tag_batch(conn: connection, tag_ids: Sequence[int]) -> None:
     """
     Gets tags' attributes, processes them and updates `searchables` table for the provided `tag_ids`.
     """
@@ -26,7 +30,7 @@ def process_tag_batch(conn, tag_ids):
             # Insert new searchable data
             query = "INSERT INTO searchables (tag_id, modified_at, text_a, text_b, text_c) VALUES " + \
                 ", ".join("(%s, %s, %s, %s, %s)" for i in range(len(searchables)))
-            params = []
+            params: list[Any] = []
             for item in searchables.items.values():
                 params.extend((item.item_id, modified_at, item.text_a, item.text_b, item.text_c))
             
@@ -35,7 +39,7 @@ def process_tag_batch(conn, tag_ids):
         cursor.close()
 
 
-def _process_tags_attributes(cursor, tag_ids):
+def _process_tags_attributes(cursor: cursor, tag_ids: Sequence[int]) -> SearchableCollection:
     """
     Returns searchable text from `tags` table for the provided `tag_ids`.
     """

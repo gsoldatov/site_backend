@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
+from psycopg2._psycopg import connection, cursor
+from collections.abc import Sequence
+from typing import Any
 
-from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
+from backend_main.db_operations.searchables.types import SearchableItem, SearchableCollection
 from backend_main.db_operations.searchables.markdown import markdown_to_searchable_item
 
 
-def process_object_batch(conn, object_ids):
+def process_object_batch(conn: connection, object_ids: Sequence[int]) -> None:
     """
     Gets objects' attributes & data, processes them and updates `searchables` table for the provided `object_ids`.
     """
@@ -26,7 +29,7 @@ def process_object_batch(conn, object_ids):
             # Insert new searchable data
             query = "INSERT INTO searchables (object_id, modified_at, text_a, text_b, text_c) VALUES " + \
                 ", ".join("(%s, %s, %s, %s, %s)" for i in range(len(searchables)))
-            params = []
+            params: list[Any] = []
             for item in searchables.items.values():
                 params.extend((item.item_id, modified_at, item.text_a, item.text_b, item.text_c))
             
@@ -35,7 +38,7 @@ def process_object_batch(conn, object_ids):
         cursor.close()
 
 
-def _process_objects(cursor, object_ids):
+def _process_objects(cursor: cursor, object_ids: Sequence[int]) -> SearchableCollection:
     """
     Returns searchable text from `objects` table for the provided `object_ids`.
     """
@@ -44,7 +47,7 @@ def _process_objects(cursor, object_ids):
     cursor.execute(query, {"object_ids": object_ids})
     result = SearchableCollection()
 
-    types = {"link": [], "markdown": [], "to_do_list": []}
+    types: dict[str, list[int]] = {"link": [], "markdown": [], "to_do_list": []}
 
     for r in cursor: 
         object_id, object_name, object_description, object_type = r

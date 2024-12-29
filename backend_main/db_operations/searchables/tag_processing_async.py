@@ -1,23 +1,25 @@
 import asyncio
 from functools import partial
 from datetime import datetime, timezone
-
 from sqlalchemy import select
 
-from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
+from collections.abc import Sequence
+
+from backend_main.db_operations.searchables.types import SearchableItem, SearchableCollection, MarkdownProcessingItem
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
 
 from backend_main.types.app import app_tables_key
+from backend_main.types.request import Request, request_searchables_connection_key
 
 
-async def process_tag_batch_coro(request, tag_ids):
+async def process_tag_batch_coro(request: Request, tag_ids: Sequence[int]) -> None:
     """
     Gets tags' attributes, processes them and updates `searchables` table for the provided `tag_ids`.
     """
     if len(tag_ids) == 0: return
 
     searchables = request.config_dict[app_tables_key].searchables
-    conn = request["conn_searchables"]
+    conn = request[request_searchables_connection_key]
     modified_at = datetime.now(tz=timezone.utc)
 
     try:
@@ -40,20 +42,20 @@ async def process_tag_batch_coro(request, tag_ids):
         raise
 
 
-async def _process_tags_coro(request, tag_ids):
+async def _process_tags_coro(request: Request, tag_ids: Sequence[int]) -> SearchableCollection:
     """
     Returns searchable text from `tags` table for the provided `tag_ids`.
     """
     # Fetch tag attributes
     tags = request.config_dict[app_tables_key].tags
 
-    cursor = await request["conn_searchables"].execute(
+    cursor = await request[request_searchables_connection_key].execute(
         select(tags.c.tag_id, tags.c.tag_name, tags.c.tag_description)
         .where(tags.c.tag_id.in_(tag_ids))
     )
 
     result = SearchableCollection()
-    md_batch = []
+    md_batch: list[MarkdownProcessingItem] = []
 
     for r in await cursor.fetchall():
         # Process tag names to searchable data
@@ -62,7 +64,9 @@ async def _process_tags_coro(request, tag_ids):
         )
 
         # Prepare tag descriptions for parsing
-        md_batch.append({"id": r["tag_id"], "raw_markdown": r["tag_description"]})
+        md_batch.append(
+            MarkdownProcessingItem(id=r["tag_id"], raw_markdown=r["tag_description"])
+        )
     
     # Wrap function to pass arguments into a thread
     job_fn = partial(markdown_batch_to_searchable_collection, md_batch)

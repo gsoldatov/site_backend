@@ -1,23 +1,28 @@
 import asyncio
 from functools import partial
-
 from sqlalchemy import select
 
-from backend_main.db_operations.searchables.data_classes import SearchableItem, SearchableCollection
+from collections.abc import Sequence
+
 from backend_main.db_operations.searchables.markdown import markdown_batch_to_searchable_collection
 
+from backend_main.db_operations.searchables.types import SearchableItem, SearchableCollection, MarkdownProcessingItem
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_time_key
+from backend_main.types.request import Request, request_time_key, request_searchables_connection_key
 
 
-async def process_object_batch_coro(request, object_ids):
+async def process_object_batch_coro(
+        request: Request,
+        object_ids: Sequence[int]
+    ) -> None:
     """
-    Gets objects' attributes & data, processes them and updates `searchables` table for the provided `object_ids`.
+    Gets objects' attributes & data, processes them and updates
+    `searchables` table for the provided `object_ids`.
     """
     if len(object_ids) == 0: return
 
     searchables = request.config_dict[app_tables_key].searchables
-    conn = request["conn_searchables"]
+    conn = request[request_searchables_connection_key]
     modified_at = request[request_time_key]
 
     try:
@@ -40,12 +45,15 @@ async def process_object_batch_coro(request, object_ids):
         raise
 
 
-async def _process_objects_coro(request, object_ids):
+async def _process_objects_coro(
+        request: Request,
+        object_ids: Sequence[int]
+    ) -> SearchableCollection:
     """
-    Returns searchable text from `objects` table for the provided `object_ids`.
+    Returns searchable text from object attributes & data of objects with provided `object_ids`.
     """
     # Fetch object attributes
-    conn = request["conn_searchables"]
+    conn = request[request_searchables_connection_key]
     objects = request.config_dict[app_tables_key].objects
 
     cursor = await conn.execute(
@@ -55,8 +63,8 @@ async def _process_objects_coro(request, object_ids):
     )
 
     result = SearchableCollection()
-    md_batch = []
-    types = {"link": [], "markdown": [], "to_do_list": []}
+    md_batch: list[MarkdownProcessingItem] = []
+    types: dict[str, list[int]] = {"link": [], "markdown": [], "to_do_list": []}
 
     for r in await cursor.fetchall():
         # Process object names to searchable data
@@ -65,7 +73,9 @@ async def _process_objects_coro(request, object_ids):
         )
 
         # Prepare object descriptions for parsing
-        md_batch.append({"id": r["object_id"], "raw_markdown": r["object_description"]})
+        md_batch.append(
+            MarkdownProcessingItem(id=r["object_id"], raw_markdown=r["object_description"])
+        )
 
         # Add object to the list of specific type
         if r["object_type"] in types: types[r["object_type"]].append(r["object_id"])
@@ -100,7 +110,9 @@ async def _process_objects_coro(request, object_ids):
 
         md_batch = []
         for r in await cursor.fetchall():
-            md_batch.append({"id": r["object_id"], "raw_markdown": r["raw_text"]})
+            md_batch.append(
+                MarkdownProcessingItem(id=r["object_id"], raw_markdown=r["raw_text"])
+            )
         
         job_fn = partial(markdown_batch_to_searchable_collection, md_batch)
         result += await loop.run_in_executor(None, job_fn)
