@@ -1,31 +1,25 @@
-from aiohttp import web
 from sqlalchemy import select, func, text
 from sqlalchemy.sql import and_, or_
 
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause, get_tags_auth_filter_clause
 
-from backend_main.util.json import error_json
-
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import request_log_event_key, request_connection_key
+from backend_main.types.domains.search import SearchQuery, SearchResult
+from backend_main.types.request import Request, request_connection_key
 
 
-async def search_items(request, query):
+async def get_search_results(request: Request, query: SearchQuery) -> SearchResult:
     """
-    Searches for searchable items, which match the provided query and sorts them by relevance.
-    Returns:
-    - list of searchable item IDs which match the query and their type (tag/object);
-    - provided `query` parameters;
-    - total number of matching items.
-    
-    Raises a 404 error if no items match the query.
+    Returns matching results for search `query` sorted by their relevance,
+    total number of matching items and `query` params.
     """
     searchables = request.config_dict[app_tables_key].searchables
     objects = request.config_dict[app_tables_key].objects
     tags = request.config_dict[app_tables_key].tags
-    query_text = query["query_text"]
-    items_per_page = query["items_per_page"]
-    offset = (query["page"] - 1) * items_per_page
+    
+    query_text = query.query_text
+    items_per_page = query.items_per_page
+    offset = (query.page - 1) * items_per_page
 
     # Objects auth filter for non-admin user levels (applied for objects only)
     objects_auth_filter_clause = or_(searchables.c.object_id == None, 
@@ -46,8 +40,10 @@ async def search_items(request, query):
     # Query database
     result = await request[request_connection_key].execute(
         select(searchables.c.tag_id, searchables.c.object_id,
-            # set bit flags for ts_rank function to normalize ranks (2 divides the rank by the document length; 32 divides the rank by itself + 1)
-            func.ts_rank(searchables.c.searchable_tsv_russian, func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")
+            # set bit flags for ts_rank function to normalize ranks
+            # (2 divides the rank by the document length; 32 divides the rank by itself + 1)
+            func.ts_rank(searchables.c.searchable_tsv_russian,
+                         func.websearch_to_tsquery("russian", query_text), 2|32).label("rank")
         )
         .select_from(
             searchables
@@ -69,12 +65,6 @@ async def search_items(request, query):
         "item_type": "tag" if row["tag_id"] is not None else "object"
     } for row in await result.fetchall()]
 
-    # Handle 404 case
-    if len(items) == 0: 
-        msg = "Nothing was found."
-        request[request_log_event_key]("WARNING", "db_operation", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-
     # Query total number of items
     result = await request[request_connection_key].execute(
         select(func.count())
@@ -93,10 +83,10 @@ async def search_items(request, query):
     total_items = (await result.fetchone())[0]
 
     # Preparse and rerutn response
-    return {
+    return SearchResult.model_validate({
         "query_text": query_text,
-        "page": query["page"],
-        "items_per_page": query["items_per_page"],
+        "page": query.page,
+        "items_per_page": items_per_page,
         "items": items,
         "total_items": total_items
-    }
+    })

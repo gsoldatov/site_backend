@@ -11,6 +11,7 @@ class _TableCommon(Protocol):
     update: Callable[[], Any]   # generated in runtime, which is not recognised by MyPy
     delete: Callable[[], Any]
     join: "_TableJoin"
+    outerjoin: "_TableOuterJoin"
 
 
 class _TableJoin(Protocol):
@@ -19,6 +20,15 @@ class _TableJoin(Protocol):
         target: FromClause | _TableCommon,
         onclause: ColumnOperators | None = None,
         isouter: bool | None = False,
+        full: bool | None = False
+    ): ...
+
+
+class _TableOuterJoin(Protocol):
+    def __call__(
+        self,
+        target: FromClause | _TableCommon,
+        onclause: ColumnOperators | None = None,
         full: bool | None = False
     ): ...
 

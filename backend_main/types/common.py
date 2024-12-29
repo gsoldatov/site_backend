@@ -14,11 +14,13 @@ Port = Annotated[int, Field(ge=1024, le=65535)]
 
 # Strings
 NonEmptyString = Annotated[str, Field(min_length=1)]
-"""String object with length > 0."""
+"""String with length > 0."""
 Name = Annotated[str, Field(min_length=1, max_length=255)]
-"""String object with 0 < length < 256."""
+"""String with 0 < length < 256."""
+QueryText = Name
+"""String with 0 < length < 256."""
 Password = Annotated[str, Field(min_length=8, max_length=72)]
-"""String object with 8 <= length = 72."""
+"""String with 8 <= length = 72."""
 
 
 class HiddenString:
