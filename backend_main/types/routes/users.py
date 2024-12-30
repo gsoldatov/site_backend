@@ -2,17 +2,17 @@ from pydantic import BaseModel, ConfigDict, Field, AfterValidator, model_validat
 from typing import Annotated
 from typing_extensions import Self
 
-from backend_main.types.common import PositiveInt, Name, Password, has_unique_items, HasNonNullFields
+from backend_main.types.common import PositiveInt, Name, Password, has_unique_items, AnyOf
 from backend_main.types.domains.users import UserFull, UserMin, UserLevel
 
 
 # /users/update
-class _UsersUpdateNonNullFields(HasNonNullFields):
-    """ Any field from the list must be non-null. """
-    __checked_for_nulls_fields__ = ("login", "username", "password", "user_level", "can_login", "can_edit_objects")
+class _UsersUpdateAnyOf(AnyOf):
+    """ At least one field from the list must be non-null. """
+    __any_of_fields__ = ("login", "username", "password", "user_level", "can_login", "can_edit_objects")
 
 
-class _UsersUpdateData(_UsersUpdateNonNullFields, BaseModel):
+class _UsersUpdateData(_UsersUpdateAnyOf, BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     user_id: PositiveInt

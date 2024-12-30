@@ -26,7 +26,7 @@ async def test_incorrect_request_body(cli):
     
     # Incorrect attribute values
     for attr, value in [("setting_names", 1), ("setting_names", "str"), ("setting_names", True), ("setting_names", []), ("setting_names", ["a"] * 1001),
-        ("setting_names", [1]), ("setting_names", [True]), ("setting_names", [""]), ("setting_names", ["" * 256]), ("view_all", 1), ("view_all", "str"), ("view_all", False)]:
+        ("setting_names", [1]), ("setting_names", [True]), ("setting_names", [""]), ("setting_names", ["" * 256]), ("view_all", 2), ("view_all", "str"), ("view_all", False)]:
         body = {attr: value}
         resp = await cli.post("/settings/view", json=body, headers=headers_admin_token)
         assert resp.status == 400

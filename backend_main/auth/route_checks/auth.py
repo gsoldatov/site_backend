@@ -3,7 +3,7 @@
 """
 from aiohttp import web
 
-from backend_main.db_operations.settings import view_settings
+from backend_main.domains.settings import view_settings
 from backend_main.util.constants import USER_PRIVILEGE_ATTRIBUTES
 from backend_main.util.json import error_json
 
@@ -18,7 +18,8 @@ async def authorize_user_registration_by_non_admin(request: Request):
     """
     if request[request_user_info_key].user_level == "admin": return
 
-    non_admin_registration_allowed = (await view_settings(request, ["non_admin_registration_allowed"]))["non_admin_registration_allowed"]
+    settings = await view_settings(request, ["non_admin_registration_allowed"])
+    non_admin_registration_allowed = settings[0].serialized_setting_value
 
     if not non_admin_registration_allowed:
         msg = "Registration is disabled."
