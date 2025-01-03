@@ -10,7 +10,8 @@ from backend_main.validation.schemas.object_data import link_object_data, markdo
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, get_elements_in_composite_hierarchy, set_modified_at
-from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
+from backend_main.db_operations.objects_tags import update_objects_tags
+from backend_main.domains.objects_tags import view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
@@ -119,8 +120,9 @@ async def view(request):
             object_attrs[row["object_id"]]["current_tag_ids"] = []
         
         # Tag IDs
-        for row in await view_objects_tags(request, object_ids = object_ids):
-            object_attrs[row["object_id"]]["current_tag_ids"].append(row["tag_id"])
+        objects_tags = await view_objects_tags(request, object_ids)
+        for object_id in object_attrs:
+            object_attrs[object_id]["current_tag_ids"] = objects_tags.map[object_id]
         
     # Convert object_attrs to list
     object_attrs = [object_attrs[k] for k in object_attrs]

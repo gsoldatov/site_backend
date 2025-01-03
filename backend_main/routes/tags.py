@@ -3,7 +3,8 @@ from jsonschema import validate
 
 from backend_main.middlewares.connection import start_transaction
 from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
-from backend_main.db_operations.objects_tags import view_objects_tags, update_objects_tags
+from backend_main.db_operations.objects_tags import update_objects_tags
+from backend_main.domains.objects_tags import view_tags_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.validation.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
@@ -80,8 +81,9 @@ async def view(request):
 
     # Query tagged objects
     if return_current_object_ids:
-        for row in await view_objects_tags(request, tag_ids = tag_ids):
-            tags[row["tag_id"]]["current_object_ids"].append(row["object_id"])
+        tags_objects = await view_tags_objects(request, tag_ids)
+        for tag_id in tags:
+            tags[tag_id]["current_object_ids"] = tags_objects.map[tag_id]
     
     response = {"tags": [tags[k] for k in tags]}
     request[request_log_event_key]("INFO", "route_handler", "Returning tags.", details=f"tag_ids = {tag_ids}")

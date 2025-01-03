@@ -6,7 +6,7 @@ from sqlalchemy import select, func, true
 from sqlalchemy.sql import and_
 
 from backend_main.auth.route_checks.objects import authorize_objects_modification, authorize_tagged_objects_modification
-from backend_main.auth.query_clauses import get_objects_auth_filter_clause, get_tags_auth_filter_clause
+from backend_main.auth.query_clauses import get_tags_auth_filter_clause
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import error_json
@@ -15,59 +15,6 @@ from backend_main.validation.util import RequestValidationException
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, request_connection_key
-
-
-async def view_objects_tags(request, object_ids = None, tag_ids = None):
-    """
-        Returns a collection of RowProxy objects with tag and object IDs for the objects (tags) with provided object_ids (tag_ids).
-    """
-    if object_ids is None and tag_ids is None:
-        raise TypeError("view_objects_tags requires object or tag IDs.")
-    if object_ids is not None and tag_ids is not None:
-        raise TypeError("view_objects_tags can't receive object and tag IDs at the same time.")
-
-    objects = request.config_dict[app_tables_key].objects
-    tags = request.config_dict[app_tables_key].tags
-    objects_tags = request.config_dict[app_tables_key].objects_tags
-
-    # Query tags for `object_ids`
-    if object_ids:
-        # Objects filter for non 'admin` user level
-        objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
-
-        result = await request[request_connection_key].execute(
-        select(objects_tags.c.object_id, objects_tags.c.tag_id)
-        .select_from(objects_tags.join(objects, objects_tags.c.object_id == objects.c.object_id))   # join objects table to apply objects auth filter
-        .where(and_(
-            objects_tags.c.object_id.in_(object_ids),   # select rows for provided `object_ids`
-            objects_auth_filter_clause                  # filter with objects auth clause
-        )))
-
-        return await result.fetchall()
-    
-    # Query objects for `tag_ids`
-    else:
-        tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
-        objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
-            select(objects_tags.c.object_id)
-            .distinct()
-            .where(objects_tags.c.tag_id.in_(tag_ids))
-        ))
-
-        # Get pairs wihtout filtering objects with non-published tags
-        result = await request[request_connection_key].execute(
-        select(objects_tags.c.object_id, objects_tags.c.tag_id)
-        .select_from(
-                objects_tags
-                .join(tags, objects_tags.c.tag_id == tags.c.tag_id))   # join tags table to apply tags auth filter
-                .join(objects, objects_tags.c.object_id == objects.c.object_id)
-        .where(and_(
-            objects_tags.c.tag_id.in_(tag_ids),         # select rows for provided `tag_ids`
-            tags_auth_filter_clause,                    # filter with tags auth clause
-            objects_auth_filter_clause                  # filter with objects auth clause
-        )))
-
-        return await result.fetchall()
 
 
 async def update_objects_tags(request, objects_tags_data, check_ids = False):
