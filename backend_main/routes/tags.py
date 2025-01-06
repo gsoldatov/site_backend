@@ -4,6 +4,7 @@ from jsonschema import validate
 from backend_main.middlewares.connection import start_transaction
 from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
 from backend_main.db_operations.objects_tags import update_objects_tags
+from backend_main.domains.objects_tags import add_objects_tags
 from backend_main.domains.objects_tags import view_tags_objects
 from backend_main.middlewares.connection import start_transaction
 
@@ -11,10 +12,10 @@ from backend_main.validation.schemas.tags import tags_add_schema, tags_update_sc
     tags_get_page_tag_ids_schema, tags_search_schema
 from backend_main.util.json import row_proxy_to_dict
 
-from backend_main.types.request import request_time_key, request_log_event_key
+from backend_main.types.request import Request, request_time_key, request_log_event_key
 
 
-async def add(request):
+async def add(request: Request):
     # Validate request data and add missing values
     data = await request.json()
     validate(instance = data, schema = tags_add_schema)
@@ -32,7 +33,8 @@ async def add(request):
     tag = row_proxy_to_dict(await add_tag(request, data["tag"]))
 
     # Tag objects with the new tag
-    tag["object_updates"] = await update_objects_tags(request, {"tag_ids": [tag["tag_id"]], "added_object_ids": added_object_ids})
+    added_objects_tags = await add_objects_tags(request, added_object_ids, [tag["tag_id"]])
+    tag["object_updates"] = {"added_object_ids": added_objects_tags.object_ids, "removed_object_ids": []}
 
     request[request_log_event_key]("INFO", "route_handler", f"Finished adding tag.", details=f"tag_id = {tag['tag_id']}.")
     return {"tag": tag}

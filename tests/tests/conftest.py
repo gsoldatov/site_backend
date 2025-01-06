@@ -6,7 +6,7 @@ from copy import deepcopy
 
 import psycopg2
 import pytest
-from pytest_aiohttp.plugin import aiohttp_client
+from pytest_aiohttp.plugin import aiohttp_client, TestClient
 
 import alembic.config
 
@@ -162,7 +162,7 @@ async def app(config, db_cursor, insert_data):
 
 
 @pytest.fixture
-async def cli(aiohttp_client, app):
+async def cli(aiohttp_client, app) -> TestClient:
     """ Test client object. """
     return await aiohttp_client(app)
 
@@ -185,6 +185,6 @@ async def app_with_search(config_with_search, db_cursor, insert_data, aiohttp_cl
 
 
 @pytest.fixture
-async def cli_with_search(aiohttp_client, app_with_search):
+async def cli_with_search(aiohttp_client, app_with_search) -> TestClient:
     """ Test client object. """
     return await aiohttp_client(app_with_search)
