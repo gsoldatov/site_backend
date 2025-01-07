@@ -72,6 +72,10 @@ async def delete_objects_tags(request: Request, object_ids: list[int], tag_ids: 
     # Handle empty lists
     if len(object_ids) == 0 or len(tag_ids) == 0: return ObjectsTagsLists(object_ids=[], tag_ids=[])
 
+    # Removed duplicates
+    object_ids = list(set(object_ids))
+    tag_ids = list(set(tag_ids))
+
     # Run auth checks
     await authorize_objects_modification(request, object_ids)
     await authorize_objects_tagging(request, tag_ids)

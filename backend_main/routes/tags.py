@@ -3,9 +3,7 @@ from jsonschema import validate
 
 from backend_main.middlewares.connection import start_transaction
 from backend_main.db_operations.tags import add_tag, update_tag, view_tags, delete_tags, get_page_tag_ids_data, search_tags
-from backend_main.db_operations.objects_tags import update_objects_tags
-from backend_main.domains.objects_tags import add_objects_tags
-from backend_main.domains.objects_tags import view_tags_objects
+from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_tags_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.validation.schemas.tags import tags_add_schema, tags_update_schema, tags_view_delete_schema, \
@@ -55,12 +53,15 @@ async def update(request):
     await start_transaction(request)
 
     # Update the tag
-    tag_id = data["tag"]["tag_id"]
     tag = row_proxy_to_dict(await update_tag(request, data["tag"]))
 
     # Update object's tags
-    tag["object_updates"] = await update_objects_tags(request, 
-        {"tag_ids": [tag_id], "added_object_ids": added_object_ids, "removed_object_ids": removed_object_ids})
+    added_objects_tags = await add_objects_tags(request, added_object_ids, [tag["tag_id"]])
+    removed_objects_tags = await delete_objects_tags(request, removed_object_ids, [tag["tag_id"]])
+    tag["object_updates"] = {
+        "added_object_ids": added_objects_tags.object_ids,
+        "removed_object_ids": removed_objects_tags.object_ids
+    }
     
     request[request_log_event_key]("INFO", "route_handler", f"Finished updating tag.", details=f"tag_id = {tag['tag_id']}.")
     return {"tag": tag}
