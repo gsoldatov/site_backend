@@ -14,9 +14,10 @@ from tests.db_operations.tags import insert_tags
 
 async def test_incorrect_request_body(cli, db_cursor):
     insert_tags([get_test_tag(1)], db_cursor)
+    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
 
     # Incorrect types
-    for added_object_ids in ["not a list", 1, {}, [-1], [0]]:
+    for added_object_ids in ["not a list", 1, {}, ["a"], [-1], [0]]:
         tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
         tag["added_object_ids"] = added_object_ids
         resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
@@ -24,7 +25,7 @@ async def test_incorrect_request_body(cli, db_cursor):
     
     # Too many added objects
     tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
-    tag["added_object_ids"] = ["a"] * 101
+    tag["added_object_ids"] = [1] * 101
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
 

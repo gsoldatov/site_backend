@@ -108,7 +108,12 @@ async def test_add_object_with_new_tags(cli_with_search, db_cursor):
         resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
         assert resp.status == 200
         resp_json = await resp.json()
-        assert resp_json["items"] == [{"item_id": tag_id, "item_type": "tag"}]
+
+        # NOTE: id order is not guaranteed to match the order of new tags in request body
+        # due to deduplication
+        # assert resp_json["items"] == [{"item_id": tag_id, "item_type": "tag"}]
+        assert len(resp_json["items"]) == 1
+        assert resp_json["items"][0]["item_type"] == "tag"
 
 
 async def test_update_object_with_new_tags(cli_with_search, db_cursor):

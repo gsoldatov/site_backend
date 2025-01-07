@@ -11,7 +11,7 @@ from backend_main.validation.schemas.object_data import link_object_data, markdo
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, get_elements_in_composite_hierarchy, set_modified_at
 from backend_main.db_operations.objects_tags import update_objects_tags
-from backend_main.domains.objects_tags import view_objects_tags
+from backend_main.domains.objects_tags import add_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
@@ -56,7 +56,8 @@ async def add(request):
         response_data["object_data"] = returned_object_data
 
     # Set tags of the new object
-    response_data["tag_updates"] = await update_objects_tags(request, {"object_ids": [object_id], "added_tags": added_tags})
+    added_objects_tags = await add_objects_tags(request, [object_id], added_tags)
+    response_data["tag_updates"] = {"added_tag_ids": added_objects_tags.tag_ids, "removed_tag_ids": []}
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
     request[request_log_event_key]("INFO", "route_handler", f"Finished adding object.", details=f"object_id = {object_id}.")

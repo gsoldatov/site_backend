@@ -26,7 +26,7 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
     )
 
     existing_lowered_names_to_ids: dict[str, int] = {
-        row["lowered_tag_name"]: row["tag_id"] for row in result.fetchall()
+        row["lowered_tag_name"]: row["tag_id"] for row in await result.fetchall()
     }
     existing_names_to_ids = {lowered_names_to_names[k]: v for k, v in existing_lowered_names_to_ids.items()}
 
@@ -37,7 +37,6 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
 
     # Insert unmapped tag names
     request_time = request[request_time_key]
-    new_tag_ids = []
 
     result = await request[request_connection_key].execute(
         tags.insert()
@@ -51,7 +50,8 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
         } for name in new_tag_names])
     )
 
-    new_names_to_ids: dict[str, int] = {row["tag_name"]: row["tag_id"] for row in result.fetchall()}
+    new_names_to_ids: dict[str, int] = {row["tag_name"]: row["tag_id"] for row in await result.fetchall()}
+    new_tag_ids: list[int] = [v for v in new_names_to_ids.values()]
     
     # Add new tags as pending for `searchables` update
     request[request_log_event_key](

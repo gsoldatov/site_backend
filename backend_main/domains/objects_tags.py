@@ -24,6 +24,20 @@ async def add_objects_tags(request: Request, object_ids: list[int], tags: list[i
     """
     # Handle empty lists
     if len(object_ids) == 0 or len(tags) == 0: return ObjectsTagsLists(object_ids=[], tag_ids=[])
+    
+    # Remove duplicate string and numeric tags
+    tags_set: set[int | str] = set()
+    unique_tags: list[int | str] = []
+    for t in tags:
+        if isinstance(t, int):
+            if t not in tags_set:
+                unique_tags.append(t)
+                tags_set.add(t)
+        else:
+            if t.lower() not in tags_set:
+                unique_tags.append(t)
+                tags_set.add(t.lower())
+    tags = unique_tags
 
     # Run auth checks
     added_tag_names = [t for t in tags if isinstance(t, str)]
@@ -36,6 +50,7 @@ async def add_objects_tags(request: Request, object_ids: list[int], tags: list[i
     added_tag_names_to_id_map = await _add_tags_by_name(request, added_tag_names)
 
     # Get added tag IDs list & remove duplicate object & tag IDs
+    # (handle case, where tag is passed both as a string & as an ID)
     object_ids = list(set(object_ids))
     added_tag_ids = list(set(
         [t if isinstance(t, int) else added_tag_names_to_id_map.map[t] for t in tags]
@@ -54,7 +69,6 @@ async def add_objects_tags(request: Request, object_ids: list[int], tags: list[i
 
         return ObjectsTagsLists(object_ids=object_ids, tag_ids=added_tag_ids)
     except ObjectsTagsNotFound as e:
-        # TODO check tag_id not found case error message
         request[request_log_event_key]("INFO", "domain", "Failed to add objects' tags.", details=str(e))
         raise web.HTTPBadRequest(text=error_json(e), content_type="application/json")
 
