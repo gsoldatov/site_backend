@@ -10,7 +10,6 @@ from backend_main.validation.schemas.object_data import link_object_data, markdo
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types, delete_objects,\
     get_page_object_ids_data, search_objects, get_elements_in_composite_hierarchy, set_modified_at
-from backend_main.db_operations.objects_tags import update_objects_tags
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -196,14 +195,23 @@ async def update_tags(request):
     # Perform basic data validation
     data = await request.json()
     validate(instance=data, schema=objects_update_tags_schema)
-
-    # Update objects_tags and send response
+    object_ids = data["object_ids"]
+    added_tags = data.get("added_tags", [])
+    removed_tag_ids = data.get("removed_tag_ids", [])
     response_data = {}
+
+    await start_transaction(request)
+
     # Update tags
-    response_data["tag_updates"] = await update_objects_tags(request, data, check_ids=True)
+    added_objects_tags = await add_objects_tags(request, object_ids, added_tags)
+    removed_objects_tags = await delete_objects_tags(request, object_ids, removed_tag_ids)
+    response_data["tag_updates"] = {
+        "added_tag_ids": added_objects_tags.tag_ids, 
+        "removed_tag_ids": removed_objects_tags.tag_ids
+    }
     
     # Set objects' modified_at time
-    response_data["modified_at"] = (await set_modified_at(request, data["object_ids"])).isoformat()
+    response_data["modified_at"] = (await set_modified_at(request, object_ids)).isoformat()
 
     request[request_log_event_key]("INFO", "route_handler", "Updated tags for objects.")
     return response_data

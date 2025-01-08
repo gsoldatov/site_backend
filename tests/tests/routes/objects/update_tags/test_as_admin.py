@@ -6,100 +6,220 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
-from tests.data_generators.objects import get_objects_attributes_list
+from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
-
-from tests.data_sets.tags import tag_list
+from tests.data_generators.tags import get_test_tag
 
 from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 
 
-async def test_objects_update_tags_route(cli, db_cursor):
-    obj_list = get_objects_attributes_list(1, 10)
+async def test_incorrect_request_body(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2], db_cursor)
 
-    # Insert mock values
-    insert_tags(tag_list, db_cursor, generate_ids=True)
-    insert_objects(obj_list, db_cursor)
-    objects_tags = {1: [1, 2, 3], 2: [3, 4, 5]}
-    insert_objects_tags([1], objects_tags[1], db_cursor)
-    insert_objects_tags([2], objects_tags[2], db_cursor)
+    # Missing attributes
+    for attrs in [("object_ids",), ("added_tags", "removed_tag_ids")]:
+        body = {"object_ids": [1, 2], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
+        for attr in attrs: body.pop(attr)
 
-    # Incorrect attributes
-    for attr in ["remove_all_tags", "tag_ids", "added_object_ids", "removed_object_ids"]:
-        updates = {"object_ids": [1], "added_tags": [3, 4, 5, 6]}
-        updates[attr] = [1, 2, 3]
-        resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+        resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
         assert resp.status == 400
-
-    # Incorrect parameter values
-    for attr in ["object_ids", "added_tags", "removed_tag_ids"]:
-        for incorrect_value in [1, "1", {}]:
-            updates = {"object_ids": [1], "added_tags": [3, 4, 5, 6]}
-            updates[attr] = incorrect_value
-            resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+    
+    # Incorrect attribute values
+    incorrect_values = {
+        "object_ids": [1, True, "", {}, ["a"], [-1], [0], [], [1] * 101],
+        "added_tags": [1, True, "", {}, ["a" * 256], [-1], [0], [1] * 101],
+        "removed_tag_ids": [1, True, "", {}, ["a"], [-1], [0], [1] * 101]
+    }
+    for attr, values in incorrect_values.items():
+        for value in values:
+            body = {"object_ids": [1, 2], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
+            body[attr] = value
+            resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
             assert resp.status == 400
-    
-    # Add non-existing tags by tag_id (and receive a 400 error)
-    updates = {"object_ids": [1], "added_tags": [1, 100]}
-    resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+
+
+async def test_non_existing_object_ids(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2], db_cursor)
+
+    body = {"object_ids": [1, 2, 100], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
-    # Update non-existing objects (and receive a 400 error)
-    updates = {"object_ids": [1, 100], "added_tags": [3, 4, 5, 6]}
-    resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+    db_cursor.execute("SELECT tag_id FROM tags WHERE tag_name = 'new tag'")
+    assert not db_cursor.fetchone()
+
+
+async def test_non_existing_added_tag_ids(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2], db_cursor)
+
+    body = {"object_ids": [1, 2], "added_tags": ["new tag", 100]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 400
-    
-    # Add new tags by tag_name and tag_ids (and check duplicate handling)
-    updates = {"object_ids": [1], "added_tags": [4, 5, 6, "New Tag", 4, 5, "c0"]}
-    resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+
+    db_cursor.execute("SELECT tag_id FROM tags WHERE tag_name = 'new tag'")
+    assert not db_cursor.fetchone()
+
+
+async def test_non_existing_removed_tag_ids(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+
+    body = {"object_ids": [1, 2], "removed_tag_ids": [1, 100]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
-    data = await resp.json()
-    added_tag_ids = data.get("tag_updates", {}).get("added_tag_ids")
-    assert sorted(added_tag_ids) == [3, 4, 5, 6, 11] # c0 = 3; 11 was added for "New Tag"
-    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 6, 11]
-    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 2")
-    assert sorted([r[0] for r in db_cursor.fetchall()]) == sorted(objects_tags[2])
-    assert data.get("tag_updates", {}).get("removed_tag_ids") == []
 
-    # Check modified_at values for modfied and not modified objects
-    # Response from server format: "2021-04-27T15:29:41.701892+00:00"
-    # Cursor value format - datetime with timezone, converted to str: "2021-04-27 15:43:02.557558"
-    db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 1")
-    db_modified_at_value = db_cursor.fetchone()[0]
-    assert db_modified_at_value == datetime.strptime(data["modified_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted((r[0] for r in db_cursor.fetchall())) == [2, 3, 4]
 
-    db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = 2")
-    assert db_cursor.fetchone()[0] == obj_list[1]["modified_at"]
 
-    # Remove tags by tag_id
-    updates = {"object_ids": [1], "removed_tag_ids": [1, 2, 3]}
-    resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+async def test_string_added_tags(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i, tag_name=f"tag {i}") for i in range(1, 6)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+
+    # Add string tags & check duplicate handling
+    body = {
+        "object_ids": [1, 2], 
+        "added_tags": [
+            "New tag",                          # new tag
+            "Duplicate tag", "DUPLICATE TAG",   # new tag passed twice
+            "Tag 1",            # existing tag name as string
+            "Tag 2", "TAG 2",   # duplicate existing tag name as string
+            "Tag 3", 3          # existing tag name & its tag ID
+        ]
+    }
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
+
     data = await resp.json()
-    assert data.get("tag_updates", {}).get("added_tag_ids") == []
-    removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
-    assert sorted(removed_tag_ids) == [1, 2, 3]
-    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in db_cursor.fetchall()]) == [4, 5, 6, 11] # 1, 2, 3 were removed
-    
+    added_tag_ids = data["tag_updates"]["added_tag_ids"]
+    assert type(added_tag_ids) == list
+    assert sorted(added_tag_ids) == [1, 2, 3, 6, 7]     # 4 & 5 already exist
+
+    # Check added objects' tags
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 6, 7]   # tag 5 was not added before
+
+    # Check if new tags were added & is_published is set to true
+    db_cursor.execute(f"SELECT tag_id, is_published FROM tags WHERE tag_name IN ('New tag', 'Duplicate tag')")
+    assert [r[0] for r in db_cursor.fetchall()] == [6, 7]
+    assert all((r[1] for r in db_cursor.fetchall()))
+
+
+async def test_numeric_added_tags(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2], db_cursor)
+
+    # Add numeric tags and check existing tags & duplicate handling
+    body = {"object_ids": [1, 2], "added_tags": [1, 2, 3, 4, 3, 4]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
+    assert resp.status == 200
+
+    data = await resp.json()
+    added_tag_ids = data["tag_updates"]["added_tag_ids"]
+    assert type(added_tag_ids) == list
+    assert sorted(added_tag_ids) == [1, 2, 3, 4]
+
+    # Check current objects' tags
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4]
+
+
+async def test_remove_tags(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+
+    # Remove tags and check duplicate handling
+    body = {"object_ids": [1, 2], "removed_tag_ids": [3, 4, 4, 4]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
+    assert resp.status == 200
+
+    data = await resp.json()
+    removed_tag_ids = data["tag_updates"]["removed_tag_ids"]
+    assert type(removed_tag_ids) == list
+    assert sorted(removed_tag_ids) == [3, 4]
+
+    # Check current objects' tags
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2]
+
+
+async def test_add_and_remove_tags(cli, db_cursor):
+    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2], db_cursor)
+
     # Add and remove tags simultaneously
-    updates = {"object_ids": [1, 2], "added_tags": [1, 2, "New Tag 2"], "removed_tag_ids": [3, 4, 5]}
-    resp = await cli.put("/objects/update_tags", json=updates, headers=headers_admin_token)
+    body = {"object_ids": [1, 2], "added_tags": [3, 4, "new tag"], "removed_tag_ids": [1, 2]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
+
     data = await resp.json()
-    added_tag_ids = data.get("tag_updates", {}).get("added_tag_ids")
-    assert sorted(added_tag_ids) == [1, 2, 12] # 12 was added for "New Tag 2"
-    removed_tag_ids = data.get("tag_updates", {}).get("removed_tag_ids")
-    assert sorted(removed_tag_ids) == [3, 4, 5]
-    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
-    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 6, 11, 12] # 1, 2, 12 were added; 4, 5 were removed
-    db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 2")
-    assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 12] # 1, 2 were added; 3, 4, 5 were removed
+    assert sorted(data["tag_updates"]["added_tag_ids"]) == [3, 4, 5]
+    assert sorted(data["tag_updates"]["removed_tag_ids"]) == [1, 2]
+
+    # Check current objects' tags
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5]
+
+
+async def test_modified_at_after_tags_addition(cli, db_cursor):
+    insert_objects([
+        get_test_object(i, owner_id=1, modified_at=datetime(2001, 1, 1), pop_keys=["object_data"])
+    for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(1)], db_cursor, generate_ids=True)
+
+    # Check if `modified_at` attribute of an object is updated
+    body = {"object_ids": [1, 2], "added_tags": [1]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
+    assert resp.status == 200
+
+    data = await resp.json()
+    response_modified_at = datetime.fromisoformat(data["modified_at"])
+    assert timedelta(seconds=-1) < datetime.now(tz=timezone.utc) - response_modified_at < timedelta(seconds=1)
+
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = {object_id}")
+        assert db_cursor.fetchone()[0] == response_modified_at
+
+
+async def test_modified_at_after_tags_removal(cli, db_cursor):
+    insert_objects([
+        get_test_object(i, owner_id=1, modified_at=datetime(2001, 1, 1), pop_keys=["object_data"])
+    for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(1)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1], db_cursor)
+
+    # Check if `modified_at` attribute of an object is updated
+    body = {"object_ids": [1, 2], "removed_tag_ids": [1]}
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
+    assert resp.status == 200
+
+    data = await resp.json()
+    response_modified_at = datetime.fromisoformat(data["modified_at"])
+    assert timedelta(seconds=-1) < datetime.now(tz=timezone.utc) - response_modified_at < timedelta(seconds=1)
+
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT modified_at FROM objects WHERE object_id = {object_id}")
+        assert db_cursor.fetchone()[0] == response_modified_at
 
 
 if __name__ == "__main__":

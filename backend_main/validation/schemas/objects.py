@@ -150,11 +150,15 @@ objects_search_schema = {
     }
 }
 
-objects_update_tags_schema = {  # Detailed property checks are performed in update_objects_tags function
+objects_update_tags_schema = {
     "type": "object",
     "additionalProperties": False,
+    "anyOf": [
+        { "required": ["object_ids", "added_tags"] },
+        { "required": ["object_ids", "removed_tag_ids"] }
+    ],
     "properties": {
-        "object_ids": non_empty_list_of_ids(),
+        "object_ids": non_empty_list_of_ids(max_items=100),
         "added_tags": added_tags,
         "removed_tag_ids": removed_tag_ids
     }
