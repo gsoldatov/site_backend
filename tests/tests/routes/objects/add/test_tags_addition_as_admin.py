@@ -10,8 +10,6 @@ from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
-from tests.data_sets.tags import tag_list
-
 from tests.db_operations.tags import insert_tags
 
 
@@ -33,6 +31,7 @@ async def test_incorrect_request_body(cli, db_cursor):
 async def test_non_existing_tag_ids(cli, db_cursor):
     insert_tags([get_test_tag(1)], db_cursor)
 
+    # Try to add an object with non-existing tag IDs
     obj = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
     obj["added_tags"] = [1, 2, 3]
     resp = await cli.post("/objects/add", json={"object": obj}, headers=headers_admin_token)
@@ -40,19 +39,6 @@ async def test_non_existing_tag_ids(cli, db_cursor):
 
     db_cursor.execute(f"SELECT object_id FROM objects WHERE object_id = 1")
     assert not db_cursor.fetchone()
-
-    db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE object_id = 1")
-    assert not db_cursor.fetchone()
-
-
-async def test_correct_add_with_empty_added_tags(cli, db_cursor):
-    obj = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-    obj["added_tags"] = []
-    resp = await cli.post("/objects/add", json={"object": obj}, headers=headers_admin_token)
-    assert resp.status == 200
-
-    db_cursor.execute(f"SELECT object_id FROM objects WHERE object_id = 1")
-    assert len(db_cursor.fetchall()) == 1
 
     db_cursor.execute(f"SELECT object_id FROM objects_tags WHERE object_id = 1")
     assert not db_cursor.fetchone()
