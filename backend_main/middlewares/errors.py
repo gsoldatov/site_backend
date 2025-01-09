@@ -25,7 +25,7 @@ async def error_middleware(request: Request, handler: Handler) -> web.Response:
         raise web.HTTPBadRequest(text=error_json("Request body must be a valid JSON document."), content_type="application/json")
     
     except ValidationError as e:
-        error_dict = e.json(include_url=False, include_input=False)
+        error_dict = e.json(include_url=False)
         request[request_log_event_key]("WARNING", "request", "Request body was not validated.", details=str(error_dict))
         raise web.HTTPBadRequest(text = error_json(error_dict), content_type="application/json")
 

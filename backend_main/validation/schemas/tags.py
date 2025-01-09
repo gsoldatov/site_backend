@@ -2,25 +2,6 @@ from backend_main.validation.schemas.common import non_empty_list_of_ids, list_o
 from backend_main.validation.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
-tags_add_schema = {
-    "type": "object",
-    "required": ["tag"],
-    "additionalProperties": False,
-    "properties": {
-        "tag": {
-            "type": "object",
-            "required": ["tag_name", "tag_description", "is_published"],
-            "additionalProperties": False,
-            "properties": {
-                "tag_name": name,
-                "tag_description": description,
-                "added_object_ids": added_object_ids,
-                "is_published": {"type": "boolean"}
-            }
-        }
-    }
-}
-
 tags_update_schema = {
     "type": "object",
     "required": ["tag"],

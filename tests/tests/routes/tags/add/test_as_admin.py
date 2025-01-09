@@ -4,7 +4,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag
+from tests.data_generators.tags import get_test_tag, get_added_tag
 
 from tests.data_sets.tags import incorrect_tag_values
 
@@ -17,14 +17,14 @@ async def test_incorrect_request_body(cli):
     assert resp.status == 400
 
     # Check required elements
-    for attr in ("tag_name", "tag_description", "is_published"):
-        tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
+    for attr in ("tag_name", "tag_description", "is_published", "added_object_ids"):
+        tag = get_added_tag()
         tag.pop(attr)
         resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
         assert resp.status == 400
 
     # Unallowed elements
-    tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
+    tag = get_added_tag()
     tag["unallowed"] = "unallowed"
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
@@ -32,7 +32,7 @@ async def test_incorrect_request_body(cli):
     # Incorrect values
     for k, v in incorrect_tag_values:
         if k != "tag_id":
-            tag = get_test_tag(1, pop_keys=["tag_id", "created_at", "modified_at"])
+            tag = get_added_tag()
             tag[k] = v
             resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
             assert resp.status == 400
@@ -44,20 +44,19 @@ async def test_add_a_duplicate_tag(cli, db_cursor):
     insert_tags([get_test_tag(100, tag_name=tag_name)], db_cursor)
 
     # Try adding a tag with the existing name
-    tag = get_test_tag(1, tag_name=tag_name, pop_keys=["tag_id", "created_at", "modified_at"])
+    tag = get_added_tag(tag_name=tag_name)
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
 
     # Try adding a tag with the existing name in another registry
-    tag = get_test_tag(1, tag_name=tag_name.upper(), pop_keys=["tag_id", "created_at", "modified_at"])
+    tag = get_added_tag(tag_name=tag_name.upper())
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_a_correct_tag(cli, db_cursor):
     # Write a correct tag
-    tag_id = 1
-    tag = get_test_tag(tag_id, is_published=False, pop_keys=["tag_id", "created_at", "modified_at"])
+    tag = get_added_tag(is_published=False)
     resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -71,7 +70,7 @@ async def test_add_a_correct_tag(cli, db_cursor):
     assert tag["tag_description"] == resp_tag["tag_description"]
     assert tag["is_published"] == resp_tag["is_published"]
 
-    db_cursor.execute(f"SELECT tag_name, tag_description, is_published FROM tags WHERE tag_id = {tag_id}")
+    db_cursor.execute("SELECT tag_name, tag_description, is_published FROM tags WHERE tag_id = 1")
     assert db_cursor.fetchone() == (tag["tag_name"], tag["tag_description"], tag["is_published"])
 
 

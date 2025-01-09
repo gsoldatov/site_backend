@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 
 
 incorrect_tag_values = [
-    ("tag_id", -1), ("tag_id", "abc"), 
+    ("tag_id", 0), ("tag_id", "abc"), 
     ("tag_name", 123), ("tag_name", ""), ("tag_name", "a"*256),
     ("tag_description", 1),
     ("is_published", 1), ("is_published", "abc")

@@ -80,11 +80,11 @@ def forbid_non_admin_changing_object_owner(request: Request, objects_attributes:
                         )
 
 
-def forbid_non_admin_adding_non_published_tag(request: Request, tag_attributes: TagIsPublished):
+def forbid_non_admin_adding_non_published_tag(request: Request, tag: TagIsPublished):
     """
     Raises 403 if 'user_level' != admin and `is_published` prop of tag attributes is not true.
     """
-    if request[request_user_info_key].user_level != "admin" and not tag_attributes["is_published"]:
+    if request[request_user_info_key].user_level != "admin" and tag.is_published == False:
         request[request_log_event_key]("WARNING", "auth",
                 "Non-admin user can't perform requested action(-s).")
         raise web.HTTPForbidden(

@@ -1,10 +1,34 @@
 from sqlalchemy import select, func
-
-from backend_main.util.searchables import add_searchable_updates_for_tags
+from sqlalchemy.sql import and_
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key, request_time_key, request_log_event_key
 from backend_main.types.domains.tags import TagNameToIDMap
+
+from backend_main.util.searchables import add_searchable_updates_for_tags
+
+from backend_main.types.app import app_tables_key
+from backend_main.types.request import Request, request_log_event_key, request_connection_key
+from backend_main.types.domains.tags import Tag, AddedTag
+
+
+async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
+    """
+    Insert a new row into "tags" table with provided `new_tag` attributes.
+    """
+    tags = request.config_dict[app_tables_key].tags
+
+    values = added_tag.model_dump()
+
+    result = await request[request_connection_key].execute(
+        tags.insert()
+        .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
+                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
+        .values(values)
+    )
+
+    row = await result.fetchone()
+    return Tag.model_validate({**row})
 
 
 async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToIDMap:
@@ -12,7 +36,7 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
     Adds tags for each name from `tag_names`, which does not exist in the database.
     Returns a mapping between tag names and added or existing tag IDs.
     """
-    if len(tag_names) == 0: return {}
+    if len(tag_names) == 0: return TagNameToIDMap(map={})
 
     tags = request.config_dict[app_tables_key].tags
 

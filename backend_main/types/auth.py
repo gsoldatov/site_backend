@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Protocol
 
 
 class ObjectOwnerID(TypedDict):
@@ -6,5 +6,8 @@ class ObjectOwnerID(TypedDict):
     owner_id: int
 
 
-class TagIsPublished(TypedDict):
+class TagIsPublished(Protocol):
+    """
+    Interface representing tag data including `is_published` attribute.
+    """
     is_published: bool

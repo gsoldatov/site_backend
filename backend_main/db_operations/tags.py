@@ -16,32 +16,6 @@ from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key, request_connection_key
 
 
-async def add_tag(request, tag_attributes):
-    """
-        Insert a new row into "tags" table with provided object_attributes.
-        Returns a RowProxy object with the inserted data.
-    """
-    tags = request.config_dict[app_tables_key].tags
-    
-    # Forbid to add non-published tags for non-admins
-    forbid_non_admin_changing_object_owner(request, tag_attributes)
-
-    result = await request[request_connection_key].execute(
-        tags.insert()
-        .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
-        .values(tag_attributes)
-    )
-
-    record = await result.fetchone()
-
-    # Add tag as pending for `searchables` update
-    add_searchable_updates_for_tags(request, [record["tag_id"]])
-
-    request[request_log_event_key]("INFO", "db_operation", "Added tag.", details=f"tag_id = {record['tag_id']}")
-    return record 
-
-
 async def update_tag(request, tag_attributes):
     """
         Updates the tag attributes with provided tag_attributes.
@@ -52,6 +26,7 @@ async def update_tag(request, tag_attributes):
     tag_id = tag_attributes["tag_id"]
 
     # Forbid to add non-published tags for non-admins
+    # TODO change to `forbid_non_admin_adding_non_published_tag`
     forbid_non_admin_changing_object_owner(request, tag_attributes)
 
     result = await request[request_connection_key].execute(
