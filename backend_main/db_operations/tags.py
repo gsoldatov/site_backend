@@ -16,32 +16,6 @@ from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key, request_connection_key
 
 
-async def view_tags(request, tag_ids):
-    """
-        Returns a collection of RowProxy objects with tag attributes for provided tag_ids.
-        Raises a 404 error tags do not exist.
-    """
-    tags = request.config_dict[app_tables_key].tags
-
-    # Tags auth filter for non-admin user levels
-    tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
-
-    rows = await request[request_connection_key].execute(
-        select(tags)
-        .where(and_(
-            tags_auth_filter_clause,
-            tags.c.tag_id.in_(tag_ids))
-    ))
-
-    result = await rows.fetchall()
-    if len(result) == 0:
-        msg = "Tag(-s) not found."
-        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    
-    return result
-
-
 async def delete_tags(request, tag_ids):
     """
         Deletes tag attributes for provided tag_ids.

@@ -3,9 +3,9 @@ from aiohttp import web
 from backend_main.auth.route_access.common import forbid_non_admin_adding_non_published_tag
 
 from backend_main.db_operations2.tags import add_tag as _add_tag, \
-    update_tag as _update_tag
+    update_tag as _update_tag, view_tags as _view_tags
 
-from backend_main.util.exceptions import TagNotFound
+from backend_main.util.exceptions import TagsNotFound
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
@@ -39,8 +39,17 @@ async def update_tag(request: Request, tag: Tag) -> Tag:
         request[request_log_event_key]("INFO", "domain", "Updated tag.", details=f"tag_id = {tag.tag_id}")
         return updated_tag
 
-    except TagNotFound:
+    except TagsNotFound:
         # Handle non-existing tag update
         msg = "Tag not found."
         request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_id = {tag.tag_id}")
+        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+
+
+async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
+    try:
+        return await _view_tags(request, tag_ids)
+    except TagsNotFound:
+        msg = "Tag(-s) not found."
+        request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_ids = {tag_ids}")
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")

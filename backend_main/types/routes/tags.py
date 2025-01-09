@@ -9,8 +9,6 @@ class _TagsAddUpdateResponseTag(Tag):
     """
     /tags/add & /tags/update response tag attributes
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
-
     added_object_ids: list[PositiveInt]
     removed_object_ids: list[PositiveInt]
 
@@ -56,3 +54,16 @@ class TagsUpdateRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     tag: _TagsUpdateRequestTag
+
+
+# /tags/view
+class TagsViewRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    tag_ids: list[PositiveInt] = Field(min_length=1, max_length=1000)
+
+
+class TagsViewResponseBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    tags: list[Tag]

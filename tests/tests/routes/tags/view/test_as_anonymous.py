@@ -38,29 +38,30 @@ async def test_view_existing_tags(cli, db_cursor):
         assert field in data["tags"][0]
 
 
-async def test_view_object_ids_of_tags(cli, db_cursor):
-    # Insert mock data
-    insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
+# # NOTE: `return_current_object_ids` option was removed & current object IDs are no longer returned
+# async def test_view_object_ids_of_tags(cli, db_cursor):
+#     # Insert mock data
+#     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
 
-    object_attributes = [get_test_object(i, owner_id=1 if i <= 2 else 2, is_published=i % 2 == 0, pop_keys=["object_data"]) for i in range(1, 5)]
-    insert_objects(object_attributes, db_cursor)
+#     object_attributes = [get_test_object(i, owner_id=1 if i <= 2 else 2, is_published=i % 2 == 0, pop_keys=["object_data"]) for i in range(1, 5)]
+#     insert_objects(object_attributes, db_cursor)
 
-    insert_tags([get_test_tag(1), get_test_tag(2)], db_cursor)
+#     insert_tags([get_test_tag(1), get_test_tag(2)], db_cursor)
 
-    insert_objects_tags([1, 2, 3, 4], [1], db_cursor)
-    insert_objects_tags([1, 3], [2], db_cursor)
+#     insert_objects_tags([1, 2, 3, 4], [1], db_cursor)
+#     insert_objects_tags([1, 3], [2], db_cursor)
     
-    # View tag with `return_current_object_ids` without any published objects tagged by it
-    resp = await cli.post("/tags/view", json={"tag_ids": [2], "return_current_object_ids": True})
-    assert resp.status == 200
-    tag_data = (await resp.json())["tags"][0]
-    assert tag_data["current_object_ids"] == []
+#     # View tag with `return_current_object_ids` without any published objects tagged by it
+#     resp = await cli.post("/tags/view", json={"tag_ids": [2], "return_current_object_ids": True})
+#     assert resp.status == 200
+#     tag_data = (await resp.json())["tags"][0]
+#     assert tag_data["current_object_ids"] == []
 
-    # View tag with `return_current_object_ids` with both published and non-published objects
-    resp = await cli.post("/tags/view", json={"tag_ids": [1], "return_current_object_ids": True})
-    assert resp.status == 200
-    tag_data = (await resp.json())["tags"][0]
-    assert sorted(tag_data["current_object_ids"]) == [2, 4]
+#     # View tag with `return_current_object_ids` with both published and non-published objects
+#     resp = await cli.post("/tags/view", json={"tag_ids": [1], "return_current_object_ids": True})
+#     assert resp.status == 200
+#     tag_data = (await resp.json())["tags"][0]
+#     assert sorted(tag_data["current_object_ids"]) == [2, 4]
 
 if __name__ == "__main__":
     run_pytest_tests(__file__)

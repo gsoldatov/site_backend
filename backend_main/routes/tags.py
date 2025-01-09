@@ -2,19 +2,18 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.middlewares.connection import start_transaction
-from backend_main.db_operations.tags import view_tags, delete_tags, get_page_tag_ids_data, search_tags
-from backend_main.domains.tags import add_tag, update_tag
-from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_tags_objects
+from backend_main.db_operations.tags import delete_tags, get_page_tag_ids_data, search_tags
+from backend_main.domains.tags import add_tag, update_tag, view_tags
+from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.validation.schemas.tags import tags_view_delete_schema, \
     tags_get_page_tag_ids_schema, tags_search_schema
-from backend_main.util.json import row_proxy_to_dict
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key
 from backend_main.types.domains.tags import AddedTag, Tag
 from backend_main.types.routes.tags import TagsAddRequestBody, TagsAddUpdateResponseBody, \
-    TagsUpdateRequestBody
+    TagsUpdateRequestBody, TagsViewRequestBody, TagsViewResponseBody
 
 
 async def add(request: Request) -> TagsAddUpdateResponseBody:
@@ -45,7 +44,7 @@ async def add(request: Request) -> TagsAddUpdateResponseBody:
 
 
 async def update(request: Request) -> TagsAddUpdateResponseBody:
-    # Validate request data and add missing values
+    # Validate request data
     data = TagsUpdateRequestBody.model_validate(await request.json())
 
     # Start a transaction
@@ -71,29 +70,17 @@ async def update(request: Request) -> TagsAddUpdateResponseBody:
     return response
 
 
-async def view(request):
+async def view(request: Request) -> TagsViewResponseBody:
     # Validate request data
-    data = await request.json()
-    validate(instance = data, schema = tags_view_delete_schema)
+    data = TagsViewRequestBody.model_validate(await request.json())
 
-    # Get parameters and initialize container for response data
-    tag_ids = data["tag_ids"]
-    return_current_object_ids = data.get("return_current_object_ids", False)
-    tags = {}
-
-    # Query tag IDs
-    for row in await view_tags(request, tag_ids):
-        tags[row["tag_id"]] = row_proxy_to_dict(row)
-        tags[row["tag_id"]]["current_object_ids"] = []
-
-    # Query tagged objects
-    if return_current_object_ids:
-        tags_objects = await view_tags_objects(request, tag_ids)
-        for tag_id in tags:
-            tags[tag_id]["current_object_ids"] = tags_objects.map[tag_id]
+    # Get tag attributes
+    tags = await view_tags(request, data.tag_ids)
     
-    response = {"tags": [tags[k] for k in tags]}
-    request[request_log_event_key]("INFO", "route_handler", "Returning tags.", details=f"tag_ids = {tag_ids}")
+    # Log and return response
+    response = TagsViewResponseBody(tags=tags)
+    request[request_log_event_key]("INFO", "route_handler", "Returning tags.", 
+                                   details=f"tag_ids = {data.tag_ids}")
     return response
 
 

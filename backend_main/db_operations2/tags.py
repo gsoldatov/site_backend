@@ -1,16 +1,14 @@
 from sqlalchemy import select, func
 from sqlalchemy.sql import and_
 
-from backend_main.types.app import app_tables_key
-from backend_main.types.request import Request, request_connection_key, request_time_key, request_log_event_key
-from backend_main.types.domains.tags import TagNameToIDMap
+from backend_main.auth.query_clauses import get_tags_auth_filter_clause
 
-from backend_main.util.exceptions import TagNotFound
+from backend_main.util.exceptions import TagsNotFound
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import Request, request_log_event_key, request_connection_key
-from backend_main.types.domains.tags import Tag, AddedTag
+from backend_main.types.request import Request, request_log_event_key, request_connection_key, request_time_key
+from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap
 
 
 async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
@@ -114,5 +112,26 @@ async def update_tag(request: Request, tag: Tag) -> Tag:
     )
     
     row = await result.fetchone()
-    if not row: raise TagNotFound()
+    if not row: raise TagsNotFound()
     return Tag.model_validate({**row})
+
+
+async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
+    """
+    Returns a list tag attributes for the provided `tag_ids`.
+    """
+    tags = request.config_dict[app_tables_key].tags
+
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request)
+
+    result = await request[request_connection_key].execute(
+        select(tags)
+        .where(and_(
+            tags_auth_filter_clause,
+            tags.c.tag_id.in_(tag_ids))
+    ))
+
+    viewed_tags = [Tag.model_validate({**r}) for r in await result.fetchall()]
+    if len(viewed_tags) == 0: raise TagsNotFound()
+    return viewed_tags
