@@ -16,40 +16,6 @@ from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key, request_connection_key
 
 
-async def update_tag(request, tag_attributes):
-    """
-        Updates the tag attributes with provided tag_attributes.
-        Returns a RowProxy object with the inserted data.
-        Raises a 404 error if tag does not exist.
-    """
-    tags = request.config_dict[app_tables_key].tags
-    tag_id = tag_attributes["tag_id"]
-
-    # Forbid to add non-published tags for non-admins
-    # TODO change to `forbid_non_admin_adding_non_published_tag`
-    forbid_non_admin_changing_object_owner(request, tag_attributes)
-
-    result = await request[request_connection_key].execute(
-        tags.update()
-        .where(tags.c.tag_id == tag_id)
-        .values(tag_attributes)
-        .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
-    )
-    
-    record = await result.fetchone()
-    if not record:
-        msg = "Tag not found."
-        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_id = {tag_id}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    
-    # Add tag as pending for `searchables` update
-    add_searchable_updates_for_tags(request, [record["tag_id"]])
-
-    request[request_log_event_key]("INFO", "db_operation", "Updated tag.", details=f"tag_id = {record['tag_id']}")
-    return record
-
-
 async def view_tags(request, tag_ids):
     """
         Returns a collection of RowProxy objects with tag attributes for provided tag_ids.

@@ -4,7 +4,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests    
 
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag
+from tests.data_generators.tags import get_test_tag, get_updated_tag
 
 from tests.data_sets.tags import incorrect_tag_values
 
@@ -22,14 +22,14 @@ async def test_incorrect_request_body(cli):
     
     # Missing attributes
     for attr in ("tag_id", "tag_name", "tag_description", "is_published"):
-        tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
+        tag = get_updated_tag()
         tag.pop(attr)
         resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute types and lengths:
     for k, v in incorrect_tag_values:
-        tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
+        tag = get_updated_tag()
         tag[k] = v
         resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
         assert resp.status == 400
@@ -41,19 +41,18 @@ async def test_update_with_incorrect_data(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
     
     # Non-existing tag_id
-    tag = get_test_tag(1, pop_keys=["created_at", "modified_at"])
-    tag["tag_id"] = 100
+    tag = get_updated_tag(tag_id=100)
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 404
 
     # Duplicate tag_name
-    tag = get_test_tag(2, pop_keys=["created_at", "modified_at"])
+    tag = get_updated_tag(tag_id=2)
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 400
     
     # Lowercase duplicate tag_name
-    tag = get_test_tag(2, pop_keys=["created_at", "modified_at"])
+    tag = get_updated_tag(2)
     tag["tag_id"] = 1
     tag["tag_name"] = tag["tag_name"].upper()
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
@@ -66,7 +65,7 @@ async def test_correct_update(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Correct update
-    tag = get_test_tag(3, is_published=False, pop_keys=["created_at", "modified_at"])
+    tag = get_updated_tag(tag_id=3, is_published=False)
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
     assert resp.status == 200

@@ -24,3 +24,10 @@ class ObjectsTagsNotFound(Exception):
 
     def __str__(self) -> str:
         return f"Could not add objects tags: {self.field} = {self.id} not found."
+
+
+class TagNotFound(Exception):
+    """
+    Raised when a database operation is performed on a non-existing tag.
+    """
+    pass

@@ -5,6 +5,7 @@ from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key, request_time_key, request_log_event_key
 from backend_main.types.domains.tags import TagNameToIDMap
 
+from backend_main.util.exceptions import TagNotFound
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.app import app_tables_key
@@ -17,14 +18,18 @@ async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
     Insert a new row into "tags" table with provided `new_tag` attributes.
     """
     tags = request.config_dict[app_tables_key].tags
-
     values = added_tag.model_dump()
 
     result = await request[request_connection_key].execute(
         tags.insert()
-        .returning(tags.c.tag_id, tags.c.created_at, tags.c.modified_at,
-                tags.c.tag_name, tags.c.tag_description, tags.c.is_published)
-        .values(values)
+        .returning(
+            tags.c.tag_id,
+            tags.c.created_at,
+            tags.c.modified_at,
+            tags.c.tag_name,
+            tags.c.tag_description,
+            tags.c.is_published
+        ).values(values)
     )
 
     row = await result.fetchone()
@@ -85,3 +90,29 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
 
     # Returns tag name to ID mapping
     return TagNameToIDMap(map={**existing_names_to_ids, **new_names_to_ids})
+
+
+async def update_tag(request: Request, tag: Tag) -> Tag:
+    """
+    Updates the tag attributes with provided tag_attributes.
+    """
+    tags = request.config_dict[app_tables_key].tags
+    values = tag.model_dump()
+
+    result = await request[request_connection_key].execute(
+        tags.update()
+        .where(tags.c.tag_id == tag.tag_id)
+        .values(values)
+        .returning(
+            tags.c.tag_id,
+            tags.c.created_at,
+            tags.c.modified_at,
+            tags.c.tag_name,
+            tags.c.tag_description,
+            tags.c.is_published
+        )
+    )
+    
+    row = await result.fetchone()
+    if not row: raise TagNotFound()
+    return Tag.model_validate({**row})

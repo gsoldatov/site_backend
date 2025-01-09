@@ -7,7 +7,7 @@ class Tag(BaseModel):
     """
     Data class containing attributes of a tag.
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     tag_id: PositiveInt
     created_at: Datetime

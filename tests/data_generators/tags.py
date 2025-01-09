@@ -38,7 +38,7 @@ def get_added_tag(
     added_object_ids: list[int] | None = None
 ):
     """
-    Returns tag attributes with default or custom values, sent via request to /tags/add route/
+    Returns tag attributes with default or custom values, sent via request to /tags/add route.
     """
     tag = get_test_tag(
         tag_id=tag_id,
@@ -47,5 +47,28 @@ def get_added_tag(
         is_published=is_published,
         pop_keys=["tag_id", "created_at", "modified_at"]
     )
-    tag["added_object_ids"] = added_object_ids or []
+    tag["added_object_ids"] = added_object_ids if added_object_ids is not None else []
+    return tag
+
+
+def get_updated_tag(
+    tag_id: int = 1,
+    tag_name: str | None = None,
+    tag_description: str | None = None,
+    is_published: bool | None = None,
+    added_object_ids: list[int] | None = None,
+    removed_object_ids: list[int] | None = None
+):
+    """
+    Returns tag attributes with default or custom values, sent via request to /tags/update route.
+    """
+    tag = get_test_tag(
+        tag_id=tag_id,
+        tag_name=tag_name,
+        tag_description=tag_description,
+        is_published=is_published,
+        pop_keys=["created_at", "modified_at"]
+    )
+    tag["added_object_ids"] = added_object_ids if added_object_ids is not None else []
+    tag["removed_object_ids"] = removed_object_ids if removed_object_ids is not None else []
     return tag

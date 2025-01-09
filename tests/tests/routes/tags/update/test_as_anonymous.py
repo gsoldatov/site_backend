@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests    
 
-from tests.data_generators.tags import get_test_tag
+from tests.data_generators.tags import get_test_tag, get_updated_tag
 
 from tests.db_operations.tags import insert_tags
 
@@ -13,7 +13,7 @@ async def test_correct_update(cli, db_cursor):
     tag_list = [get_test_tag(1)]
     insert_tags(tag_list, db_cursor)
 
-    tag = get_test_tag(3, pop_keys=["created_at", "modified_at"])
+    tag = get_updated_tag(tag_id=3)
     tag["tag_id"] = 1
     resp = await cli.put("/tags/update", json={"tag": tag})
     assert resp.status == 401

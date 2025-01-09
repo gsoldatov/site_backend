@@ -51,9 +51,11 @@ class HiddenString:
 
 
 # Datetime
-Datetime = Annotated[datetime, PlainSerializer(
-    lambda x: x.isoformat(), when_used="always"
-)]
+Datetime = Annotated[
+    datetime,
+    Field(strict=False),    # allow converting from strings
+    PlainSerializer(lambda x: x.isoformat(), when_used="always")
+]
 """
 `datetime` class with custom JSON serializer.
 Can be passed to DB queries.
