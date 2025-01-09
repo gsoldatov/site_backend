@@ -135,3 +135,17 @@ async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
     viewed_tags = [Tag.model_validate({**r}) for r in await result.fetchall()]
     if len(viewed_tags) == 0: raise TagsNotFound()
     return viewed_tags
+
+
+async def delete_tags(request: Request, tag_ids: list[int]) -> None:
+    """
+    Deletes tags with provided `tag_ids`.
+    """
+    tags = request.config_dict[app_tables_key].tags
+    result = await request[request_connection_key].execute(
+        tags.delete()
+        .where(tags.c.tag_id.in_(tag_ids))
+        .returning(tags.c.tag_id)
+    )
+
+    if not await result.fetchone(): raise TagsNotFound()

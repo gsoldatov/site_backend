@@ -16,24 +16,6 @@ from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_log_event_key, request_connection_key
 
 
-async def delete_tags(request, tag_ids):
-    """
-        Deletes tag attributes for provided tag_ids.
-        Raises a 404 error if tags do not exist.
-    """
-    tags = request.config_dict[app_tables_key].tags
-    result = await request[request_connection_key].execute(
-        tags.delete()
-        .where(tags.c.tag_id.in_(tag_ids))
-        .returning(tags.c.tag_id)
-    )
-
-    if not await result.fetchone():
-        msg = "Tag(-s) not found."
-        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"tag_ids = {tag_ids}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-
-
 async def get_page_tag_ids_data(request, pagination_info):
     """
         Get IDs of tags which correspond to the provided pagination_info

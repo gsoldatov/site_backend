@@ -58,6 +58,7 @@ class TagsUpdateRequestBody(BaseModel):
 
 # /tags/view
 class TagsViewRequestBody(BaseModel):
+    # NOTE: /tags/delete request body depends on this model
     model_config = ConfigDict(extra="forbid", strict=True)
 
     tag_ids: list[PositiveInt] = Field(min_length=1, max_length=1000)
@@ -67,3 +68,14 @@ class TagsViewResponseBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     tags: list[Tag]
+
+
+# /tags/delete
+class TagsDeleteRequestBody(TagsViewRequestBody):
+    pass
+
+
+class TagsDeleteResponseBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    tag_ids: list[int]

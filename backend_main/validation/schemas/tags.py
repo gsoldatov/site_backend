@@ -2,18 +2,6 @@ from backend_main.validation.schemas.common import non_empty_list_of_ids, list_o
 from backend_main.validation.schemas.objects_tags import added_object_ids, removed_object_ids
 
 
-tags_view_delete_schema = {
-    "type": "object",
-    "required": ["tag_ids"],
-    "additionalProperties": False,
-    "properties": {
-        "tag_ids": non_empty_list_of_ids(),        
-        "return_current_object_ids": {
-            "type": "boolean"
-        }
-    }
-}
-
 tags_get_page_tag_ids_schema = {
     "type": "object",
     "required": ["pagination_info"],

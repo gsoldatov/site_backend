@@ -2,18 +2,17 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.middlewares.connection import start_transaction
-from backend_main.db_operations.tags import delete_tags, get_page_tag_ids_data, search_tags
-from backend_main.domains.tags import add_tag, update_tag, view_tags
+from backend_main.db_operations.tags import get_page_tag_ids_data, search_tags
+from backend_main.domains.tags import add_tag, update_tag, view_tags, delete_tags
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
-from backend_main.validation.schemas.tags import tags_view_delete_schema, \
-    tags_get_page_tag_ids_schema, tags_search_schema
+from backend_main.validation.schemas.tags import tags_get_page_tag_ids_schema, tags_search_schema
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key
 from backend_main.types.domains.tags import AddedTag, Tag
 from backend_main.types.routes.tags import TagsAddRequestBody, TagsAddUpdateResponseBody, \
-    TagsUpdateRequestBody, TagsViewRequestBody, TagsViewResponseBody
+    TagsUpdateRequestBody, TagsViewRequestBody, TagsViewResponseBody, TagsDeleteRequestBody, TagsDeleteResponseBody
 
 
 async def add(request: Request) -> TagsAddUpdateResponseBody:
@@ -84,18 +83,16 @@ async def view(request: Request) -> TagsViewResponseBody:
     return response
 
 
-async def delete(request):
-    # Validate request data and add missing values
-    data = await request.json()
-    validate(instance = data, schema = tags_view_delete_schema)
-    tag_ids = data["tag_ids"]
+async def delete(request: Request) -> TagsDeleteResponseBody:
+    # Validate request data
+    data = TagsDeleteRequestBody.model_validate(await request.json())
     
     # Cascade delete tags
-    await delete_tags(request, tag_ids)
+    await delete_tags(request, data.tag_ids)
     
-    # Send response
-    request[request_log_event_key]("INFO", "route_handler", "Deleted tags.", details=f"object_ids = {tag_ids}")
-    response = {"tag_ids": tag_ids}
+    # Log and return response
+    response = TagsDeleteResponseBody(tag_ids=data.tag_ids)
+    request[request_log_event_key]("INFO", "route_handler", "Deleted tags.", details=f"tag_ids = {data.tag_ids}")
     return response
 
 
