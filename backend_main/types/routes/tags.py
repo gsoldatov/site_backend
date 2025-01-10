@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_main.types.common import Name, PositiveInt
-from backend_main.types.domains.tags import Tag, TagsSearchQuery
+from backend_main.types.domains.tags import Tag, TagsPaginationInfo, TagsSearchQuery
 
 
 # /tags/add & /tags/update, common
@@ -79,6 +79,13 @@ class TagsDeleteResponseBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     tag_ids: list[int]
+
+
+# /tags/get_page_tag_ids
+class TagsGetPageTagIDsRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    
+    pagination_info: TagsPaginationInfo
 
 
 # /tags/search

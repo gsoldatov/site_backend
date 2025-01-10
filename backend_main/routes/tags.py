@@ -1,19 +1,16 @@
 from aiohttp import web
-from jsonschema import validate
 
-from backend_main.middlewares.connection import start_transaction
-from backend_main.db_operations.tags import get_page_tag_ids_data
-from backend_main.domains.tags import add_tag, update_tag, view_tags, delete_tags, search_tags
+from backend_main.domains.tags import add_tag, update_tag, view_tags, delete_tags, view_page_tag_ids, search_tags
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
-from backend_main.validation.schemas.tags import tags_get_page_tag_ids_schema
+from backend_main.middlewares.connection import start_transaction
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key
-from backend_main.types.domains.tags import AddedTag, Tag
+from backend_main.types.domains.tags import AddedTag, Tag, TagsPaginationInfoWithResult
 from backend_main.types.routes.tags import TagsAddRequestBody, TagsAddUpdateResponseBody, \
     TagsUpdateRequestBody, TagsViewRequestBody, TagsViewResponseBody, TagsDeleteRequestBody, TagsDeleteResponseBody, \
-    TagsSearchRequestBody, TagsSearchResponseBody
+    TagsGetPageTagIDsRequestBody, TagsSearchRequestBody, TagsSearchResponseBody
 
 
 async def add(request: Request) -> TagsAddUpdateResponseBody:
@@ -97,12 +94,11 @@ async def delete(request: Request) -> TagsDeleteResponseBody:
     return response
 
 
-async def get_page_tag_ids(request):
+async def get_page_tag_ids(request: Request) -> TagsPaginationInfoWithResult:
     # Validate request data
-    data = await request.json()
-    validate(instance = data, schema = tags_get_page_tag_ids_schema)
+    data = TagsGetPageTagIDsRequestBody.model_validate(await request.json())
     
-    result = await get_page_tag_ids_data(request, data["pagination_info"])
+    result = await view_page_tag_ids(request, data.pagination_info)
     request[request_log_event_key]("INFO", "route_handler", "Returning page tag IDs.")
     return result
         

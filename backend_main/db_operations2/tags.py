@@ -6,9 +6,11 @@ from backend_main.auth.query_clauses import get_tags_auth_filter_clause
 from backend_main.util.exceptions import TagsNotFound
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
+from sqlalchemy.sql.expression import Select
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_log_event_key, request_connection_key, request_time_key
-from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap, TagsSearchQuery
+from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap, \
+    TagsPaginationInfo, TagsPaginationInfoWithResult, TagsSearchQuery
 
 
 async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
@@ -149,6 +151,62 @@ async def delete_tags(request: Request, tag_ids: list[int]) -> None:
     )
 
     if not await result.fetchone(): raise TagsNotFound()
+
+
+async def view_page_tag_ids(
+    request: Request, 
+    pagination_info: TagsPaginationInfo
+) -> TagsPaginationInfoWithResult:
+    """
+    Returns IDs of tags which correspond to the provided pagination_info
+    and the total number of matching tags.
+    """
+    # Set query params
+    tags = request.config_dict[app_tables_key].tags
+    order_by = tags.c.modified_at if pagination_info.order_by == "modified_at" else tags.c.tag_name
+    order_asc = pagination_info.sort_order == "asc"
+    items_per_page = pagination_info.items_per_page
+    first = (pagination_info.page - 1) * items_per_page
+    filter_text = f"%{pagination_info.filter_text.lower()}%"
+
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request)
+
+    # return where clause statements for a select statement `s`.
+    def with_where_clause(s: Select):
+        return (
+            s.where(and_(
+                tags_auth_filter_clause,
+                func.lower(tags.c.tag_name).like(filter_text)
+            ))
+        )
+
+    # Get tag ids
+    result = await request[request_connection_key].execute(
+        with_where_clause(
+            select(tags.c.tag_id)
+        )
+        .order_by(order_by if order_asc else order_by.desc())
+        .limit(items_per_page)
+        .offset(first)
+    )
+    tag_ids = [int(r[0]) for r in await result.fetchall()]
+    if len(tag_ids) == 0: raise TagsNotFound()
+
+    # Get tag count
+    result = await request[request_connection_key].execute(
+        with_where_clause(
+            select(func.count())
+            .select_from(tags)
+        )
+    )
+    total_items = (await result.fetchone())[0]
+
+    return TagsPaginationInfoWithResult.model_validate({
+        **pagination_info.model_dump(),
+        "tag_ids": tag_ids,
+        "total_items": total_items
+    })
 
 
 async def search_tags(request: Request, query: TagsSearchQuery) -> list[int]:

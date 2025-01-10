@@ -1,15 +1,16 @@
 from datetime import datetime, timezone
+from typing import Literal
 
 
 def get_test_tag(
-        tag_id,
-        tag_name: str | None = None,
-        tag_description: str | None = None,
-        is_published: bool | None = None,
-        created_at: datetime | None = None,
-        modified_at: datetime | None = None,
-        pop_keys: list[str] = []
-    ):
+    tag_id,
+    tag_name: str | None = None,
+    tag_description: str | None = None,
+    is_published: bool | None = None,
+    created_at: datetime | None = None,
+    modified_at: datetime | None = None,
+    pop_keys: list[str] = []
+):
     """
     Returns a new dictionary for tags table with attributes specified in pop_keys popped from it.
     """
@@ -74,11 +75,32 @@ def get_updated_tag(
     return tag
 
 
+def get_page_tag_ids_request_body(
+    page: int = 1,
+    items_per_page: int = 2,
+    order_by: Literal["tag_name", "modified_at"] = "tag_name",
+    sort_order: Literal["asc", "desc"] = "asc",
+    filter_text: str = ""
+):
+    """
+    Returns /tags/get_page_tag_ids request body with default or custom values.
+    """
+    return {
+        "pagination_info": {
+            "page": page, 
+            "items_per_page": items_per_page,
+            "order_by": order_by,
+            "sort_order": sort_order,
+            "filter_text": filter_text
+        }
+    }
+
+
 def get_tags_search_query(
-        query_text: str = "tag",
-        maximum_values: int = 10,
-        existing_ids: list[int] | None = None
-    ):
+    query_text: str = "tag",
+    maximum_values: int = 10,
+    existing_ids: list[int] | None = None
+):
     """
     Returns a `query` dict for /tags/search request with default or custom values.
     """

@@ -5,12 +5,10 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
+from tests.data_generators.tags import get_page_tag_ids_request_body
 from tests.data_sets.tags import tag_list
 
 from tests.db_operations.tags import insert_tags
-
-
-pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}
 
 
 async def test_correct_request_tag_name_asc(cli, db_cursor):
@@ -18,7 +16,7 @@ async def test_correct_request_tag_name_asc(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
     
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     resp = await cli.post("/tags/get_page_tag_ids", json=pi)
     assert resp.status == 200
     data = await resp.json()

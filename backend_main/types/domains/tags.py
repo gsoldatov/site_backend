@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
 
 from backend_main.types.common import PositiveInt, Name, Datetime
 
@@ -39,7 +40,31 @@ class TagNameToIDMap(BaseModel):
     map: dict[str, int]
 
 
+class TagsPaginationInfo(BaseModel):
+    """
+    Tags pagination info attributes, used in request.
+    """
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    page: int = Field(ge=1)
+    items_per_page: int = Field(ge=1)
+    order_by: Literal["tag_name", "modified_at"]
+    sort_order: Literal["asc", "desc"]
+    filter_text: str = Field(max_length=255)
+
+
+class TagsPaginationInfoWithResult(TagsPaginationInfo):
+    """
+    Tags pagination info attributes and query results.
+    """
+    tag_ids: list[int]
+    total_items: int
+
+
 class TagsSearchQuery(BaseModel):
+    """
+    Tags search query attributes.
+    """
     model_config = ConfigDict(extra="forbid", strict=True)
 
     query_text: Name

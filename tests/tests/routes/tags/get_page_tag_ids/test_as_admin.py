@@ -8,12 +8,10 @@ if __name__ == "__main__":
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
+from tests.data_generators.tags import get_page_tag_ids_request_body
 from tests.data_sets.tags import tag_list
 
 from tests.db_operations.tags import insert_tags, delete_tags
-
-
-pagination_info = {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}
 
 
 async def test_incorrect_request_body(cli):
@@ -21,19 +19,26 @@ async def test_incorrect_request_body(cli):
     resp = await cli.post("/tags/get_page_tag_ids", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
-    for attr in pagination_info["pagination_info"]:
-        pi = deepcopy(pagination_info)
+    for attr in ("page", "items_per_page", "order_by", "sort_order", "filter_text"):
+        pi = get_page_tag_ids_request_body()
         pi["pagination_info"].pop(attr)
         resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect param values
-    for k, v in [("page", "text"), ("page", -1), ("items_per_page", "text"), ("items_per_page", -1), ("order_by", 1), ("order_by", "wrong text"),
-                 ("sort_order", 1), ("sort_order", "wrong text"), ("filter_text", 1)]:
-        pi = deepcopy(pagination_info)
-        pi["pagination_info"][k] = v
-        resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
-        assert resp.status == 400
+    incorrect_values = {
+        "page": ["a", {}, [], -1, 0],
+        "items_per_page": ["a", {}, [], -1, 0],
+        "order_by": [1, False, {}, [], "wrong text"],
+        "sort_order": [1, False, {}, [], "wrong text"],
+        "filter_text": [1, False, {}, [], "a" * 256]
+    }
+    for attr, values in incorrect_values.items():
+        for value in values:
+            pi = get_page_tag_ids_request_body()
+            pi["pagination_info"][attr] = value
+            resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_correct_request_tag_name_asc(cli, db_cursor):
@@ -41,7 +46,7 @@ async def test_correct_request_tag_name_asc(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
     
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
@@ -57,7 +62,7 @@ async def test_correct_request_tag_name_desc(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     pi["pagination_info"]["sort_order"] = "desc"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
@@ -71,7 +76,7 @@ async def test_correct_request_modified_at_asc(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     pi["pagination_info"]["order_by"] = "modified_at"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
@@ -85,7 +90,7 @@ async def test_correct_request_modified_at_desc_second_page(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     pi["pagination_info"]["page"] = 2
     pi["pagination_info"]["order_by"] = "modified_at"
     pi["pagination_info"]["sort_order"] = "desc"
@@ -101,7 +106,7 @@ async def test_correct_request_filter_text(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Send request & check response
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     pi["pagination_info"]["filter_text"] = "0"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
@@ -111,7 +116,7 @@ async def test_correct_request_filter_text(cli, db_cursor):
 
     # Filter by text + check if filter_text case is ignored
     insert_tags([get_test_tag(100, "aa"), get_test_tag(101, "AaA"), get_test_tag(102, "AAaa"), get_test_tag(103, "aaaAa")], db_cursor)
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     pi["pagination_info"]["filter_text"] = "aA"
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
@@ -133,7 +138,7 @@ async def test_correct_request_non_published_tags(cli, db_cursor):
     ], db_cursor)
     
     # Send request & check response (tags are returned regardless of their `is_published` prop)
-    pi = deepcopy(pagination_info)
+    pi = get_page_tag_ids_request_body()
     resp = await cli.post("/tags/get_page_tag_ids", json=pi, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
