@@ -17,6 +17,8 @@ from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
+from tests.request_generators.objects import get_objects_delete_body
+
 
 async def test_access_token_parsing(app, cli):
     # Check incorrect access_token format for all routes
@@ -85,7 +87,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         "/objects/add": {"POST": {"object": get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])}},
         "/objects/update": {"PUT": {"object": get_test_object(100, object_type="link", pop_keys=["created_at", "modified_at", "object_type"])}},
         "/objects/view": {"POST": {"object_ids": [100]}},
-        "/objects/delete": {"DELETE": {"object_ids": [100]}},
+        "/objects/delete": {"DELETE": get_objects_delete_body(object_ids=[100])},
         "/objects/get_page_object_ids": {"POST": {
             "pagination_info": {"page": 1, "items_per_page": 2, "order_by": "object_name", "sort_order": "asc", "filter_text": "", "object_types": ["link"], "tags_filter": []}}},
         "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},

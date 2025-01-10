@@ -8,8 +8,8 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
 from tests.data_generators.sessions import headers_admin_token
-
 from tests.db_operations.objects import insert_objects, insert_composite
+from tests.request_generators.objects import get_objects_delete_body
 
 
 async def test_delete_composite(cli, db_cursor):
@@ -31,7 +31,8 @@ async def test_delete_composite(cli, db_cursor):
     insert_composite([composite_data], db_cursor)
 
     # Delete composite
-    resp = await cli.delete("/objects/delete", json={"object_ids": [10] }, headers=headers_admin_token)
+    body = get_objects_delete_body(object_ids=[10])
+    resp = await cli.delete("/objects/delete", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database
@@ -70,7 +71,8 @@ async def test_delete_with_subobjects(cli, db_cursor):
     insert_composite([composite_data], db_cursor)
 
     # Delete with subobjects: first composite (10), 1 non-subobject link (100) and 1 of its exclusive subobjects (101)
-    resp = await cli.delete("/objects/delete", json={"object_ids": [10, 100, 101], "delete_subobjects": True }, headers=headers_admin_token)
+    body = get_objects_delete_body(object_ids=[10, 100, 101], delete_subobjects=True)
+    resp = await cli.delete("/objects/delete", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     # Check database

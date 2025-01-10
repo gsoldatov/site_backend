@@ -3,21 +3,16 @@
 """
 from aiohttp import web
 from psycopg2.errors import ForeignKeyViolation
-from sqlalchemy import select, func, true
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.sql import and_
 
-from backend_main.auth.route_checks.objects import authorize_objects_modification, authorize_tagged_objects_modification
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause, get_tags_auth_filter_clause
-from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.exceptions import ObjectsTagsNotFound
-from backend_main.util.json import error_json
-from backend_main.util.searchables import add_searchable_updates_for_tags
-from backend_main.validation.util import RequestValidationException
 
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key, request_connection_key
+from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects_tags import ObjectsTagsMap
 
 

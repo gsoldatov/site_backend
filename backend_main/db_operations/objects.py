@@ -144,58 +144,6 @@ async def view_objects_types(request, object_ids):
     return object_types
 
 
-async def delete_objects(request, object_ids, delete_subobjects = False):
-    """
-    Deletes object attributes for provided object_ids.
-    """
-    objects = request.config_dict[app_tables_key].objects
-    composite = request.config_dict[app_tables_key].composite
-
-    # Get IDs of subobjects which should be deleted (not present in any non-deleted composite objects)
-    subobject_ids_to_delete = []
-    if delete_subobjects:
-        # Get all subobject IDs of deleted subobjects
-        result = await request[request_connection_key].execute(
-            select(composite.c.subobject_id)
-            .distinct()
-            .where(composite.c.object_id.in_(object_ids))
-        )
-        subobjects_of_deleted_objects = set((row["subobject_id"] for row in await result.fetchall()))
-
-        # Get subobject IDs which are present in other composite objects
-        result = await request[request_connection_key].execute(
-            select(composite.c.subobject_id)
-            .distinct()
-            .where(and_(
-                composite.c.subobject_id.in_(subobjects_of_deleted_objects),
-                composite.c.object_id.notin_(object_ids)
-            ))
-        )
-        subobjects_present_in_other_objects = set((row["subobject_id"] for row in await result.fetchall()))
-        
-        # Get subobject IDs which are present only in deleted composite objects
-        subobject_ids_to_delete = subobjects_of_deleted_objects.difference(subobjects_present_in_other_objects)
-    
-    # Check if user can delete objects and subobjects
-    object_and_subobject_ids = [o for o in object_ids]
-    object_and_subobject_ids.extend(subobject_ids_to_delete)
-    await authorize_objects_modification(request, object_and_subobject_ids)
-
-    # Run delete query & return result
-    result = await request[request_connection_key].execute(
-        objects.delete()
-        .where(objects.c.object_id.in_(object_and_subobject_ids))
-        .returning(objects.c.object_id)
-    )
-
-    if not await result.fetchone():
-        msg = "Attempted to delete non-existing object(-s)."
-        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_ids = {object_ids}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    
-    request[request_log_event_key]("INFO", "db_operation", "Deleted objects.", details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
-
-
 async def get_page_object_ids_data(request, pagination_info):
     """
     Get IDs of objects which correspond to the provided pagination_info

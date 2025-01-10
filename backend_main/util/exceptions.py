@@ -11,6 +11,13 @@ class IncorrectCredentialsException(Exception):
     pass
 
 
+class ObjectsNotFound(Exception):
+    """
+    Raised when a database operation is performed on non-existing objects.
+    """
+    pass
+
+
 class ObjectsTagsNotFound(Exception):
     """
     Raised when adding objects' tags fails due to a foreign key violation

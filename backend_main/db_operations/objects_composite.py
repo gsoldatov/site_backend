@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.sql import and_
 
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause
-from backend_main.db_operations.objects import add_objects, update_objects, delete_objects
+from backend_main.db_operations.objects import add_objects, update_objects
+from backend_main.domains.objects import delete_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json
@@ -345,5 +346,5 @@ async def _delete_subobjects(request, obj_ids_and_data):
         
         # Delete subobjects not present in other composite subobjects
         if len(deletable_ids) > 0:
-            await delete_objects(request, deletable_ids)
+            await delete_objects(request, deletable_ids, False)
             request[request_log_event_key]("INFO", "db_operation", "Fully deleted subobjects.", details=f"object_ids = {deletable_ids}")

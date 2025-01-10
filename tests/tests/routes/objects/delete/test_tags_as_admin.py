@@ -15,6 +15,8 @@ from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 
+from tests.request_generators.objects import get_objects_delete_body
+
 
 async def test_objects_delete_route(cli, db_cursor):
     # Insert mock values
@@ -28,7 +30,8 @@ async def test_objects_delete_route(cli, db_cursor):
     insert_objects_tags([3], objects_tags[3], db_cursor)
 
     # Delete 2 objects
-    resp = await cli.delete("/objects/delete", json={"object_ids": [1, 2]}, headers=headers_admin_token)
+    body = get_objects_delete_body(object_ids=[1, 2])
+    resp = await cli.delete("/objects/delete", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     for id in [1, 2]:

@@ -72,15 +72,6 @@ objects_view_schema = {
     }
 }
 
-objects_delete_schema = {
-    "type": "object",
-    "required": ["object_ids"],
-    "additionalProperties": False,
-    "properties": {
-        "object_ids": non_empty_list_of_ids(),
-        "delete_subobjects": { "type": "boolean" }
-    }
-}
 
 objects_get_page_object_ids_schema = {
     "type": "object",
