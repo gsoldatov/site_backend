@@ -8,7 +8,7 @@ from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_log_event_key, request_connection_key, request_time_key
-from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap
+from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap, TagsSearchQuery
 
 
 async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
@@ -149,3 +149,30 @@ async def delete_tags(request: Request, tag_ids: list[int]) -> None:
     )
 
     if not await result.fetchone(): raise TagsNotFound()
+
+
+async def search_tags(request: Request, query: TagsSearchQuery) -> list[int]:
+    """
+    Returns a list of tag IDs matching the provided query.
+    """
+    # Set query params
+    tags = request.config_dict[app_tables_key].tags
+    query_text = "%" + query.query_text + "%"
+
+    # Tags auth filter for non-admin user levels
+    tags_auth_filter_clause = get_tags_auth_filter_clause(request)
+
+    # Get tag ids
+    result = await request[request_connection_key].execute(
+        select(tags.c.tag_id)
+        .where(and_(
+            tags_auth_filter_clause,
+            func.lower(tags.c.tag_name).like(func.lower(query_text)),
+            tags.c.tag_id.notin_(query.existing_ids)
+        ))
+        .limit(query.maximum_values)
+    )
+    tag_ids = [int(r[0]) for r in await result.fetchall()]
+    
+    if len(tag_ids) == 0: raise TagsNotFound()
+    return tag_ids

@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.tags import get_test_tag
+from tests.data_generators.tags import get_test_tag, get_tags_search_query
 
 from tests.db_operations.tags import insert_tags
 
@@ -22,7 +22,7 @@ async def test_correct_request(cli, db_cursor):
     ], db_cursor)
 
     # Check if only published tags are returned
-    req_body = {"query": {"query_text": "a", "maximum_values": 2}}
+    req_body = {"query": get_tags_search_query(query_text="a", maximum_values=2)}
     resp = await cli.post("/tags/search", json=req_body)
     assert resp.status == 200
     data = await resp.json()

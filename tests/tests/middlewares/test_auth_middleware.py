@@ -8,7 +8,7 @@ if __name__ == "__main__":
 from tests.data_generators.objects import get_test_object, get_test_object_data
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import headers_admin_token, admin_token
-from tests.data_generators.tags import get_test_tag, get_added_tag, get_updated_tag
+from tests.data_generators.tags import get_test_tag, get_added_tag, get_updated_tag, get_tags_search_query
 from tests.data_generators.users import get_test_user
 
 from tests.db_operations.objects import insert_objects, insert_links
@@ -79,7 +79,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         "/tags/view": {"POST": {"tag_ids": [100]}},
         "/tags/delete": {"DELETE": {"tag_ids": [100]}},
         "/tags/get_page_tag_ids": {"POST": {"pagination_info": {"page": 1, "items_per_page": 2, "order_by": "tag_name", "sort_order": "asc", "filter_text": ""}}},
-        "/tags/search": {"POST": {"query": {"query_text": "tag", "maximum_values": 2}}},
+        "/tags/search": {"POST": {"query": get_tags_search_query(maximum_values=2)}},
         
         "/objects/add": {"POST": {"object": get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])}},
         "/objects/update": {"PUT": {"object": get_test_object(100, object_type="link", pop_keys=["created_at", "modified_at", "object_type"])}},

@@ -37,3 +37,11 @@ class TagNameToIDMap(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     map: dict[str, int]
+
+
+class TagsSearchQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    query_text: Name
+    maximum_values: int = Field(ge=1, le=100)
+    existing_ids: list[PositiveInt] = Field(max_length=100)

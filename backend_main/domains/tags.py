@@ -3,14 +3,15 @@ from aiohttp import web
 from backend_main.auth.route_access.common import forbid_non_admin_adding_non_published_tag
 
 from backend_main.db_operations2.tags import add_tag as _add_tag, \
-    update_tag as _update_tag, view_tags as _view_tags, delete_tags as _delete_tags
+    update_tag as _update_tag, view_tags as _view_tags, delete_tags as _delete_tags, \
+    search_tags as _search_tags
 
 from backend_main.util.exceptions import TagsNotFound
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.request import Request, request_log_event_key
-from backend_main.types.domains.tags import Tag, AddedTag
+from backend_main.types.domains.tags import Tag, AddedTag, TagsSearchQuery
 
 
 async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
@@ -61,4 +62,13 @@ async def delete_tags(request: Request, tag_ids: list[int]) -> None:
     except TagsNotFound:
         msg = "Tag(-s) not found."
         request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_ids = {tag_ids}")
+        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+
+
+async def search_tags(request: Request, query: TagsSearchQuery) -> list[int]:
+    try:
+        return await _search_tags(request, query)
+    except TagsNotFound:
+        msg = "No tags found."
+        request[request_log_event_key]("WARNING", "domain", msg)
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")

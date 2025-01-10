@@ -79,39 +79,3 @@ async def get_page_tag_ids_data(request, pagination_info):
         "filter_text": pagination_info["filter_text"],
         "tag_ids": tag_ids
     }
-
-
-async def search_tags(request, query):
-    """
-        Returns a list of tag IDs matching the provided query.
-        Raises a 404 error if no tags match the query.
-    """
-    # Set query params
-    tags = request.config_dict[app_tables_key].tags
-    query_text = "%" + query["query_text"] + "%"
-    maximum_values = query.get("maximum_values", 10)
-    existing_ids = query.get("existing_ids", [])
-
-    # Tags auth filter for non-admin user levels
-    tags_auth_filter_clause = get_tags_auth_filter_clause(request, is_published=True)
-
-    # Get tag ids
-    result = await request[request_connection_key].execute(
-        select(tags.c.tag_id)
-        .where(and_(
-            tags_auth_filter_clause,
-            func.lower(tags.c.tag_name).like(func.lower(query_text)),
-            tags.c.tag_id.notin_(existing_ids)
-        ))
-        .limit(maximum_values)
-    )
-    tag_ids = []
-    for row in await result.fetchall():
-        tag_ids.append(row["tag_id"])
-    
-    if len(tag_ids) == 0:
-        msg = "No tags found."
-        request[request_log_event_key]("WARNING", "db_operation", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    
-    return tag_ids

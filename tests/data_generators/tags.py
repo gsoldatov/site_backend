@@ -72,3 +72,18 @@ def get_updated_tag(
     tag["added_object_ids"] = added_object_ids if added_object_ids is not None else []
     tag["removed_object_ids"] = removed_object_ids if removed_object_ids is not None else []
     return tag
+
+
+def get_tags_search_query(
+        query_text: str = "tag",
+        maximum_values: int = 10,
+        existing_ids: list[int] | None = None
+    ):
+    """
+    Returns a `query` dict for /tags/search request with default or custom values.
+    """
+    return {
+        "query_text": query_text,
+        "maximum_values": maximum_values,
+        "existing_ids": existing_ids if existing_ids is not None else []
+    }
