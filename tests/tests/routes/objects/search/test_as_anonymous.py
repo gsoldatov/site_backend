@@ -5,6 +5,7 @@ if __name__ == "__main__":
 
 from tests.data_sets.objects import insert_data_for_view_tests_non_published_objects, \
     insert_data_for_view_tests_objects_with_non_published_tags
+from tests.request_generators.objects import get_objects_search_request_body
 
 
 async def test_correct_search_non_published_objects(cli, db_cursor):
@@ -12,8 +13,8 @@ async def test_correct_search_non_published_objects(cli, db_cursor):
     expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
 
     # Search a pattern matching all existing objects (and receive only published in the response)
-    req_body = {"query": {"query_text": "object", "maximum_values": 10}}
-    resp = await cli.post("/objects/search", json=req_body)
+    body = get_objects_search_request_body()
+    resp = await cli.post("/objects/search", json=body)
     assert resp.status == 200
     data = await resp.json()
     assert sorted(data["object_ids"]) == expected_object_ids
@@ -24,8 +25,8 @@ async def test_correct_search_objects_with_non_published_tags(cli, db_cursor):
     expected_object_ids = inserts["expected_object_ids_as_anonymous"]
 
     # Search a pattern matching all existing objects (and receive only published in the response)
-    req_body = {"query": {"query_text": "object", "maximum_values": 10}}
-    resp = await cli.post("/objects/search", json=req_body)
+    body = get_objects_search_request_body()
+    resp = await cli.post("/objects/search", json=body)
     assert resp.status == 200
     data = await resp.json()
     assert sorted(data["object_ids"]) == expected_object_ids

@@ -5,12 +5,12 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema,\
-    objects_search_schema, objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
+    objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types,\
-    search_objects, get_elements_in_composite_hierarchy, set_modified_at
-from backend_main.domains.objects import delete_objects, view_page_object_ids
+    get_elements_in_composite_hierarchy, set_modified_at
+from backend_main.domains.objects import delete_objects, view_page_object_ids, search_objects
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -19,7 +19,8 @@ from backend_main.util.object_type_route_handler_resolving import get_object_typ
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody, \
-    ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody
+    ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
+    ObjectsSearchRequestBody, ObjectsSearchResponseBody
 
 
 async def add(request):
@@ -183,16 +184,15 @@ async def get_page_object_ids(request: Request) -> ObjectsGetPageObjectIDsRespon
     return ObjectsGetPageObjectIDsResponseBody(pagination_info=result)
 
 
-async def search(request):
+async def search(request: Request) -> ObjectsSearchResponseBody:
     # Validate request data
-    data = await request.json()
-    validate(instance=data, schema=objects_search_schema)
+    data = ObjectsSearchRequestBody.model_validate(await request.json())
 
     # Search objects
-    object_ids = await search_objects(request, data["query"])
+    object_ids = await search_objects(request, data.query)
 
     request[request_log_event_key]("INFO", "route_handler", "Returning object IDs which match search query.")
-    return {"object_ids": object_ids}
+    return ObjectsSearchResponseBody(object_ids=object_ids)
 
 
 async def update_tags(request):

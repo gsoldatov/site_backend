@@ -16,7 +16,8 @@ from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
-from tests.request_generators.objects import get_objects_delete_body, get_page_object_ids_request_body
+from tests.request_generators.objects import get_objects_delete_body, get_page_object_ids_request_body, \
+    get_objects_search_request_body
 from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body, \
     get_page_tag_ids_request_body, get_tags_search_request_body
 
@@ -90,7 +91,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         "/objects/view": {"POST": {"object_ids": [100]}},
         "/objects/delete": {"DELETE": get_objects_delete_body(object_ids=[100])},
         "/objects/get_page_object_ids": {"POST": get_page_object_ids_request_body()},
-        "/objects/search": {"POST": {"query": {"query_text": "object", "maximum_values": 10}}},
+        "/objects/search": {"POST": get_objects_search_request_body()},
         "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
         "/objects/view_composite_hierarchy_elements": {"POST": {"object_id": 99999}},
 

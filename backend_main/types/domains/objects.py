@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal
 
-from backend_main.types.common import PositiveInt
+from backend_main.types.common import PositiveInt, Name
 
 
 ObjectTypes = Literal["link", "markdown", "to_do_list", "composite"]
@@ -29,3 +29,14 @@ class ObjectsPaginationInfoWithResult(ObjectsPaginationInfo):
     """
     object_ids: list[int]
     total_items: int
+
+
+class ObjectsSearchQuery(BaseModel):
+    """
+    Objects search query attributes.
+    """
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    query_text: Name
+    maximum_values: int = Field(ge=1, le=100)
+    existing_ids: list[PositiveInt] = Field(max_length=100)

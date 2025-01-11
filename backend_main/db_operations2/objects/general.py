@@ -10,7 +10,7 @@ from sqlalchemy.sql.expression import Select
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects import \
-    ObjectsPaginationInfo, ObjectsPaginationInfoWithResult
+    ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, ObjectsSearchQuery
 
 
 async def get_exclusive_subobject_ids(request: Request, object_ids: list[int]) -> list[int]:
@@ -160,3 +160,32 @@ async def view_page_object_ids(
         "object_ids": object_ids,
         "total_items": total_items
     })
+
+
+async def search_objects(request: Request, query: ObjectsSearchQuery) -> list[int]:
+    """ Returns a list of object IDs matching the provided `query`. """
+    objects = request.config_dict[app_tables_key].objects
+    query_text = "%" + query.query_text + "%"
+
+    # Objects filter for non 'admin` user level
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
+        select(objects.c.object_id)
+        .where(and_(
+            func.lower(objects.c.object_name).like(func.lower(query_text)),
+            objects.c.object_id.notin_(query.existing_ids)
+        ))
+    ))
+
+    # Get object ids
+    result = await request[request_connection_key].execute(
+        select(objects.c.object_id)
+        .where(and_(
+            objects_auth_filter_clause,
+            func.lower(objects.c.object_name).like(func.lower(query_text)),
+            objects.c.object_id.notin_(query.existing_ids)
+        ))
+        .limit(query.maximum_values)
+    )
+    object_ids = [r[0] for r in await result.fetchall()]    
+    if len(object_ids) == 0: raise ObjectsNotFound
+    return object_ids

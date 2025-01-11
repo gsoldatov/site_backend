@@ -72,29 +72,6 @@ objects_view_schema = {
     }
 }
 
-
-objects_search_schema = {
-    "type": "object",
-    "required": ["query"],
-    "additionalProperties": False,
-    "properties": {
-        "query": {
-            "type": "object",
-            "required": ["query_text"],
-            "additionalProperties": False,
-            "properties": {
-                "query_text": name,
-                "maximum_values": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100
-                },
-                "existing_ids": list_of_ids()
-            }
-        }
-    }
-}
-
 objects_update_tags_schema = {
     "type": "object",
     "additionalProperties": False,

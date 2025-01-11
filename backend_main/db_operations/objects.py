@@ -144,46 +144,6 @@ async def view_objects_types(request, object_ids):
     return object_types
 
 
-async def search_objects(request, query):
-    """
-    Returns a list of object IDs matching the provided query.
-    Raises a 404 error if no objects match the query.
-    """
-    objects = request.config_dict[app_tables_key].objects
-    query_text = "%" + query["query_text"] + "%"
-    maximum_values = query.get("maximum_values", 10)
-    existing_ids = query.get("existing_ids", [])
-
-    # Objects filter for non 'admin` user level
-    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids_subquery=(
-        select(objects.c.object_id)
-        .where(and_(
-            func.lower(objects.c.object_name).like(func.lower(query_text)),
-            objects.c.object_id.notin_(existing_ids)
-        ))
-    ))
-
-    # Get object ids
-    result = await request[request_connection_key].execute(
-        select(objects.c.object_id)
-        .where(and_(
-            objects_auth_filter_clause,
-            func.lower(objects.c.object_name).like(func.lower(query_text)),
-            objects.c.object_id.notin_(existing_ids)
-        ))
-        .limit(maximum_values)
-    )
-    object_ids = []
-    for row in await result.fetchall():
-        object_ids.append(row["object_id"])
-    
-    if len(object_ids) == 0:
-        msg = "No objects found."
-        request[request_log_event_key]("WARNING", "db_operation", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    return object_ids
-
-
 async def get_elements_in_composite_hierarchy(request, object_id):
     """
     Returns all object IDs in the composite hierarchy, which starts from `object_id`.

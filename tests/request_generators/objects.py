@@ -38,3 +38,20 @@ def get_page_object_ids_request_body(
         pagination_info["show_only_displayed_in_feed"] = show_only_displayed_in_feed
     
     return {"pagination_info": pagination_info}
+
+
+def get_objects_search_request_body(
+    query_text: str = "object",
+    maximum_values: int = 10,
+    existing_ids: list[int] | None = None
+):
+    """
+    Returns /objects/search request body with default or custom values.
+    """
+    return {
+        "query": {
+            "query_text": query_text,
+            "maximum_values": maximum_values,
+            "existing_ids": existing_ids if existing_ids is not None else []
+        }
+    }

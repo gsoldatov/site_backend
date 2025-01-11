@@ -10,21 +10,40 @@ from tests.data_sets.objects import insert_data_for_view_tests_objects_with_non_
 
 from tests.db_operations.objects import insert_objects
 
+from tests.request_generators.objects import get_objects_search_request_body
+
 
 async def test_incorrect_request_body(cli):
-    # Incorrect request
-    for req_body in ["not an object", 1, {"incorrect attribute": {}}, {"query": "not an object"}, {"query": 1},
-        {"query": {"query_text": "123"}, "incorrect attribute": {}}, {"query": {"incorrect attribute": "123"}},
-        {"query": {"query_text": "123", "incorrect_attribute": 1}}]:
-        resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    # Missing, incorrect and unallowed top-level attributes
+    for body in ("a", {}, {**get_objects_search_request_body(), "unallowed": 1}):
+        resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Incorrect attribute values
-    for req_body in [{"query": {"query_text": ""}}, {"query": {"query_text": 1}}, {"query": {"query_text": "a"*256}},
-        {"query": {"query_text": "123", "maximum_values": "1"}}, {"query": {"query_text": "123", "maximum_values": -1}},
-        {"query": {"query_text": "123", "maximum_values": 101}}]:
-        resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    # Missing query attributes
+    for attr in ("query_text", "maximum_values", "existing_ids"):
+        body = get_objects_search_request_body()
+        body["query"].pop(attr)
+        resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
         assert resp.status == 400
+    
+    # Unallowed query attribute
+    body = get_objects_search_request_body()
+    body["query"]["unallowed"] = 1
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Incorrect query attribute values
+    incorrect_values = {
+        "query_text": [1, False, {}, [], "", "a" * 256],
+        "maximum_values": [False, "a", {}, [], -1, 0],
+        "existing_ids": [1, False, "a", {}, ["a"], [-1], [0], [1] * 101]
+    }
+    for attr, values in incorrect_values.items():
+        for value in values:
+            body = get_objects_search_request_body()
+            body["query"][attr] = value
+            resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_search_non_existing_objects(cli, db_cursor):
@@ -32,8 +51,8 @@ async def test_search_non_existing_objects(cli, db_cursor):
     obj_list = get_objects_attributes_list(1, 10)
     insert_objects(obj_list, db_cursor)
 
-    req_body = {"query": {"query_text": "non-existing object"}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body(query_text="non-existing object")
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
@@ -43,8 +62,8 @@ async def test_correct_search_non_published_objects(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - check response and maximum_values limit
-    req_body = {"query": {"query_text": "0", "maximum_values": 2}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body(query_text="0", maximum_values=2)
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "object_ids" in data
@@ -55,21 +74,21 @@ async def test_correct_search_non_published_objects(cli, db_cursor):
     insert_objects([get_test_object(object_id=11, object_type="link", created_at=obj_list[0]["created_at"], modified_at=obj_list[0]["modified_at"], 
                     object_name="A", object_description="", is_published=False, show_description=True, owner_id=1)]
                 , db_cursor)
-    req_body = {"query": {"query_text": "A"}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body(query_text="A")
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [1, 11]    #a0, A
 
-    req_body = {"query": {"query_text": "a"}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body(query_text="a")
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [1, 11]    #a0, A
 
     # Correct request - check if existing_ids are excluded from result
-    req_body = {"query": {"query_text": "0", "maximum_values": 2, "existing_ids": [1, 3, 9]}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body(query_text="0", maximum_values=2, existing_ids=[1, 3, 9])
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["object_ids"] == [5, 7]    #e0, g0
@@ -81,8 +100,8 @@ async def test_correct_search_objects_with_non_published_tags(cli, db_cursor):
 
     # Search a pattern matching all existing objects (and receive all objects, 
     # regardless of being tagged with non-published tags, in the response)
-    req_body = {"query": {"query_text": "object", "maximum_values": 10}}
-    resp = await cli.post("/objects/search", json=req_body, headers=headers_admin_token)
+    body = get_objects_search_request_body()
+    resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert sorted(data["object_ids"]) == expected_object_ids
