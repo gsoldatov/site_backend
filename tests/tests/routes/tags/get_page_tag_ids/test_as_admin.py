@@ -7,11 +7,9 @@ if __name__ == "__main__":
 
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
-
-from tests.data_generators.tags import get_page_tag_ids_request_body
 from tests.data_sets.tags import tag_list
-
 from tests.db_operations.tags import insert_tags, delete_tags
+from tests.request_generators.tags import get_page_tag_ids_request_body
 
 
 async def test_incorrect_request_body(cli):

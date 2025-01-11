@@ -5,10 +5,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.tags import get_page_tag_ids_request_body
 from tests.data_sets.tags import tag_list
-
 from tests.db_operations.tags import insert_tags
+from tests.request_generators.tags import get_page_tag_ids_request_body
 
 
 async def test_correct_request_tag_name_asc(cli, db_cursor):

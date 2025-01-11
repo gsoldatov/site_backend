@@ -3,19 +3,22 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.tags import get_test_tag, get_tags_search_query
+from tests.data_generators.tags import get_test_tag
 from tests.data_generators.sessions import headers_admin_token
-
 from tests.data_sets.tags import tag_list
-
 from tests.db_operations.tags import insert_tags
+from tests.request_generators.tags import get_tags_search_request_body
 
 
 async def test_incorrect_request_body(cli):
     # Missing and unallowed top-level attribute
-    for body in ({}, {"query": get_tags_search_query(), "unallowed": 1}):
-        resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    resp = await cli.post("/tags/search", json={}, headers=headers_admin_token)
+    assert resp.status == 400
+    
+    body = get_tags_search_request_body()
+    body["query"]["unallowed"] = 1
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
+    assert resp.status == 400
     
     # Incorrect query values
     for value in ("a", 1, []):
@@ -25,13 +28,13 @@ async def test_incorrect_request_body(cli):
     
     # Missing query attributes
     for attr in ("query_text", "maximum_values", "existing_ids"):
-        body = {"query": get_tags_search_query()}
+        body = get_tags_search_request_body()
         body["query"].pop(attr)
         resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Unallowed query attribute
-    body = {"query": get_tags_search_query()}
+    body = get_tags_search_request_body()
     body["unallowed"] = 1
     resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -44,7 +47,7 @@ async def test_incorrect_request_body(cli):
     }
     for attr, values in incorrect_attributes.items():
         for value in values:
-            body = {"query": get_tags_search_query()}
+            body = get_tags_search_request_body()
             body["query"][attr] = value
             resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
             assert resp.status == 400
@@ -54,8 +57,8 @@ async def test_search_non_existing_tags(cli, db_cursor):
     # Insert data
     insert_tags(tag_list, db_cursor)
     
-    req_body = {"query": get_tags_search_query(query_text="non-existing tag")}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="non-existing tag")
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
@@ -64,8 +67,8 @@ async def test_correct_requests(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Correct request - check response and maximum_values limit
-    req_body = {"query": get_tags_search_query(query_text="0", maximum_values=2)}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="0", maximum_values=2)
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "tag_ids" in data
@@ -76,21 +79,21 @@ async def test_correct_requests(cli, db_cursor):
     insert_tags([get_test_tag(11, created_at=tag_list[0]["created_at"], modified_at=tag_list[0]["modified_at"], 
                     tag_name="A", tag_description="")]
                     , db_cursor)
-    req_body = {"query": get_tags_search_query(query_text="A")}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="A")
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["tag_ids"] == [1, 11]    #a0, A
 
-    req_body = {"query": get_tags_search_query(query_text="a")}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="a")
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["tag_ids"] == [1, 11]    #a0, A
 
     # Correct request - check if existing_ids are excluded from result
-    req_body = {"query": get_tags_search_query(query_text="0", maximum_values=2, existing_ids=[1, 3, 9])}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="0", maximum_values=2, existing_ids=[1, 3, 9])
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["tag_ids"] == [5, 7]    #e0, g0
@@ -108,8 +111,8 @@ async def test_correct_request_published_tags(cli, db_cursor):
     ], db_cursor)
 
     # Check if tags are returned regardless of their `is_published` prop
-    req_body = {"query": get_tags_search_query(query_text="a", maximum_values=2)}
-    resp = await cli.post("/tags/search", json=req_body, headers=headers_admin_token)
+    body = get_tags_search_request_body(query_text="a", maximum_values=2)
+    resp = await cli.post("/tags/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert "tag_ids" in data

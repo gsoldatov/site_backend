@@ -11,12 +11,14 @@ from random import shuffle
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag, get_added_tag
+from tests.data_generators.tags import get_test_tag
 
 from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
+
+from tests.request_generators.tags import get_tags_add_request_body
 
 from tests.util import wait_for
 
@@ -170,8 +172,8 @@ async def test_pagination_and_basic_ranking(cli_with_search, db_cursor):
 async def test_ranking_tag_name_description(cli_with_search, db_cursor):
     # Add tags
     for tag_name, tag_description in [("bird cake", "word"), ("word", "# bird bird")]: # search "word" => 2 > 1; search "bird" => 2 > 1
-        tag = get_added_tag(tag_name=tag_name, tag_description=tag_description)
-        resp = await cli_with_search.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_add_request_body(tag_name=tag_name, tag_description=tag_description)
+        resp = await cli_with_search.post("/tags/add", json=body, headers=headers_admin_token)
         assert resp.status == 200
 
     # Wait for object searchables to be added

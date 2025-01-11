@@ -4,11 +4,13 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag, get_added_tag
+from tests.data_generators.tags import get_test_tag
 
 from tests.data_sets.tags import incorrect_tag_values
 
 from tests.db_operations.tags import insert_tags
+
+from tests.request_generators.tags import get_tags_add_request_body
 
 
 async def test_incorrect_request_body(cli):
@@ -18,23 +20,23 @@ async def test_incorrect_request_body(cli):
 
     # Check required elements
     for attr in ("tag_name", "tag_description", "is_published", "added_object_ids"):
-        tag = get_added_tag()
-        tag.pop(attr)
-        resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_add_request_body()
+        body["tag"].pop(attr)
+        resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
         assert resp.status == 400
 
     # Unallowed elements
-    tag = get_added_tag()
-    tag["unallowed"] = "unallowed"
-    resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_add_request_body()
+    body["tag"]["unallowed"] = "unallowed"
+    resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values
     for k, v in incorrect_tag_values:
         if k != "tag_id":
-            tag = get_added_tag()
-            tag[k] = v
-            resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+            body = get_tags_add_request_body()
+            body["tag"][k] = v
+            resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
             assert resp.status == 400
 
 
@@ -44,20 +46,20 @@ async def test_add_a_duplicate_tag(cli, db_cursor):
     insert_tags([get_test_tag(100, tag_name=tag_name)], db_cursor)
 
     # Try adding a tag with the existing name
-    tag = get_added_tag(tag_name=tag_name)
-    resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_add_request_body(tag_name=tag_name)
+    resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Try adding a tag with the existing name in another registry
-    tag = get_added_tag(tag_name=tag_name.upper())
-    resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_add_request_body(tag_name=tag_name.upper())
+    resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
 
 async def test_add_a_correct_tag(cli, db_cursor):
     # Write a correct tag
-    tag = get_added_tag(is_published=False)
-    resp = await cli.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_add_request_body(is_published=False)
+    resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
     assert "tag" in resp_json
@@ -66,12 +68,12 @@ async def test_add_a_correct_tag(cli, db_cursor):
     assert "tag_id" in resp_tag
     assert "created_at" in resp_tag
     assert "modified_at" in resp_tag
-    assert tag["tag_name"] == resp_tag["tag_name"]
-    assert tag["tag_description"] == resp_tag["tag_description"]
-    assert tag["is_published"] == resp_tag["is_published"]
+    assert body["tag"]["tag_name"] == resp_tag["tag_name"]
+    assert body["tag"]["tag_description"] == resp_tag["tag_description"]
+    assert body["tag"]["is_published"] == resp_tag["is_published"]
 
     db_cursor.execute("SELECT tag_name, tag_description, is_published FROM tags WHERE tag_id = 1")
-    assert db_cursor.fetchone() == (tag["tag_name"], tag["tag_description"], tag["is_published"])
+    assert db_cursor.fetchone() == (body["tag"]["tag_name"], body["tag"]["tag_description"], body["tag"]["is_published"])
 
 
 if __name__ == "__main__":

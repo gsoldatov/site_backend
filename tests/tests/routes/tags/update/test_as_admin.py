@@ -4,11 +4,13 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests    
 
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag, get_updated_tag
+from tests.data_generators.tags import get_test_tag
 
 from tests.data_sets.tags import incorrect_tag_values
 
 from tests.db_operations.tags import insert_tags
+
+from tests.request_generators.tags import get_tags_update_request_body
 
 
 async def test_incorrect_request_body(cli):
@@ -22,16 +24,16 @@ async def test_incorrect_request_body(cli):
     
     # Missing attributes
     for attr in ("tag_id", "tag_name", "tag_description", "is_published"):
-        tag = get_updated_tag()
-        tag.pop(attr)
-        resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_update_request_body()
+        body["tag"].pop(attr)
+        resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Incorrect attribute types and lengths:
     for k, v in incorrect_tag_values:
-        tag = get_updated_tag()
-        tag[k] = v
-        resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_update_request_body()
+        body["tag"][k] = v
+        resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
 
 
@@ -41,21 +43,21 @@ async def test_update_with_incorrect_data(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
     
     # Non-existing tag_id
-    tag = get_updated_tag(tag_id=100)
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_id=100)
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
     # Duplicate tag_name
-    tag = get_updated_tag(tag_id=2)
-    tag["tag_id"] = 1
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_id=2)
+    body["tag"]["tag_id"] = 1
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
     
     # Lowercase duplicate tag_name
-    tag = get_updated_tag(2)
-    tag["tag_id"] = 1
-    tag["tag_name"] = tag["tag_name"].upper()
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_id=2)
+    body["tag"]["tag_id"] = 1
+    body["tag"]["tag_name"] = body["tag"]["tag_name"].upper()
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
 
@@ -65,12 +67,12 @@ async def test_correct_update(cli, db_cursor):
     insert_tags(tag_list, db_cursor)
 
     # Correct update
-    tag = get_updated_tag(tag_id=3, is_published=False)
-    tag["tag_id"] = 1
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_id=3, is_published=False)
+    body["tag"]["tag_id"] = 1
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT tag_name, tag_description, is_published FROM tags WHERE tag_id = 1")
-    assert db_cursor.fetchone() == (tag["tag_name"], tag["tag_description"], tag["is_published"])
+    assert db_cursor.fetchone() == (body["tag"]["tag_name"], body["tag"]["tag_description"], body["tag"]["is_published"])
 
 
 if __name__ == "__main__":

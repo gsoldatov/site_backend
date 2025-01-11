@@ -5,11 +5,13 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object, get_objects_attributes_list
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag, get_updated_tag
+from tests.data_generators.tags import get_test_tag
 
 from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
+
+from tests.request_generators.tags import get_tags_update_request_body
 
 
 async def test_incorrect_request_body(cli, db_cursor):
@@ -18,13 +20,13 @@ async def test_incorrect_request_body(cli, db_cursor):
 
     # Incorrect types
     for added_object_ids in ["not a list", 1, {}, ["a"], [-1], [0]]:
-        tag = get_updated_tag(added_object_ids=added_object_ids)
-        resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_update_request_body(added_object_ids=added_object_ids)
+        resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
     # Too many added objects
-    tag = get_updated_tag(added_object_ids=[1] * 101)
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(added_object_ids=[1] * 101)
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
 
@@ -34,9 +36,8 @@ async def test_add_non_existing_object_ids(cli, db_cursor):
     insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
 
     # Try adding a tag with non-existing object IDs
-    tag = get_updated_tag(tag_name="new name", added_object_ids=[1, 2, 3])
-
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_name="new name", added_object_ids=[1, 2, 3])
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
@@ -50,8 +51,8 @@ async def test_update_tag_with_empty_added_object_ids(cli, db_cursor):
     insert_objects_tags([1], [1], db_cursor)
 
     # Update tag & check if tag was updated, but objects_tags were not
-    tag = get_updated_tag(tag_name="new name", added_object_ids=[])
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_name="new name", added_object_ids=[])
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     db_cursor.execute(f"SELECT tag_name FROM tags WHERE tag_id = 1")
@@ -68,9 +69,8 @@ async def test_correctly_update_a_tag(cli, db_cursor):
     insert_objects_tags([1, 2], [1], db_cursor)
 
     # Update tag and check duplicate & already tagged object_ids handling
-    tag = get_updated_tag(tag_name="new name", added_object_ids=[2, 3, 4, 5, 4, 5])
-
-    resp = await cli.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+    body = get_tags_update_request_body(tag_name="new name", added_object_ids=[2, 3, 4, 5, 4, 5])
+    resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     added_object_ids = data["tag"]["added_object_ids"]

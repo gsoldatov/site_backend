@@ -3,12 +3,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.tags import get_added_tag
+from tests.request_generators.tags import get_tags_add_request_body
 
 
 async def test_add_a_correct_tag_as_anonymous(cli, db_cursor):
-    tag = get_added_tag()
-    resp = await cli.post("/tags/add", json={"tag": tag})
+    body = get_tags_add_request_body()
+    resp = await cli.post("/tags/add", json=body)
     assert resp.status == 401
 
     db_cursor.execute(f"SELECT tag_name FROM tags")

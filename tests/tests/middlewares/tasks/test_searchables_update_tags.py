@@ -11,11 +11,13 @@ from datetime import datetime
 from tests.data_generators.objects import get_test_object, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.searchables import get_test_searchable
-from tests.data_generators.tags import get_test_tag, get_added_tag, get_updated_tag
+from tests.data_generators.tags import get_test_tag
 
 from tests.db_operations.objects import insert_objects, insert_links
 from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
+
+from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body
 
 from tests.util import wait_for
 
@@ -23,8 +25,8 @@ from tests.util import wait_for
 async def test_add_tag(cli_with_search, db_cursor):
     # Add 2 tags
     for w in ("first", "second"):
-        tag = get_added_tag(tag_name=f"{w} name", tag_description=f"{w} descr")
-        resp = await cli_with_search.post("/tags/add", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_add_request_body(tag_name=f"{w} name", tag_description=f"{w} descr")
+        resp = await cli_with_search.post("/tags/add", json=body, headers=headers_admin_token)
         assert resp.status == 200
 
     # Wait for tag searchables to be added
@@ -56,8 +58,8 @@ async def test_update_tag(cli_with_search, db_cursor):
 
     # Update both tags
     for i, w in enumerate(("first", "second")):
-        tag = get_updated_tag(tag_id=i + 1, tag_name=f"updated {w} name", tag_description=f"updated {w} descr")
-        resp = await cli_with_search.put("/tags/update", json={"tag": tag}, headers=headers_admin_token)
+        body = get_tags_update_request_body(tag_id=i + 1, tag_name=f"updated {w} name", tag_description=f"updated {w} descr")
+        resp = await cli_with_search.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 200
 
     # Wait for tag searchables to be updated
