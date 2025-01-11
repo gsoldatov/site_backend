@@ -73,52 +73,6 @@ objects_view_schema = {
 }
 
 
-objects_get_page_object_ids_schema = {
-    "type": "object",
-    "required": ["pagination_info"],
-    "additionalProperties": False,
-    "properties": {
-        "pagination_info": {
-            "type": "object",
-            "required": ["page", "items_per_page", "order_by", "sort_order"],
-            "additionalProperties": False,
-            "properties": {
-                "page": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "items_per_page": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "order_by": {
-                    "type": "string",
-                    "enum": ["object_name", "modified_at", "feed_timestamp"]
-                },
-                "sort_order": {
-                    "type": "string",
-                    "enum": ["asc", "desc"]
-                },
-                "filter_text": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "object_types": {
-                    "type": "array",
-                    "uniqueItems": True,
-                    "items": {
-                        "type": "string",
-                        "enum": object_types_enum
-                    }
-                },
-                "tags_filter": list_of_ids(),
-
-                "show_only_displayed_in_feed": {"type": "boolean"}
-            }
-        }
-    }
-}
-
 objects_search_schema = {
     "type": "object",
     "required": ["query"],

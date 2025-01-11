@@ -15,46 +15,48 @@ from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 
-
-pagination_info = {
-    "pagination_info": {
-        "page": 1, 
-        "items_per_page": 2, 
-        "order_by": "object_name", 
-        "sort_order": "asc", 
-        "filter_text": "", 
-        "object_types": ["link"], 
-        "tags_filter": [],
-        "show_only_displayed_in_feed": False
-}}
-required_attributes = ("page", "items_per_page", "order_by", "sort_order")
-pagination_info_basic = {"pagination_info": {attr: pagination_info["pagination_info"][attr] for attr in required_attributes}}
+from tests.request_generators.objects import get_page_object_ids_request_body
 
 
 async def test_incorrect_request_body(cli):
-    # Incorrect request body (not a json, missing attributes, wrong attributes)
-    resp = await cli.post("/objects/get_page_object_ids", data="not a JSON document.", headers=headers_admin_token)
+    # Missing and unallowed top-level attributes
+    resp = await cli.post("/objects/get_page_object_ids", data={}, headers=headers_admin_token)
     assert resp.status == 400
 
-    for attr in required_attributes:
-        pi = deepcopy(pagination_info)
-        pi["pagination_info"].pop(attr)
-        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body()
+    body["unallowed"] = 1
+    resp = await cli.post("/objects/get_page_object_ids", data=body, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Incorrect pagination info type
+    for value in ("a", 1, []):
+        resp = await cli.post("/objects/get_page_object_ids", data={"pagination_info": value}, headers=headers_admin_token)
+        assert resp.status == 400
+    
+    # Missing required attributes
+    for attr in ("page", "items_per_page", "order_by", "sort_order"):
+        body = get_page_object_ids_request_body()
+        body["pagination_info"].pop(attr)
+        resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
         assert resp.status == 400
 
-    # Incorrect param values
-    for k, v in [("page", "text"), ("page", -1), 
-        ("items_per_page", "text"), ("items_per_page", -1), 
-        ("order_by", 1), ("order_by", "wrong text"),
-        ("sort_order", 1), ("sort_order", "wrong text"), 
-        ("filter_text", 1), ("filter_text", True), 
-        ("object_types", "not a list"), ("object_types", ["wrong object type"]),
-        ("tags_filter", 1), ("tags_filter", "string"), ("tags_filter", [1, 2, -1]), ("tags_filter", [1, 2, "not a number"]),
-        ("show_only_displayed_in_feed", 1), ("show_only_displayed_in_feed", "str")]:
-        pi = deepcopy(pagination_info)
-        pi["pagination_info"][k] = v
-        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect attribute values
+    incorrect_attributes = {
+        "page": ["a", {}, [], -1, 0],
+        "items_per_page": ["a", {}, [], -1, 0],
+        "order_by": [1, False, {}, [], "wrong str"],
+        "sort_order": [1, False, {}, [], "wrong str"],
+        "filter_text": [1, False, {}, [], "a" * 256],
+        "object_types": [1, False, {}, "a", [1], ["wrong str"], ["link"] * 5],
+        "tags_filter": [1, "a", {}, ["a"], [-1], [0], [1] * 101],
+        "show_only_displayed_in_feed": [2, "a", {}, []]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = get_page_object_ids_request_body()
+            body["pagination_info"][attr] = value
+            resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_correct_request_sort_by_name(cli, db_cursor):
@@ -63,23 +65,21 @@ async def test_correct_request_sort_by_name(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - sort by object_name asc + check response body
-    pi = deepcopy(pagination_info_basic)
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(order_by="object_name", sort_order="asc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert "pagination_info" in data
-    for attr in pagination_info["pagination_info"]:
-        assert attr in data["pagination_info"] or attr not in required_attributes
-        assert data["pagination_info"].get(attr) == pi["pagination_info"].get(attr) or attr not in required_attributes
+    assert data["pagination_info"]["order_by"] == "object_name"
+    assert data["pagination_info"]["sort_order"] == "asc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2] # a0, b1
 
     # Correct request - sort by object_name desc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["sort_order"] = "desc"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(order_by="object_name", sort_order="desc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["sort_order"] == "desc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [10, 9] # j1, h0
 
@@ -90,22 +90,22 @@ async def test_correct_request_sort_by_modified_at(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - sort by modified_at asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["order_by"] = "modified_at"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(order_by="modified_at", sort_order="asc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["order_by"] == "modified_at"
+    assert data["pagination_info"]["sort_order"] == "asc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [8, 4]
 
     # Correct request - sort by modified_at desc + query second page
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["page"] = 2
-    pi["pagination_info"]["order_by"] = "modified_at"
-    pi["pagination_info"]["sort_order"] = "desc"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(page=2, order_by="modified_at", sort_order="desc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["page"] == 2
+    assert data["pagination_info"]["sort_order"] == "desc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [7, 6]
 
@@ -122,23 +122,23 @@ async def test_correct_request_sort_by_feed_timestamp(cli, db_cursor):
     Even numbers don't have feed_timestamp set, so use modified_at instead, which is offset by minutes, rather than days, as are set `feed_timestamp` values.
     """
     # Correct request - sort by feed_timestamp asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["order_by"] = "feed_timestamp"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(order_by="feed_timestamp", sort_order="asc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
 
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["order_by"] == "feed_timestamp"
+    assert data["pagination_info"]["sort_order"] == "asc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [7, 3]
 
     # Correct request - sort by feed_timestamp desc + query second page
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["order_by"] = "feed_timestamp"
-    pi["pagination_info"]["sort_order"] = "desc"
-    pi["pagination_info"]["page"] = 2
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(page=2, order_by="feed_timestamp", sort_order="desc")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["page"] == 2
+    assert data["pagination_info"]["sort_order"] == "desc"
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 10]
 
@@ -156,35 +156,35 @@ async def test_correct_request_filter_text(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - no text filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body()
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["filter_text"] == ""
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - empty string as text filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["filter_text"] = ""
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(filter_text="")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["filter_text"] == ""
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - text filter  + sort by object name asc (also check if filter text case is ignored)
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["filter_text"] = "aA"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(filter_text="aA")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["filter_text"] == "aA"
     assert data["pagination_info"]["total_items"] == 3
     assert data["pagination_info"]["object_ids"] == [2, 3]
 
     # Correct request - no matches found
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["filter_text"] = "non-existing object name"
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(filter_text="non-existing object name")
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
@@ -201,36 +201,36 @@ async def test_correct_request_object_types_filter(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - no objects type filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body()
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["object_types"] == []
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - empty object types filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["object_types"] = []
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(object_types=[])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - object types filter + sort by object name asc
-    for object_types, result_object_ids, total_items in ((["link", "markdown"], [1, 2], 4), (["markdown", "to_do_list"], [3, 4], 4)):
-        pi = deepcopy(pagination_info_basic)
-        pi["pagination_info"]["object_types"] = object_types
-        resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    for object_types, result_object_ids, total_items in \
+        ((["link", "markdown"], [1, 2], 4), (["markdown", "to_do_list"], [3, 4], 4)):
+        body = get_page_object_ids_request_body(object_types=object_types)
+        resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
         assert resp.status == 200
         data = await resp.json()
+        assert data["pagination_info"]["object_types"] == object_types
         assert data["pagination_info"]["total_items"] == total_items
         assert data["pagination_info"]["object_ids"] == result_object_ids
 
     # Correct request - no matches found
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["object_types"] = ["composite"]
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(object_types=["composite"])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
@@ -244,44 +244,42 @@ async def test_correct_request_tags_filter(cli, db_cursor):
     insert_objects_tags([7, 8], [1, 2, 3], db_cursor)
 
     # Correct request - no tags filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body()
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["tags_filter"] == []
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - empty tags filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["tags_filter"] = []
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(tags_filter=[])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - one tag in tags filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["tags_filter"] = [1]
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(tags_filter=[1])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["tags_filter"] == [1]
     assert data["pagination_info"]["total_items"] == 4
     assert data["pagination_info"]["object_ids"] == [5, 6]
 
     # Correct request - multiple tags in tags filter + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["tags_filter"] = [1, 2, 3]
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(tags_filter=[1, 2, 3])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["pagination_info"]["total_items"] == 2
     assert data["pagination_info"]["object_ids"] == [7, 8]
 
     # Correct request - no matches found
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["tags_filter"] = [4]
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(tags_filter=[4])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
 
@@ -296,36 +294,34 @@ async def test_correct_request_show_only_displayed_in_feed(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Correct request - no show_only_displayed_in_feed + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body()
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["show_only_displayed_in_feed"] == False
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - show_only_displayed_in_feed = False + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["show_only_displayed_in_feed"] = False
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(show_only_displayed_in_feed=False)
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["pagination_info"]["total_items"] == len(obj_list)
     assert data["pagination_info"]["object_ids"] == [1, 2]
 
     # Correct request - show_only_displayed_in_feed = True + sort by object name asc
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["show_only_displayed_in_feed"] = True
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(show_only_displayed_in_feed=True)
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
+    assert data["pagination_info"]["show_only_displayed_in_feed"] == True
     assert data["pagination_info"]["total_items"] == 2
     assert data["pagination_info"]["object_ids"] == [3, 4]
 
     # Correct request - show_only_displayed_in_feed = True + no matches
-    pi = deepcopy(pagination_info_basic)
-    pi["pagination_info"]["show_only_displayed_in_feed"] = True
-    pi["pagination_info"]["object_types"] = ["composite"]
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(show_only_displayed_in_feed=True, object_types=["composite"])
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 404
     
 
@@ -334,9 +330,8 @@ async def test_correct_request_objects_with_non_published_tags(cli, db_cursor):
     expected_object_ids = inserts["inserted_object_ids"]
 
     # Get all objects on one page (and receive only objects without non-published tags)
-    pi = deepcopy(pagination_info)
-    pi["pagination_info"]["items_per_page"] = 10
-    resp = await cli.post("/objects/get_page_object_ids", json=pi, headers=headers_admin_token)
+    body = get_page_object_ids_request_body(items_per_page=10)
+    resp = await cli.post("/objects/get_page_object_ids", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     assert data["pagination_info"]["total_items"] == len(expected_object_ids)

@@ -1,6 +1,40 @@
+from typing import Literal
+
+from backend_main.types.domains.objects import ObjectTypes
+
+
 def get_objects_delete_body(object_ids: list[int] | None = None, delete_subobjects: bool = False):
     """ Returns request body for /objects/delete route. """
     return { 
         "object_ids": object_ids if object_ids is not None else [1],
         "delete_subobjects": delete_subobjects
     }
+
+
+def get_page_object_ids_request_body(
+        page: int = 1,
+        items_per_page: int = 2,
+        order_by: Literal["object_name", "modified_at", "feed_timestamp"] = "object_name",
+        sort_order: Literal["asc", "desc"] = "asc",
+        filter_text: str | None = None,
+        object_types: list[ObjectTypes] | None = None,
+        tags_filter: list[int] | None = None,
+        show_only_displayed_in_feed: bool | None = None
+    ):
+    """
+    Returns /objects/get_page_object_ids request body with default or custom values.
+    Optional attributes are omitted, unless passed explicitly.
+    """
+    pagination_info = {
+        "page": page, 
+        "items_per_page": items_per_page,
+        "order_by": order_by,
+        "sort_order": sort_order,
+    }
+    if filter_text is not None: pagination_info["filter_text"] = filter_text
+    if object_types is not None: pagination_info["object_types"] = object_types
+    if tags_filter is not None: pagination_info["tags_filter"] = tags_filter
+    if show_only_displayed_in_feed is not None:
+        pagination_info["show_only_displayed_in_feed"] = show_only_displayed_in_feed
+    
+    return {"pagination_info": pagination_info}

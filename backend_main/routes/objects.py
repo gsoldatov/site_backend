@@ -5,12 +5,12 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema,\
-    objects_get_page_object_ids_schema, objects_search_schema, objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
+    objects_search_schema, objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types,\
-    get_page_object_ids_data, search_objects, get_elements_in_composite_hierarchy, set_modified_at
-from backend_main.domains.objects import delete_objects
+    search_objects, get_elements_in_composite_hierarchy, set_modified_at
+from backend_main.domains.objects import delete_objects, view_page_object_ids
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -18,7 +18,8 @@ from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dic
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
-from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody
+from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody, \
+    ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody
 
 
 async def add(request):
@@ -163,10 +164,8 @@ async def delete(request: Request) -> ObjectsDeleteResponseBody:
     # Start transaction
     await start_transaction(request)
 
-    # Cascade delete objects and related data
+    # Delete objects, log and send response
     await delete_objects(request, data.object_ids, data.delete_subobjects)
-
-    # Send response
     request[request_log_event_key](
         "INFO", "route_handler", "Deleted objects.", 
         details=f"object_ids = {data.object_ids}, delete_subobjects = {data.delete_subobjects}"
@@ -174,14 +173,14 @@ async def delete(request: Request) -> ObjectsDeleteResponseBody:
     return ObjectsDeleteResponseBody(object_ids=data.object_ids)
 
 
-async def get_page_object_ids(request):
+async def get_page_object_ids(request: Request) -> ObjectsGetPageObjectIDsResponseBody:
     # Validate request data
-    data = await request.json()
-    validate(instance=data, schema=objects_get_page_object_ids_schema)
-    
-    result = await get_page_object_ids_data(request, data["pagination_info"])
+    data = ObjectsGetPageObjectIDsRequestBody.model_validate(await request.json())
+
+    # Get page object IDs, log and send response
+    result = await view_page_object_ids(request, data.pagination_info)
     request[request_log_event_key]("INFO", "route_handler", "Returning page object IDs.")
-    return result
+    return ObjectsGetPageObjectIDsResponseBody(pagination_info=result)
 
 
 async def search(request):
