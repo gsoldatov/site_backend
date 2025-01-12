@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
 from tests.data_generators.tags import get_test_tag
 from tests.data_generators.users import get_test_user
@@ -51,6 +53,19 @@ composite_data_list = [{
         "object_data": get_test_object_data(x, object_type="composite")["object_data"]
     } for x in range(31, 41)
 ]
+
+
+def insert_objects_update_tags_test_data(db_cursor):
+    """
+    Inserts objects [1, 2], tags [1...10] and adds tags [1...5] to both objects.
+
+    Objects' modification time is set to 01.01.2001 00:00:00.
+    """
+    insert_objects([
+        get_test_object(i, owner_id=1, modified_at=datetime(2001, 1, 1), pop_keys=["object_data"])
+    for i in range(1, 3)], db_cursor)
+    insert_tags([get_test_tag(i) for i in range(1, 11)], db_cursor, generate_ids=True)
+    insert_objects_tags([1, 2], [1, 2, 3, 4, 5], db_cursor)
 
 
 def insert_data_for_view_tests_non_published_objects(db_cursor, object_type = "link"):

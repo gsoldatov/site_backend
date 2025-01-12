@@ -72,20 +72,6 @@ objects_view_schema = {
     }
 }
 
-objects_update_tags_schema = {
-    "type": "object",
-    "additionalProperties": False,
-    "anyOf": [
-        { "required": ["object_ids", "added_tags"] },
-        { "required": ["object_ids", "removed_tag_ids"] }
-    ],
-    "properties": {
-        "object_ids": non_empty_list_of_ids(max_items=100),
-        "added_tags": added_tags,
-        "removed_tag_ids": removed_tag_ids
-    }
-}
-
 objects_view_composite_hierarchy_elements_schema = {
     "type": "object",
     "required": ["object_id"],

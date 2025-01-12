@@ -5,12 +5,12 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema,\
-    objects_update_tags_schema, objects_view_composite_hierarchy_elements_schema
+    objects_view_composite_hierarchy_elements_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types,\
-    get_elements_in_composite_hierarchy, set_modified_at
-from backend_main.domains.objects import delete_objects, view_page_object_ids, search_objects
+    get_elements_in_composite_hierarchy
+from backend_main.domains.objects import update_modified_at, delete_objects, view_page_object_ids, search_objects
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -20,7 +20,8 @@ from backend_main.util.object_type_route_handler_resolving import get_object_typ
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody, \
     ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
-    ObjectsSearchRequestBody, ObjectsSearchResponseBody
+    ObjectsSearchRequestBody, ObjectsSearchResponseBody, \
+    ObjectsUpdateTagsRequestBody, ObjectsUpdateTagsResponseBody
 
 
 async def add(request):
@@ -195,30 +196,27 @@ async def search(request: Request) -> ObjectsSearchResponseBody:
     return ObjectsSearchResponseBody(object_ids=object_ids)
 
 
-async def update_tags(request):
-    # Perform basic data validation
-    data = await request.json()
-    validate(instance=data, schema=objects_update_tags_schema)
-    object_ids = data["object_ids"]
-    added_tags = data.get("added_tags", [])
-    removed_tag_ids = data.get("removed_tag_ids", [])
-    response_data = {}
+async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
+    # Validate request data
+    data = ObjectsUpdateTagsRequestBody.model_validate(await request.json())
 
+    # Update tags and objects `modified_at` attribute
     await start_transaction(request)
+    added_objects_tags = await add_objects_tags(request, data.object_ids, data.added_tags)
+    removed_objects_tags = await delete_objects_tags(request, data.object_ids, data.removed_tag_ids)
+    modified_at = await update_modified_at(request, data.object_ids, request[request_time_key])
 
-    # Update tags
-    added_objects_tags = await add_objects_tags(request, object_ids, added_tags)
-    removed_objects_tags = await delete_objects_tags(request, object_ids, removed_tag_ids)
-    response_data["tag_updates"] = {
-        "added_tag_ids": added_objects_tags.tag_ids, 
-        "removed_tag_ids": removed_objects_tags.tag_ids
-    }
-    
-    # Set objects' modified_at time
-    response_data["modified_at"] = (await set_modified_at(request, object_ids)).isoformat()
+    # Log and return response
+    response = ObjectsUpdateTagsResponseBody.model_validate({
+        "tag_updates": {
+            "added_tag_ids": added_objects_tags.tag_ids,
+            "removed_tag_ids": removed_objects_tags.tag_ids
+        },        
+        "modified_at": modified_at
+    })
 
     request[request_log_event_key]("INFO", "route_handler", "Updated tags for objects.")
-    return response_data
+    return response
 
 
 async def view_composite_hierarchy_elements(request):

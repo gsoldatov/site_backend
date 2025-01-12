@@ -206,19 +206,3 @@ async def get_elements_in_composite_hierarchy(request, object_id):
         current_depth += 1
     
     return {"composite": list(all_composite), "non_composite": list(all_non_composite)}
-
-
-async def set_modified_at(request, object_ids, modified_at = None):
-    """
-    Sets `modified_at` attribute for the objects with provided `object_ids` to provided value or request time.
-    Returns the updated `modified_at` value.
-    """
-    modified_at = modified_at or request[request_time_key]
-
-    # Update modified_at
-    objects = request.config_dict[app_tables_key].objects
-    await request[request_connection_key].execute(objects.update()
-        .where(objects.c.object_id.in_(object_ids))
-        .values(modified_at=modified_at)
-    )
-    return modified_at

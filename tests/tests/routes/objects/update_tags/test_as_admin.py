@@ -8,25 +8,18 @@ if __name__ == "__main__":
 
 from datetime import datetime, timezone, timedelta
 
-from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
-from tests.data_generators.tags import get_test_tag
-
-from tests.db_operations.objects import insert_objects
-from tests.db_operations.objects_tags import insert_objects_tags
-from tests.db_operations.tags import insert_tags
+from tests.data_sets.objects import insert_objects_update_tags_test_data
+from tests.request_generators.objects import get_update_tags_request_body
 
 
 async def test_incorrect_request_body(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Missing attributes
-    for attrs in [("object_ids",), ("added_tags", "removed_tag_ids")]:
-        body = {"object_ids": [1, 2], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
-        for attr in attrs: body.pop(attr)
-
+    for attr in ("object_ids", "added_tags", "removed_tag_ids"):
+        body = get_update_tags_request_body()
+        body.pop(attr)
         resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
@@ -38,18 +31,21 @@ async def test_incorrect_request_body(cli, db_cursor):
     }
     for attr, values in incorrect_values.items():
         for value in values:
-            body = {"object_ids": [1, 2], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
+            body = get_update_tags_request_body()
             body[attr] = value
             resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
             assert resp.status == 400
+    
+    # Both tag lists are empty
+    body = get_update_tags_request_body(added_tags=[], removed_tag_ids=[])
+    resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
+    assert resp.status == 400
 
 
 async def test_non_existing_object_ids(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
-    body = {"object_ids": [1, 2, 100], "added_tags": ["new tag"], "removed_tag_ids": [1, 2]}
+    body = get_update_tags_request_body(object_ids=[1, 2, 100])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
@@ -58,137 +54,124 @@ async def test_non_existing_object_ids(cli, db_cursor):
 
 
 async def test_non_existing_added_tag_ids(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 3)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
-    body = {"object_ids": [1, 2], "added_tags": ["new tag", 100]}
+    body = get_update_tags_request_body(added_tags=["new tag", 6, 100])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     db_cursor.execute("SELECT tag_id FROM tags WHERE tag_name = 'new tag'")
     assert not db_cursor.fetchone()
 
+    for object_id in (1, 2):
+        db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
+        assert sorted((r[0] for r in db_cursor.fetchall())) == [1, 2, 3, 4, 5]
+
 
 async def test_non_existing_removed_tag_ids(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
-    body = {"object_ids": [1, 2], "removed_tag_ids": [1, 100]}
+    body = get_update_tags_request_body(added_tags=[], removed_tag_ids=[1, 2, 100])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     for object_id in (1, 2):
         db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
-        assert sorted((r[0] for r in db_cursor.fetchall())) == [2, 3, 4]
+        assert sorted((r[0] for r in db_cursor.fetchall())) == [3, 4, 5]
 
 
 async def test_string_added_tags(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i, tag_name=f"tag {i}") for i in range(1, 6)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Add string tags & check duplicate handling
-    body = {
-        "object_ids": [1, 2], 
-        "added_tags": [
-            "New tag",                          # new tag
-            "Duplicate tag", "DUPLICATE TAG",   # new tag passed twice
-            "Tag 1",            # existing tag name as string
-            "Tag 2", "TAG 2",   # duplicate existing tag name as string
-            "Tag 3", 3          # existing tag name & its tag ID
-        ]
-    }
+    added_tags = [
+        "New tag",                          # new tag
+        "Duplicate tag", "DUPLICATE TAG",   # new tag passed twice
+        "Tag name 1",                       # existing tag name as string
+        "Tag name 2", "TAG NAME 2",         # duplicate existing tag name as string
+        "Tag name 3", 3                     # existing tag name & its tag ID
+    ]
+    body = get_update_tags_request_body(added_tags=added_tags, removed_tag_ids=[])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     data = await resp.json()
     added_tag_ids = data["tag_updates"]["added_tag_ids"]
     assert type(added_tag_ids) == list
-    assert sorted(added_tag_ids) == [1, 2, 3, 6, 7]     # 4 & 5 already exist
+    assert sorted(added_tag_ids) == [1, 2, 3, 11, 12]     # 4 & 5 already exist
 
     # Check added objects' tags
     for object_id in (1, 2):
         db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
-        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 6, 7]   # tag 5 was not added before
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4, 5, 11, 12]
 
     # Check if new tags were added & is_published is set to true
     db_cursor.execute(f"SELECT tag_id, is_published FROM tags WHERE tag_name IN ('New tag', 'Duplicate tag')")
-    assert [r[0] for r in db_cursor.fetchall()] == [6, 7]
+    assert [r[0] for r in db_cursor.fetchall()] == [11, 12]
     assert all((r[1] for r in db_cursor.fetchall()))
 
 
 async def test_numeric_added_tags(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Add numeric tags and check existing tags & duplicate handling
-    body = {"object_ids": [1, 2], "added_tags": [1, 2, 3, 4, 3, 4]}
+    body = get_update_tags_request_body(added_tags=[1, 2, 6, 7, 6, 7], removed_tag_ids=[])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     data = await resp.json()
     added_tag_ids = data["tag_updates"]["added_tag_ids"]
     assert type(added_tag_ids) == list
-    assert sorted(added_tag_ids) == [1, 2, 3, 4]
+    assert sorted(added_tag_ids) == [1, 2, 6, 7]
 
     # Check current objects' tags
     for object_id in (1, 2):
         db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
-        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3, 4]
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [i for i in range(1, 8)]
 
 
 async def test_remove_tags(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2, 3, 4], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Remove tags and check duplicate handling
-    body = {"object_ids": [1, 2], "removed_tag_ids": [3, 4, 4, 4]}
+    body = get_update_tags_request_body(added_tags=[], removed_tag_ids=[4, 5, 5, 5])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     data = await resp.json()
     removed_tag_ids = data["tag_updates"]["removed_tag_ids"]
     assert type(removed_tag_ids) == list
-    assert sorted(removed_tag_ids) == [3, 4]
+    assert sorted(removed_tag_ids) == [4, 5]
 
     # Check current objects' tags
     for object_id in (1, 2):
         db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
-        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2]
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [1, 2, 3]
 
 
 async def test_add_and_remove_tags(cli, db_cursor):
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1, 2], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Add and remove tags simultaneously
-    body = {"object_ids": [1, 2], "added_tags": [3, 4, "new tag"], "removed_tag_ids": [1, 2]}
+    body = get_update_tags_request_body(added_tags=[6, 7, "new tag"], removed_tag_ids=[1, 2])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     data = await resp.json()
-    assert sorted(data["tag_updates"]["added_tag_ids"]) == [3, 4, 5]
+    assert sorted(data["tag_updates"]["added_tag_ids"]) == [6, 7, 11]
     assert sorted(data["tag_updates"]["removed_tag_ids"]) == [1, 2]
 
     # Check current objects' tags
     for object_id in (1, 2):
         db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = {object_id}")
-        assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5]
+        assert sorted([r[0] for r in db_cursor.fetchall()]) == [3, 4, 5, 6, 7, 11]
 
 
 async def test_modified_at_after_tags_addition(cli, db_cursor):
-    insert_objects([
-        get_test_object(i, owner_id=1, modified_at=datetime(2001, 1, 1), pop_keys=["object_data"])
-    for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(1)], db_cursor, generate_ids=True)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Check if `modified_at` attribute of an object is updated
-    body = {"object_ids": [1, 2], "added_tags": [1]}
+    body = get_update_tags_request_body(added_tags=[6], removed_tag_ids=[])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
@@ -202,14 +185,10 @@ async def test_modified_at_after_tags_addition(cli, db_cursor):
 
 
 async def test_modified_at_after_tags_removal(cli, db_cursor):
-    insert_objects([
-        get_test_object(i, owner_id=1, modified_at=datetime(2001, 1, 1), pop_keys=["object_data"])
-    for i in range(1, 3)], db_cursor)
-    insert_tags([get_test_tag(1)], db_cursor, generate_ids=True)
-    insert_objects_tags([1, 2], [1], db_cursor)
+    insert_objects_update_tags_test_data(db_cursor)
 
     # Check if `modified_at` attribute of an object is updated
-    body = {"object_ids": [1, 2], "removed_tag_ids": [1]}
+    body = get_update_tags_request_body(added_tags=[], removed_tag_ids=[1])
     resp = await cli.put("/objects/update_tags", json=body, headers=headers_admin_token)
     assert resp.status == 200
 

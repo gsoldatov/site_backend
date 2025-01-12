@@ -15,6 +15,8 @@ from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
+from tests.request_generators.objects import get_update_tags_request_body
+
 
 async def test_objects_update_tags_route(cli, db_cursor):
     # Insert mock data
@@ -31,11 +33,13 @@ async def test_objects_update_tags_route(cli, db_cursor):
         insert_objects_tags([k], tags_objects[k], db_cursor)
         
     # Try to update objects tags with different parameters
-    for updates in [{"object_ids": [1], "added_tags": [6, 7, 8, "New Tag"]},
-        {"object_ids": [1], "removed_tag_ids": [1, 2, 3]},
-        {"object_ids": [2], "added_tags": [4, 5, 8, "New Tag"]},
-        {"object_ids": [2], "removed_tag_ids": [1, 2, 7]},]:
-        resp = await cli.put("/objects/update_tags", json=updates)
+    for body in [
+        get_update_tags_request_body(object_ids=[1], added_tags=[6, 7, 8, "new tag"], removed_tag_ids=[]),
+        get_update_tags_request_body(object_ids=[1], added_tags=[], removed_tag_ids=[1, 2, 3]),
+        get_update_tags_request_body(object_ids=[2], added_tags=[4, 5, 8, "new tag"], removed_tag_ids=[]),
+        get_update_tags_request_body(object_ids=[2], added_tags=[], removed_tag_ids=[1, 2, 7])
+    ]:
+        resp = await cli.put("/objects/update_tags", json=body)
         assert resp.status == 401
 
 

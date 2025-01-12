@@ -17,7 +17,7 @@ from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
 from tests.request_generators.objects import get_objects_delete_body, get_page_object_ids_request_body, \
-    get_objects_search_request_body
+    get_objects_search_request_body, get_update_tags_request_body
 from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body, \
     get_page_tag_ids_request_body, get_tags_search_request_body
 
@@ -92,7 +92,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         "/objects/delete": {"DELETE": get_objects_delete_body(object_ids=[100])},
         "/objects/get_page_object_ids": {"POST": get_page_object_ids_request_body()},
         "/objects/search": {"POST": get_objects_search_request_body()},
-        "/objects/update_tags": {"PUT": {"object_ids": [101], "added_tags": [101]}},
+        "/objects/update_tags": {"PUT": get_update_tags_request_body(object_ids=[101], added_tags=[101], removed_tag_ids=[])},
         "/objects/view_composite_hierarchy_elements": {"POST": {"object_id": 99999}},
 
         "/settings/update": {"PUT": {"settings": {"non_admin_registration_allowed": False}}},

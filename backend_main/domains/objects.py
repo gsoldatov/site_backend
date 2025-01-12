@@ -2,6 +2,7 @@ from aiohttp import web
 
 from backend_main.auth.route_checks.objects import authorize_objects_modification
 
+from backend_main.db_operations2.objects.attributes import update_modified_at as _update_modified_at
 from backend_main.db_operations2.objects.general import \
     get_exclusive_subobject_ids as _get_exclusive_subobject_ids, \
     delete_objects as _delete_objects, \
@@ -11,9 +12,18 @@ from backend_main.db_operations2.objects.general import \
 from backend_main.util.exceptions import ObjectsNotFound
 from backend_main.util.json import error_json
 
+from datetime import datetime
 from backend_main.types.request import Request, request_log_event_key
 from backend_main.types.domains.objects import \
     ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, ObjectsSearchQuery
+
+
+async def update_modified_at(request: Request, object_ids: list[int], modified_at: datetime) -> datetime:
+    # Authorize update operation
+    await authorize_objects_modification(request, object_ids)
+
+    # Update attribute & return
+    return await _update_modified_at(request, object_ids, modified_at)
 
 
 async def delete_objects(request: Request, object_ids: list[int], delete_subobjects: bool) -> None:

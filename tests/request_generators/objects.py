@@ -55,3 +55,20 @@ def get_objects_search_request_body(
             "existing_ids": existing_ids if existing_ids is not None else []
         }
     }
+
+
+def get_update_tags_request_body(
+    object_ids: list[int] | None = None,
+    added_tags: list[int | str] | None = None,
+    removed_tag_ids: list[int] | None = None
+):
+    """
+    Returns /objects/update_tags request body with default or custom values.
+    
+    Defaults: [1, 2], ["new tag"], [1, 2].
+    """
+    return {
+        "object_ids": object_ids if object_ids is not None else [1, 2],
+        "added_tags": added_tags if added_tags is not None else ["new tag"],
+        "removed_tag_ids": removed_tag_ids if removed_tag_ids is not None else [1, 2]
+    }
