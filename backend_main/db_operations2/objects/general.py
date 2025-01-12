@@ -4,16 +4,16 @@ from sqlalchemy.sql.functions import coalesce
 
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 
-from backend_main.util.exceptions import ObjectsNotFound
+from backend_main.util.exceptions import ObjectsNotFound, ObjectIsNotComposite
 
 from sqlalchemy.sql.expression import Select
-from backend_main.types.app import app_tables_key
+from backend_main.types.app import app_tables_key, app_config_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects import \
-    ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, ObjectsSearchQuery
+    ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, ObjectsSearchQuery, CompositeHierarchy
 
 
-async def get_exclusive_subobject_ids(request: Request, object_ids: list[int]) -> list[int]:
+async def view_exclusive_subobject_ids(request: Request, object_ids: list[int]) -> list[int]:
     """
     Returns a set of object IDs, which are subobjects only to the objects with specified `object_ids`.
     """
@@ -40,21 +40,6 @@ async def get_exclusive_subobject_ids(request: Request, object_ids: list[int]) -
     
     # Return subobject IDs which are present only in deleted composite objects
     return [o for o in subobjects_of_deleted_objects if o not in subobjects_present_in_other_objects]
-
-
-async def delete_objects(request: Request, object_ids: list[int]) -> None:
-    """
-    Deletes objects with provided `object_ids`.
-    """
-    objects = request.config_dict[app_tables_key].objects
-    
-    # Run delete query & return result
-    result = await request[request_connection_key].execute(
-        objects.delete()
-        .where(objects.c.object_id.in_(object_ids))
-        .returning(objects.c.object_id)
-    )
-    if not await result.fetchone(): raise ObjectsNotFound
 
 
 async def view_page_object_ids(
@@ -189,3 +174,73 @@ async def search_objects(request: Request, query: ObjectsSearchQuery) -> list[in
     object_ids = [r[0] for r in await result.fetchall()]    
     if len(object_ids) == 0: raise ObjectsNotFound
     return object_ids
+
+
+async def view_composite_hierarchy(request: Request, object_id: int) -> CompositeHierarchy:
+    """
+    Returns all object IDs in the composite hierarchy, which starts from `object_id`.
+    Maximum depth of hierarchy, which is checked, is limited by `composite_hierarchy_max_depth` configuration setting.
+    """
+    objects = request.config_dict[app_tables_key].objects
+    composite = request.config_dict[app_tables_key].composite
+
+    # Check if object is composite and can be viewed by request sender
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=[object_id])
+    result = await request[request_connection_key].execute(
+        select(objects.c.object_type)
+        .where(and_(
+            objects_auth_filter_clause,
+            objects.c.object_id == object_id
+        ))
+    )
+    row = await result.fetchone()
+    if not row: raise ObjectsNotFound
+    if row[0] != "composite": raise ObjectIsNotComposite        
+
+    # Build a hierarchy
+    parent_object_ids = set([object_id])
+    all_composite = set([object_id])
+    all_non_composite: set[int] = set()
+    current_depth = 1
+    max_depth = request.config_dict[app_config_key].app.composite_hierarchy_max_depth
+
+    while len(parent_object_ids) > 0 and current_depth < max_depth:
+        # Query all subobjects of current parents
+        result = await request[request_connection_key].execute(
+            select(composite.c.subobject_id, objects.c.object_type)
+            .select_from(composite.join(objects, composite.c.subobject_id == objects.c.object_id))
+            .where(composite.c.object_id.in_(parent_object_ids))    # Do not apply auth filter here (it will be applied when objects' attributes & data are fetched)
+        )
+
+        # Get sets with new composite & non-composite object ids
+        new_composite: set[int] = set()
+        new_non_composite: set[int] = set()
+        for row in await result.fetchall():
+            s = new_composite if row["object_type"] == "composite" else new_non_composite
+            s.add(row["subobject_id"])
+        
+        # Combine new & total sets of object IDs and exit the loop if there is no new composite objects, which were not previously fetched in the loop
+        all_non_composite.update(new_non_composite)
+
+        non_fetched_composite = new_composite.difference(all_composite)
+        all_composite.update(non_fetched_composite)
+        parent_object_ids = non_fetched_composite
+        current_depth += 1
+    
+    return CompositeHierarchy(composite=list(all_composite), non_composite=list(all_non_composite))
+
+
+async def delete_objects(request: Request, object_ids: list[int]) -> None:
+    """
+    Deletes objects with provided `object_ids`.
+    """
+    objects = request.config_dict[app_tables_key].objects
+    
+    # Run delete query & return result
+    result = await request[request_connection_key].execute(
+        objects.delete()
+        .where(objects.c.object_id.in_(object_ids))
+        .returning(objects.c.object_id)
+    )
+    if not await result.fetchone(): raise ObjectsNotFound
+

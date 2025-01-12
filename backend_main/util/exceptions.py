@@ -18,6 +18,13 @@ class ObjectsNotFound(Exception):
     pass
 
 
+class ObjectIsNotComposite(Exception):
+    """
+    Raised when a composite object operation is attempted on a non-composite object.
+    """
+    pass
+
+
 class ObjectsTagsNotFound(Exception):
     """
     Raised when adding objects' tags fails due to a foreign key violation

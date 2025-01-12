@@ -71,12 +71,3 @@ objects_view_schema = {
         "object_data_ids": non_empty_list_of_ids()      # ids to return data for
     }
 }
-
-objects_view_composite_hierarchy_elements_schema = {
-    "type": "object",
-    "required": ["object_id"],
-    "additionalProperties": False,
-    "properties": {
-        "object_id": object_id
-    }
-}

@@ -40,3 +40,13 @@ class ObjectsSearchQuery(BaseModel):
     query_text: Name
     maximum_values: int = Field(ge=1, le=100)
     existing_ids: list[PositiveInt] = Field(max_length=100)
+
+
+class CompositeHierarchy(BaseModel):
+    """
+    Object IDs present in the hierarchy of a composite object.
+    """
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    composite: list[int]
+    non_composite: list[int]

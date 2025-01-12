@@ -74,3 +74,10 @@ class ObjectsUpdateTagsResponseBody(BaseModel):
 
     tag_updates: _TagUpdates
     modified_at: Datetime
+
+
+# /objects/view_composite_hierarchy_elements
+class ObjectsViewCompositeHierarchyElementsRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    object_id: int = Field(ge=1)

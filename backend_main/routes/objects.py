@@ -1,16 +1,15 @@
 """
-    Object routes.
+Object routes.
 """
 from aiohttp import web
 from jsonschema import validate
 
-from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema,\
-    objects_view_composite_hierarchy_elements_schema
+from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
-from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types,\
-    get_elements_in_composite_hierarchy
-from backend_main.domains.objects import update_modified_at, delete_objects, view_page_object_ids, search_objects
+from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types
+from backend_main.domains.objects import update_modified_at, view_page_object_ids, \
+    search_objects, view_composite_hierarchy, delete_objects
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -18,10 +17,12 @@ from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dic
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
+from backend_main.types.domains.objects import CompositeHierarchy
 from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody, \
     ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
     ObjectsSearchRequestBody, ObjectsSearchResponseBody, \
-    ObjectsUpdateTagsRequestBody, ObjectsUpdateTagsResponseBody
+    ObjectsUpdateTagsRequestBody, ObjectsUpdateTagsResponseBody, \
+    ObjectsViewCompositeHierarchyElementsRequestBody
 
 
 async def add(request):
@@ -219,13 +220,12 @@ async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
     return response
 
 
-async def view_composite_hierarchy_elements(request):
+async def view_composite_hierarchy_elements(request: Request) -> CompositeHierarchy:
     # Validate request data
-    data = await request.json()
-    validate(instance=data, schema=objects_view_composite_hierarchy_elements_schema)
+    data = ObjectsViewCompositeHierarchyElementsRequestBody.model_validate(await request.json())
 
     # Get and return response
-    result = await get_elements_in_composite_hierarchy(request, data["object_id"])
+    result = await view_composite_hierarchy(request, data.object_id)
     request[request_log_event_key]("INFO", "route_handler", "Returning composite hierarchy.")
     return result
     
