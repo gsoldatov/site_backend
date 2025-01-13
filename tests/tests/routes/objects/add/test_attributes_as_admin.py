@@ -35,11 +35,12 @@ async def test_add_two_objects_with_the_same_name(cli, db_cursor):
 
     # Check if an object with existing name is added
     # Also check empty feed timestamp case
-    link = get_test_object(1, feed_timestamp="", pop_keys=["object_id", "created_at", "modified_at"])
+    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+    link["feed_timestamp"] = None
     link["object_name"] = link["object_name"].upper()
     resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
     assert resp.status == 200
-    assert (await resp.json())["object"]["feed_timestamp"] == ""
+    assert (await resp.json())["object"]["feed_timestamp"] == None
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id

@@ -20,7 +20,7 @@ incorrect_object_values = [
     ("object_description", 1),
     ("is_published", 1), ("is_published", "str"), ("is_published", None),
     ("display_in_feed", 1), ("display_in_feed", "str"), ("display_in_feed", None),
-    ("feed_timestamp", 1), ("feed_timestamp", True), ("feed_timestamp", None), ("feed_timestamp", "wrong str"), ("feed_timestamp", "99999-01-01"),
+    ("feed_timestamp", 1), ("feed_timestamp", True), ("feed_timestamp", "wrong str"), ("feed_timestamp", "99999-01-01"),
     ("show_description", 1), ("show_description", "str"), ("show_description", None),
     ("owner_id", -1), ("owner_id", "str"), ("owner_id", True),
     ("object_data", None), ("object_data", ""), ("object_data", 1)

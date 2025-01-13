@@ -124,7 +124,7 @@ composite_subobject_item_options.extend([{
         },
         "is_published": {"type": "boolean"},
         "display_in_feed": {"type": "boolean"},
-        "feed_timestamp": {"type": "string"},
+        "feed_timestamp": {"type": ["string", "null"]},
         "show_description": { "type": "boolean" },
         "owner_id": object_id,
         

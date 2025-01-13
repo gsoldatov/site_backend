@@ -34,7 +34,7 @@ async def add(request):
     request_time = request[request_time_key]
     data["object"]["created_at"] = request_time
     data["object"]["modified_at"] = request_time
-    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
+    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_none=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
 
@@ -51,8 +51,6 @@ async def add(request):
     record = (await add_objects(request, [data["object"]]))[0]
     response_data = row_proxy_to_dict(record)
     object_id = record["object_id"]
-    response_data["feed_timestamp"] = response_data["feed_timestamp"] or "" # replace empty feed timestamp with an empty string
-
     # Call handler to add object-specific data
     specific_data = [{"object_id": object_id, "object_data": object_data}]
     handler = get_object_type_route_handler("add", data["object"]["object_type"])
@@ -77,7 +75,7 @@ async def update(request):
     # Get and set attribute values
     request_time = request[request_time_key]
     data["object"]["modified_at"] = request_time
-    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_empty_string=True, error_msg="Incorrect feed timestamp value.")
+    data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_none=True, error_msg="Incorrect feed timestamp value.")
     added_tags = data["object"].pop("added_tags", [])
     removed_tag_ids = data["object"].pop("removed_tag_ids", [])
     object_data = data["object"].pop("object_data")
@@ -88,7 +86,6 @@ async def update(request):
     # Update general object data
     object_id = data["object"]["object_id"]
     response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
-    response_data["feed_timestamp"] = response_data["feed_timestamp"] or "" # replace empty feed timestamp with an empty string
 
     # Validate object_data property and call handler to update object-specific data
     validate(instance=object_data, schema=get_object_data_update_schema(response_data["object_type"]))
@@ -111,6 +108,29 @@ async def update(request):
     return {"object": response_data}
 
 
+async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
+    # Validate request data
+    data = ObjectsUpdateTagsRequestBody.model_validate(await request.json())
+
+    # Update tags and objects `modified_at` attribute
+    await start_transaction(request)
+    added_objects_tags = await add_objects_tags(request, data.object_ids, data.added_tags)
+    removed_objects_tags = await delete_objects_tags(request, data.object_ids, data.removed_tag_ids)
+    modified_at = await update_modified_at(request, data.object_ids, request[request_time_key])
+
+    # Log and return response
+    response = ObjectsUpdateTagsResponseBody.model_validate({
+        "tag_updates": {
+            "added_tag_ids": added_objects_tags.tag_ids,
+            "removed_tag_ids": removed_objects_tags.tag_ids
+        },        
+        "modified_at": modified_at
+    })
+
+    request[request_log_event_key]("INFO", "route_handler", "Updated tags for objects.")
+    return response
+
+
 async def view(request):
     # Validate request body
     data = await request.json()
@@ -126,7 +146,6 @@ async def view(request):
         # Attributes
         for row in await view_objects(request, object_ids):
             object_attrs[row["object_id"]] = row_proxy_to_dict(row)
-            object_attrs[row["object_id"]]["feed_timestamp"] = object_attrs[row["object_id"]]["feed_timestamp"] or "" # replace empty feed timestamps with an empty string
             object_attrs[row["object_id"]]["current_tag_ids"] = []
         
         # Tag IDs
@@ -160,22 +179,6 @@ async def view(request):
     return {"objects": object_attrs, "object_data": object_data}
 
 
-async def delete(request: Request) -> ObjectsDeleteResponseBody:
-    # Validate request body
-    data = ObjectsDeleteRequestBody.model_validate(await request.json())
-
-    # Start transaction
-    await start_transaction(request)
-
-    # Delete objects, log and send response
-    await delete_objects(request, data.object_ids, data.delete_subobjects)
-    request[request_log_event_key](
-        "INFO", "route_handler", "Deleted objects.", 
-        details=f"object_ids = {data.object_ids}, delete_subobjects = {data.delete_subobjects}"
-    )
-    return ObjectsDeleteResponseBody(object_ids=data.object_ids)
-
-
 async def get_page_object_ids(request: Request) -> ObjectsGetPageObjectIDsResponseBody:
     # Validate request data
     data = ObjectsGetPageObjectIDsRequestBody.model_validate(await request.json())
@@ -197,29 +200,6 @@ async def search(request: Request) -> ObjectsSearchResponseBody:
     return ObjectsSearchResponseBody(object_ids=object_ids)
 
 
-async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
-    # Validate request data
-    data = ObjectsUpdateTagsRequestBody.model_validate(await request.json())
-
-    # Update tags and objects `modified_at` attribute
-    await start_transaction(request)
-    added_objects_tags = await add_objects_tags(request, data.object_ids, data.added_tags)
-    removed_objects_tags = await delete_objects_tags(request, data.object_ids, data.removed_tag_ids)
-    modified_at = await update_modified_at(request, data.object_ids, request[request_time_key])
-
-    # Log and return response
-    response = ObjectsUpdateTagsResponseBody.model_validate({
-        "tag_updates": {
-            "added_tag_ids": added_objects_tags.tag_ids,
-            "removed_tag_ids": removed_objects_tags.tag_ids
-        },        
-        "modified_at": modified_at
-    })
-
-    request[request_log_event_key]("INFO", "route_handler", "Updated tags for objects.")
-    return response
-
-
 async def view_composite_hierarchy_elements(request: Request) -> CompositeHierarchy:
     # Validate request data
     data = ObjectsViewCompositeHierarchyElementsRequestBody.model_validate(await request.json())
@@ -228,7 +208,24 @@ async def view_composite_hierarchy_elements(request: Request) -> CompositeHierar
     result = await view_composite_hierarchy(request, data.object_id)
     request[request_log_event_key]("INFO", "route_handler", "Returning composite hierarchy.")
     return result
-    
+
+
+async def delete(request: Request) -> ObjectsDeleteResponseBody:
+    # Validate request body
+    data = ObjectsDeleteRequestBody.model_validate(await request.json())
+
+    # Start transaction
+    await start_transaction(request)
+
+    # Delete objects, log and send response
+    await delete_objects(request, data.object_ids, data.delete_subobjects)
+    request[request_log_event_key](
+        "INFO", "route_handler", "Deleted objects.", 
+        details=f"object_ids = {data.object_ids}, delete_subobjects = {data.delete_subobjects}"
+    )
+    return ObjectsDeleteResponseBody(object_ids=data.object_ids)
+
+
 
 def get_object_data_update_schema(object_type):
     return globals()[f"{object_type}_object_data"]
@@ -239,11 +236,11 @@ def get_subapp():
     app.add_routes([
                     web.post("/add", add, name="add"),
                     web.put("/update", update, name="update"),
+                    web.put("/update_tags", update_tags, name="update_tags"),
                     web.post("/view", view, name="view"),
-                    web.delete("/delete", delete, name="delete"),
                     web.post("/get_page_object_ids", get_page_object_ids, name="get_page_object_ids"),
                     web.post("/search", search, name="search"),
-                    web.put("/update_tags", update_tags, name="update_tags"),
-                    web.post("/view_composite_hierarchy_elements", view_composite_hierarchy_elements, name="view_composite_hierarchy_elements")
+                    web.post("/view_composite_hierarchy_elements", view_composite_hierarchy_elements, name="view_composite_hierarchy_elements"),                    
+                    web.delete("/delete", delete, name="delete")
                 ])
     return app

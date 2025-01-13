@@ -146,7 +146,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
 
                     "show_description": so["show_description"],
                     "display_in_feed": so["display_in_feed"],
-                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
+                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_none=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
 
                     "owner_id": so.get("owner_id", request[request_user_info_key].user_id),
                     "owner_id_is_autoset": not ("owner_id" in so)
@@ -212,7 +212,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                     "is_published": so["is_published"],
                     "show_description": so["show_description"],
                     "display_in_feed": so["display_in_feed"],
-                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_empty_string=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
+                    "feed_timestamp": deserialize_str_to_datetime(so["feed_timestamp"], allow_none=True, error_msg=f"Incorrect feed timestamp value for subobject '{so['object_name']}'."),
                     "modified_at": request_time
                 }
                 if "owner_id" in so:     # don't update owner_id if it was not explicitly passed

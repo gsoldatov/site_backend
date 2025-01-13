@@ -1,6 +1,6 @@
 from typing import Literal
 
-from backend_main.types.domains.objects import ObjectTypes
+from backend_main.types.domains.objects import ObjectType
 
 
 def get_objects_delete_body(object_ids: list[int] | None = None, delete_subobjects: bool = False):
@@ -17,7 +17,7 @@ def get_page_object_ids_request_body(
         order_by: Literal["object_name", "modified_at", "feed_timestamp"] = "object_name",
         sort_order: Literal["asc", "desc"] = "asc",
         filter_text: str | None = None,
-        object_types: list[ObjectTypes] | None = None,
+        object_types: list[ObjectType] | None = None,
         tags_filter: list[int] | None = None,
         show_only_displayed_in_feed: bool | None = None
     ):

@@ -64,10 +64,10 @@ async def test_correct_update_with_set_owner_id(cli, db_cursor, owner_id):
     assert db_cursor.fetchone() == (updated_name, owner_id)
 
     # Update object again (check empty feed timestamp case)
-    obj["feed_timestamp"] = ""
+    obj["feed_timestamp"] = None
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
-    assert (await resp.json())["object"]["feed_timestamp"] == ""
+    assert (await resp.json())["object"]["feed_timestamp"] == None
 
 
 if __name__ == "__main__":

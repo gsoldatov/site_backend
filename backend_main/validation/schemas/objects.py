@@ -19,7 +19,7 @@ objects_add_schema = {
                     "object_description": description,
                     "is_published": {"type": "boolean"},
                     "display_in_feed": {"type": "boolean"},
-                    "feed_timestamp": {"type": "string"},
+                    "feed_timestamp": {"type": ["string", "null"]},
                     "show_description": {"type": "boolean"},
                     "owner_id": object_id,
                     "object_data": object_type_and_data_options[object_type],
@@ -45,7 +45,7 @@ objects_update_schema = {
                 "object_description": description,
                 "is_published": {"type": "boolean"},
                 "display_in_feed": {"type": "boolean"},
-                "feed_timestamp": {"type": "string"},
+                "feed_timestamp": {"type": ["string", "null"]},
                 "show_description": {"type": "boolean"},
                 "owner_id": object_id,
                 "object_data": {

@@ -25,10 +25,7 @@ def error_json(e):
     """
     Returns a JSON string with the exception message.
     """
-    msg = str(e)
-    # if isinstance(e, Exception):
-    #     msg = e.message
-    return json.dumps({"_error": msg})
+    return json.dumps({"_error": str(e)})
 
 
 def link_data_row_proxy_to_dict(row):
@@ -47,14 +44,14 @@ def markdown_data_row_proxy_to_dict(row):
     return result
 
 
-def deserialize_str_to_datetime(s, allow_empty_string = False, error_msg = None):
+def deserialize_str_to_datetime(s, allow_none = False, error_msg = None):
     """
     Deserializes ISO-formatted datetime string `s` into datetime object.
-    If `allow_empty_string` is True, empty strings will be converted into None.
+    If `allow_none` is set true, treats None as a valid value and returns it.
     Raises `RequestValidationException` in case of failure.
-    `field_name` may be passed to customize error message.
+    `error_msg` may be passed to customize error message.
     """
-    if allow_empty_string and len(s) == 0: return None
+    if allow_none and s is None: return None
 
     try:
         if s.endswith("Z"): s = s[:-1] # remove Zulu timezone if present to avoid parsing failure
