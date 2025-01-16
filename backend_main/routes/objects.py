@@ -4,13 +4,13 @@ Object routes.
 from aiohttp import web
 from jsonschema import validate
 
-from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema, objects_view_schema
+from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
-from backend_main.db_operations.objects import add_objects, update_objects, view_objects, view_objects_types
-from backend_main.domains.objects import update_modified_at, view_page_object_ids, \
-    search_objects, view_composite_hierarchy, delete_objects
-from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, view_objects_tags
+from backend_main.db_operations.objects import add_objects, update_objects
+from backend_main.domains.objects import update_modified_at, view_objects_attributes_and_tags, \
+    view_objects_data, view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
+from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
@@ -18,11 +18,12 @@ from backend_main.util.object_type_route_handler_resolving import get_object_typ
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.domains.objects import CompositeHierarchy
-from backend_main.types.routes.objects import ObjectsDeleteRequestBody, ObjectsDeleteResponseBody, \
+from backend_main.types.routes.objects import ObjectsViewRequestBody, ObjectsViewResponseBody, \
     ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
     ObjectsSearchRequestBody, ObjectsSearchResponseBody, \
     ObjectsUpdateTagsRequestBody, ObjectsUpdateTagsResponseBody, \
-    ObjectsViewCompositeHierarchyElementsRequestBody
+    ObjectsViewCompositeHierarchyElementsRequestBody, \
+    ObjectsDeleteRequestBody, ObjectsDeleteResponseBody
 
 
 async def add(request):
@@ -131,52 +132,32 @@ async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
     return response
 
 
-async def view(request):
+async def view(request: Request) -> ObjectsViewResponseBody:
     # Validate request body
-    data = await request.json()
-    validate(instance=data, schema=objects_view_schema)
+    data = ObjectsViewRequestBody.model_validate(await request.json())
 
-    # Get object IDs and initialize containers for response data
-    object_ids = data.get("object_ids", [])
-    object_data_ids = data.get("object_data_ids", [])
-    object_attrs, object_data = {}, []
+    # Query attributes and tags
+    objects_attributes_and_tags = await view_objects_attributes_and_tags(request, data.object_ids)
 
-    # Query general attributes and tag IDs for provided object_ids
-    if len(object_ids) > 0:
-        # Attributes
-        for row in await view_objects(request, object_ids):
-            object_attrs[row["object_id"]] = row_proxy_to_dict(row)
-            object_attrs[row["object_id"]]["current_tag_ids"] = []
-        
-        # Tag IDs
-        objects_tags = await view_objects_tags(request, object_ids)
-        for object_id in object_attrs:
-            object_attrs[object_id]["current_tag_ids"] = objects_tags.map[object_id]
-        
-    # Convert object_attrs to list
-    object_attrs = [object_attrs[k] for k in object_attrs]
-    
-    # Query object data for provided object_data_ids
-    if len(object_data_ids) > 0:
-        # Query object types for the requested objects
-        object_types = await view_objects_types(request, object_data_ids)
-        
-        # Run handlers for each of the object types
-        for object_type in object_types:
-            handler = get_object_type_route_handler("view", object_type)
+    # Query data
+    objects_data = await view_objects_data(request, data.object_data_ids)
 
-            # handler function must return a list of dict objects with "object_id" and "object_data" keys
-            object_type_data = await handler(request, object_data_ids)
-            for d in object_type_data:
-                d["object_type"] = object_type
-            object_data.extend(object_type_data)
-    
-    if len(object_attrs) == 0 and len(object_data) == 0:
-        request[request_log_event_key]("WARNING", "route_handler", "Object IDs are not found or can't be viewed.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
+    # Handle no data found case & return response
+    if len(objects_attributes_and_tags) == 0 and len(objects_data) == 0:
+        request[request_log_event_key](
+            "WARNING", "route_handler", "Object IDs are not found or can't be viewed.",
+            details=f"object_ids = {data.object_ids}, object_data_ids = {data.object_data_ids}"
+        )
         raise web.HTTPNotFound(text=error_json("Objects not found."), content_type="application/json")
 
-    request[request_log_event_key]("INFO", "route_handler", "Returning object attributes and data.", details=f"object_ids = {object_ids}, object_data_ids = {object_data_ids}")
-    return {"objects": object_attrs, "object_data": object_data}
+    request[request_log_event_key](
+        "INFO", "route_handler", "Returning object attributes and data.",
+        details=f"object_ids = {data.object_ids}, object_data_ids = {data.object_data_ids}"
+    )
+    return ObjectsViewResponseBody(
+        objects_attributes_and_tags=objects_attributes_and_tags,
+        objects_data=objects_data
+    )
 
 
 async def get_page_object_ids(request: Request) -> ObjectsGetPageObjectIDsResponseBody:

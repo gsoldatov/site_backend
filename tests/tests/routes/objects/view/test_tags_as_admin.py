@@ -16,6 +16,8 @@ from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 
+from tests.request_generators.objects import get_objects_view_request_body
+
 
 async def test_objects_view_route(cli, db_cursor):
     # Insert mock data
@@ -29,24 +31,26 @@ async def test_objects_view_route(cli, db_cursor):
 
     # View object without tags
     object_ids = [3]
-    resp = await cli.post("/objects/view", json={"object_ids": object_ids}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=object_ids, object_data_ids=[])
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert type(data.get("objects")) == list
-    assert len(data.get("objects")) == 1
-    assert type(data["objects"][0]) == dict
-    current_tag_ids = data["objects"][0].get("current_tag_ids")
+    assert type(data.get("objects_attributes_and_tags")) == list
+    assert len(data.get("objects_attributes_and_tags")) == 1
+    assert type(data["objects_attributes_and_tags"][0]) == dict
+    current_tag_ids = data["objects_attributes_and_tags"][0].get("current_tag_ids")
     assert type(current_tag_ids) == list
     assert len(current_tag_ids) == 0
 
     # View objects with tags
     object_ids = [1, 2]
-    resp = await cli.post("/objects/view", json={"object_ids": object_ids}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=object_ids, object_data_ids=[])
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
     for i in range(2):
-        object_data = data["objects"][i]
-        assert sorted(object_data["current_tag_ids"]) == sorted(objects_tags[object_data["object_id"]])
+        obj = data["objects_attributes_and_tags"][i]
+        assert sorted(obj["current_tag_ids"]) == sorted(objects_tags[obj["object_id"]])
 
 
 async def test_objects_view_route_objects_with_non_published_tags(cli, db_cursor):
@@ -54,15 +58,16 @@ async def test_objects_view_route_objects_with_non_published_tags(cli, db_cursor
     insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
 
     # View objects' tags for objects with non-published tags
-    resp = await cli.post("/objects/view", json={"object_ids": [6, 10]}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=[6, 10], object_data_ids=[])
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
 
     # Check if both objects are returned with expected tags
-    assert len(data["objects"]) == 2
+    assert len(data["objects_attributes_and_tags"]) == 2
     for i in range(2):
-        assert (data["objects"][i]["object_id"] == 6 and sorted(data["objects"][i]["current_tag_ids"]) == [1, 2, 3]) \
-            or (data["objects"][i]["object_id"] == 10 and sorted(data["objects"][i]["current_tag_ids"]) == [1, 2, 3, 4])
+        assert (data["objects_attributes_and_tags"][i]["object_id"] == 6 and sorted(data["objects_attributes_and_tags"][i]["current_tag_ids"]) == [1, 2, 3]) \
+            or (data["objects_attributes_and_tags"][i]["object_id"] == 10 and sorted(data["objects_attributes_and_tags"][i]["current_tag_ids"]) == [1, 2, 3, 4])
 
 
 if __name__ == "__main__":

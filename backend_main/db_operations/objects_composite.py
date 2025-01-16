@@ -4,9 +4,7 @@
 from backend_main.util.searchables import add_searchable_updates_for_objects
 from aiohttp import web
 from sqlalchemy import select
-from sqlalchemy.sql import and_
 
-from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 from backend_main.db_operations.objects import add_objects, update_objects
 from backend_main.domains.objects import delete_objects
 from backend_main.middlewares.connection import start_transaction
@@ -25,76 +23,6 @@ async def add_composite(request, obj_ids_and_data):
 
 async def update_composite(request, obj_ids_and_data):
     return await _add_update_composite(request, obj_ids_and_data)
-
-
-async def view_composite(request, object_ids):
-    objects = request.config_dict[app_tables_key].objects
-    composite = request.config_dict[app_tables_key].composite
-    composite_properties = request.config_dict[app_tables_key].composite_properties
-
-    # Objects filter for non 'admin` user level
-    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
-
-    # Query subobjects
-    ## Return all existing composite objects with provided object ids, including those which don't have any subobjects
-    records = await request[request_connection_key].execute(
-        select(
-            objects.c.object_id,
-            composite.c.subobject_id,
-            composite.c.row,
-            composite.c.column, 
-            composite.c.selected_tab,
-            composite.c.is_expanded,
-            composite.c.show_description_composite,
-            composite.c.show_description_as_link_composite
-        )
-        .select_from(objects.outerjoin(composite, objects.c.object_id == composite.c.object_id))
-        .where(and_(
-            objects_auth_filter_clause,
-            objects.c.object_id.in_(object_ids),
-            objects.c.object_type == "composite"))
-    )
-
-    subobject_data = {}
-    for row in await records.fetchall():
-        object_id = row["object_id"]
-        subobjects = subobject_data.get(object_id, [])
-        if row["subobject_id"] != None: # don't add lines without subobject data
-            subobjects.append({
-                "object_id": row["subobject_id"],
-                "row": row["row"],
-                "column": row["column"],
-                "selected_tab": row["selected_tab"],
-                "is_expanded": row["is_expanded"],
-                "show_description_composite": row["show_description_composite"],
-                "show_description_as_link_composite": row["show_description_as_link_composite"]
-            })
-        subobject_data[object_id] = subobjects
-    
-    # Query composite properties
-    records = await request[request_connection_key].execute(
-        select(composite_properties.c.object_id, composite_properties.c.display_mode, composite_properties.c.numerate_chapters)
-        .select_from(objects.outerjoin(composite_properties, objects.c.object_id == composite_properties.c.object_id))
-        .where(and_(
-            objects_auth_filter_clause,
-            composite_properties.c.object_id.in_(object_ids)))
-    )
-
-    composite_properties_data = {
-        row["object_id"]: {
-            "display_mode": row["display_mode"], 
-            "numerate_chapters": row["numerate_chapters"]
-        } for row in await records.fetchall()
-    }
-    
-    return [{
-        "object_id": object_id, 
-        "object_data": {
-            "subobjects": subobject_data[object_id],
-            "display_mode": composite_properties_data[object_id]["display_mode"],
-            "numerate_chapters": composite_properties_data[object_id]["numerate_chapters"]
-        }
-    } for object_id in subobject_data]
 
 
 async def _add_update_composite(request, obj_ids_and_data):

@@ -49,7 +49,7 @@ def get_test_object_data(object_id, object_type = "link", composite_subobject_ob
     If `composite_subobject_object_type` is set, composite object is returned with its first subobject containing object attributes & data of the specified type.
     """
     if object_type == "link":
-        object_data = {"link": f"https://test.link.{object_id}", "show_description_as_link": False}
+        object_data = {"link": f"https://test.link.{object_id}.com", "show_description_as_link": False}
     
     elif object_type == "markdown":
         object_data = {"raw_text": f"Raw markdown text #{object_id}"}

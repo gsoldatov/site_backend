@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field, PlainSerializer, model_validator
 # Numeric
 PositiveInt = Annotated[int, Field(ge=1)]
 """ Integer > 0. """
+NonNegativeInt = Annotated[int, Field(ge=0)]
+""" Integer >= 0. """
 Port = Annotated[int, Field(ge=1024, le=65535)]
 """ A non-system port number. """
 

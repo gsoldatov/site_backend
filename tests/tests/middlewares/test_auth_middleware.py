@@ -16,8 +16,8 @@ from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
-from tests.request_generators.objects import get_objects_delete_body, get_page_object_ids_request_body, \
-    get_objects_search_request_body, get_update_tags_request_body
+from tests.request_generators.objects import get_objects_view_request_body, get_objects_delete_body, \
+    get_page_object_ids_request_body, get_objects_search_request_body, get_update_tags_request_body
 from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body, \
     get_page_tag_ids_request_body, get_tags_search_request_body
 
@@ -88,7 +88,7 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         
         "/objects/add": {"POST": {"object": get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])}},
         "/objects/update": {"PUT": {"object": get_test_object(100, object_type="link", pop_keys=["created_at", "modified_at", "object_type"])}},
-        "/objects/view": {"POST": {"object_ids": [100]}},
+        "/objects/view": {"POST": get_objects_view_request_body(object_ids=[100], object_data_ids=[])},
         "/objects/delete": {"DELETE": get_objects_delete_body(object_ids=[100])},
         "/objects/get_page_object_ids": {"POST": get_page_object_ids_request_body()},
         "/objects/search": {"POST": get_objects_search_request_body()},

@@ -15,6 +15,8 @@ from tests.data_sets.objects import composite_data_list, insert_data_for_composi
 from tests.db_operations.objects import insert_objects, insert_links, insert_composite, \
     insert_composite_properties
 
+from tests.request_generators.objects import get_objects_view_request_body
+
 from tests.util import ensure_equal_collection_elements
 
 
@@ -25,25 +27,28 @@ async def test_view_non_published_composite_objects(cli, db_cursor):
 
     # Correct request (object_data_ids only, composite), non-existing ids
     object_data_ids = [_ for _ in range(1001, 1011)]
-    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=object_data_ids)
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
     # Correct request (object_data_ids only, composite)
     object_data_ids = [_ for _ in range(31, 41)]
-    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=object_data_ids)
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert "object_data" in data
+    assert "objects_data" in data
 
     for field in ("object_id", "object_type", "object_data"):
-        assert field in data["object_data"][0]
-    assert "subobjects" in data["object_data"][0]["object_data"]
+        assert field in data["objects_data"][0]
+    assert "subobjects" in data["objects_data"][0]["object_data"]
 
-    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
+    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
         "Objects view, correct request, composite object_data_ids only")
     
-    for attr in ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"]:
-        assert attr in data["object_data"][0]["object_data"]["subobjects"][0]
+    for attr in ["subobject_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"]:
+        assert attr in data["objects_data"][0]["object_data"]["subobjects"][0]
 
 
 async def test_view_composite_objects_without_subobjects(cli, db_cursor):
@@ -60,13 +65,16 @@ async def test_view_composite_objects_without_subobjects(cli, db_cursor):
 
     # Query data of both objects
     object_data_ids = [10, 11]
-    resp = await cli.post("/objects/view", json={"object_data_ids": object_data_ids}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=object_data_ids)
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
 
+    print(await resp.json())
     assert resp.status == 200
     data = await resp.json()
-    ensure_equal_collection_elements(object_data_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
+    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
         "Objects view, composite objects without subobjects")
-    for object_data in data["object_data"]:
+    for object_data in data["objects_data"]:
         object_id = object_data["object_id"]
         assert object_id in object_data_ids
         object_data_ids.remove(object_id)
@@ -85,11 +93,13 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
 
     # Correct request (object_data_ids only, composite, request all composite objects, 
     # receive all objects, regardless of being tagged with non-published tags)
-    resp = await cli.post("/objects/view", json={"object_data_ids": [11, 12, 13]}, headers=headers_admin_token)
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=[11, 12, 13])
+    resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
 
-    ensure_equal_collection_elements([11, 12, 13], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
+    ensure_equal_collection_elements([11, 12, 13], received_objects_data_ids, 
         "Objects view, correct request as admin, composite object_data_ids only")
 
 

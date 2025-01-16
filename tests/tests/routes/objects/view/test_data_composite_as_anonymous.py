@@ -14,6 +14,8 @@ from tests.data_sets.objects import insert_data_for_composite_view_tests_objects
 from tests.db_operations.objects import insert_objects, insert_composite
 from tests.db_operations.users import insert_users
 
+from tests.request_generators.objects import get_objects_view_request_body
+
 from tests.util import ensure_equal_collection_elements
 
 
@@ -29,11 +31,13 @@ async def test_view_non_published_composite(cli, db_cursor):
     # Correct request (object_data_ids only, composite, request all composite objects, receive only published)
     requested_object_ids = [i for i in range(31, 41)]
     expected_object_ids = [i for i in range(31, 41) if i % 2 == 0]
-    resp = await cli.post("/objects/view", json={"object_data_ids": requested_object_ids})
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=requested_object_ids)
+    resp = await cli.post("/objects/view", json=body)
     assert resp.status == 200
     data = await resp.json()
 
-    ensure_equal_collection_elements(expected_object_ids, [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
+    ensure_equal_collection_elements(expected_object_ids, received_objects_data_ids, 
         "Objects view, correct request as anonymous, composite object_data_ids only")
 
 
@@ -42,11 +46,13 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
     insert_data_for_composite_view_tests_objects_with_non_published_tags(db_cursor)
 
     # Correct request (object_data_ids only, composite, request all composite objects, receive only marked with published tags)
-    resp = await cli.post("/objects/view", json={"object_data_ids": [11, 12, 13]})
+    body = get_objects_view_request_body(object_ids=[], object_data_ids=[11, 12, 13])
+    resp = await cli.post("/objects/view", json=body)
     assert resp.status == 200
     data = await resp.json()
 
-    ensure_equal_collection_elements([11], [data["object_data"][x]["object_id"] for x in range(len(data["object_data"]))], 
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
+    ensure_equal_collection_elements([11], received_objects_data_ids, 
         "Objects view, correct request as anonymous, composite object_data_ids only")
 
 

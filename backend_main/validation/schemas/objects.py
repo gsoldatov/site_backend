@@ -57,17 +57,3 @@ objects_update_schema = {
         }
     }
 }
-
-objects_view_schema = {
-    "type": "object",
-    "anyOf": [
-        { "required": ["object_ids"] },
-        { "required": ["object_data_ids"] }
-    ],
-    
-    "additionalProperties": False,
-    "properties": {
-        "object_ids": non_empty_list_of_ids(),          # ids to return general attributes for
-        "object_data_ids": non_empty_list_of_ids()      # ids to return data for
-    }
-}

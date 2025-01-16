@@ -12,7 +12,7 @@ def get_object_type_route_handler(route, object_type):
 
 
 # Imports are at the end of file to avoid circular import error
-from backend_main.db_operations.objects_links import add_links, update_links, view_links
-from backend_main.db_operations.objects_markdown import add_markdown, update_markdown, view_markdown
-from backend_main.db_operations.objects_to_do_lists import add_to_do_lists, update_to_do_lists, view_to_do_lists
-from backend_main.db_operations.objects_composite import add_composite, update_composite, view_composite
+from backend_main.db_operations.objects_links import add_links, update_links
+from backend_main.db_operations.objects_markdown import add_markdown, update_markdown
+from backend_main.db_operations.objects_to_do_lists import add_to_do_lists, update_to_do_lists
+from backend_main.db_operations.objects_composite import add_composite, update_composite
