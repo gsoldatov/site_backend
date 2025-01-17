@@ -14,7 +14,7 @@ from tests.util import ensure_equal_collection_elements
 async def test_view_non_published_objects(cli, db_cursor):
     insert_data_for_view_tests_non_published_objects(db_cursor, object_type="link")
 
-    # Correct request (object_data_ids only, links, request all existing objects, receive only published)
+    # Check if data is returned for published objects only
     requested_object_ids = [i for i in range(1, 11)]
     expected_object_ids = [i for i in range(1, 11) if i % 2 == 0]
     body = get_objects_view_request_body(object_ids=[], object_data_ids=requested_object_ids)
@@ -33,7 +33,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     requested_object_ids = inserts["inserted_object_ids"]
     expected_object_ids = inserts["expected_object_ids_as_anonymous"]
 
-    # Correct request (object_ids only)
+    # Check if data is returned for objects with published tags only
     body = get_objects_view_request_body(object_ids=[], object_data_ids=requested_object_ids)
     resp = await cli.post("/objects/view", json=body)
     assert resp.status == 200

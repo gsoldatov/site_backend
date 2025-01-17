@@ -1,7 +1,5 @@
 from psycopg2.extensions import AsIs
 
-from tests.util import parse_iso_timestamp
-
 
 def insert_objects(objects, db_cursor):
     """
@@ -14,11 +12,7 @@ def insert_objects(objects, db_cursor):
     params = [AsIs("objects")]
     for o in objects:
         for field in field_names:
-            if field == "feed_timestamp":
-                value = parse_iso_timestamp(o[field], allow_empty_string=True)
-                params.append(value)
-            else:
-                params.append(o[field])
+            params.append(o[field])
     db_cursor.execute(query, params)
 
 

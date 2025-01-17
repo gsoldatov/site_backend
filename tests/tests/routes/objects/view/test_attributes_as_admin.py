@@ -1,13 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
+from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
+
 from tests.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
+
+from tests.db_operations.objects import insert_objects
+
 from tests.request_generators.objects import get_objects_view_request_body
+
 from tests.util import ensure_equal_collection_elements
 
 
@@ -46,49 +52,62 @@ async def test_incorrect_request_body(cli):
     assert resp.status == 400
     
 
-async def test_view_non_existing_objects(cli):
+async def test_view_non_existing_objects_attributes(cli):
     body = get_objects_view_request_body(object_ids=[999, 1000], object_data_ids=[])
     resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
-    body = get_objects_view_request_body(object_ids=[], object_data_ids=[999, 1000])
+
+async def test_response_objects_attributes(cli, db_cursor):
+    now = datetime.now(tz=timezone.utc)
+    objects_map = {
+        1: get_test_object(1, created_at=now - timedelta(days=1), owner_id=1, pop_keys=["object_data"]),
+        2: get_test_object(2, object_type="markdown", created_at=now - timedelta(days=2),
+                           feed_timestamp=now - timedelta(days=5), owner_id=1, pop_keys=["object_data"])
+    }
+    insert_objects(objects_map.values(), db_cursor)
+
+    body = get_objects_view_request_body(object_ids=[1, 2], object_data_ids=[])
     resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
-    assert resp.status == 404
+    
+    # Check if object attributes are correctly returned
+    assert resp.status == 200
+    data = await resp.json()
+    response_objects = data["objects_attributes_and_tags"]
+    assert len(response_objects) == 2
+
+    for obj in response_objects:
+        object_id = obj["object_id"]
+        for attr in ("object_type", "object_name", "object_description",
+                     "is_published", "display_in_feed", "show_description"):
+            assert objects_map[object_id][attr] == obj[attr]
+
+        assert datetime.fromisoformat(objects_map[object_id]["created_at"]) == datetime.fromisoformat(obj["created_at"])
+        assert datetime.fromisoformat(objects_map[object_id]["modified_at"]) == datetime.fromisoformat(obj["modified_at"])
+
+        if object_id == 2:
+            assert datetime.fromisoformat(objects_map[object_id]["feed_timestamp"]) == datetime.fromisoformat(obj["feed_timestamp"])
+        else:
+            assert obj["feed_timestamp"] == None
 
 
 async def test_view_non_published_objects(cli, db_cursor):
-    # TODO 1) split (object IDs & attribute values checks into different tests; fix or remove feed_timestamp check)
-
     # Insert mock values
     inserts = insert_data_for_view_tests_non_published_objects(db_cursor)
-    obj_list = inserts["object_attributes"]
     expected_object_ids = inserts["inserted_object_ids"]
     
-    # Correct request (object_ids only)
+    # Check if correct object IDs are returned in objects attributes
     body = get_objects_view_request_body(object_ids=expected_object_ids, object_data_ids=[])
     resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
     data = await resp.json()
-    assert "objects_attributes_and_tags" in data
-
-    for field in ("object_id", "object_type", "object_name", "object_description", "created_at",
-                  "modified_at", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
-        assert field in data["objects_attributes_and_tags"][0]
 
     received_object_ids = [data["objects_attributes_and_tags"][x]["object_id"] for x in range(len(data["objects_attributes_and_tags"]))]
     ensure_equal_collection_elements(expected_object_ids, received_object_ids,
         "Objects view, correct request as admin, object_ids only")
-
-    mock_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(obj_list, key=lambda o: o["object_id"])))
-    response_feed_timestamps = list(map(lambda o: o["feed_timestamp"], sorted(data["objects_attributes_and_tags"], key=lambda o: o["object_id"])))
-
-    for i in range(len(mock_feed_timestamps)):  # Check empty & non-empty `feed_timestamp` values
-        if mock_feed_timestamps[i] == "": assert response_feed_timestamps[i] == ""
-        else: assert datetime.fromisoformat(mock_feed_timestamps[i]) == datetime.fromisoformat(response_feed_timestamps[i])
     
+    # Check if correct object IDs are returned in objects attributes and data
     # NOTE: object_data_ids only case is checked type-specific tests
-
-    # Correct request (both types of data request)
     object_ids = [_ for _ in range(1, 6)]
     object_data_ids = [_ for _ in range(6, 11)]
     body = get_objects_view_request_body(object_ids=object_ids, object_data_ids=object_data_ids)
@@ -110,7 +129,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     inserts = insert_data_for_view_tests_objects_with_non_published_tags(db_cursor)
     object_ids = inserts["inserted_object_ids"]
 
-    # Correct request (object_ids only)
+    # Check if correct object IDs are returned in objects attributes
     body = get_objects_view_request_body(object_ids=object_ids, object_data_ids=[])
     resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 200
@@ -120,9 +139,8 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     ensure_equal_collection_elements(object_ids, received_object_ids, 
         "Objects view, correct request as admin, object_ids only")
     
+    # Check if correct object IDs are returned in objects attributes and data
     # NOTE: object_data_ids only case is checked type-specific tests
-
-    # Correct request (both types of data request)
     object_ids = [1, 3, 5, 7, 9]
     object_data_ids = [2, 4, 6, 8, 10]
     body = get_objects_view_request_body(object_ids=object_ids, object_data_ids=object_data_ids)

@@ -28,7 +28,7 @@ async def test_view_non_published_composite(cli, db_cursor):
     composite_object_data = [get_test_object_data(i, object_type="composite") for i in range(31, 41)]
     insert_composite(composite_object_data, db_cursor)
 
-    # Correct request (object_data_ids only, composite, request all composite objects, receive only published)
+    # Check if data is returned for published objects only
     requested_object_ids = [i for i in range(31, 41)]
     expected_object_ids = [i for i in range(31, 41) if i % 2 == 0]
     body = get_objects_view_request_body(object_ids=[], object_data_ids=requested_object_ids)
@@ -45,7 +45,7 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
     # Insert data
     insert_data_for_composite_view_tests_objects_with_non_published_tags(db_cursor)
 
-    # Correct request (object_data_ids only, composite, request all composite objects, receive only marked with published tags)
+    # Check if data is returned for objects with published tags only
     body = get_objects_view_request_body(object_ids=[], object_data_ids=[11, 12, 13])
     resp = await cli.post("/objects/view", json=body)
     assert resp.status == 200
