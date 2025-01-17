@@ -1,26 +1,8 @@
 import os
 import asyncio
-from copy import deepcopy
 import pytest
 
 from backend_main.types.common import HiddenString
-
-
-def ensure_equal_collection_elements(expected: list | set, received: list | set, message: str = "Expected ids check"):
-    """
-        Ensures `expected` and `received` collections (lists or sets) contain the same elements.
-        Different sort order is allowed.
-    """
-    expected = deepcopy(expected)
-    received = deepcopy(received)
-    
-    for r in received:
-        try:
-            expected.remove(r)
-        except (KeyError, ValueError):
-            pytest.fail(message + f" > received unexpected list element {r}.")
-    if len(expected) > 0:
-        pytest.fail(message + f" > expected list elements not found: {expected}.")
 
 
 def get_test_name(name, test_uuid):

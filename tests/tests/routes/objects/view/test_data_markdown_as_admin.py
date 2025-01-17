@@ -15,13 +15,12 @@ from tests.db_operations.objects import insert_objects, insert_markdown
 
 from tests.request_generators.objects import get_objects_view_request_body
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_view_non_existing_objects_data(cli):
     body = get_objects_view_request_body(object_ids=[], object_data_ids=[999, 1000])
     resp = await cli.post("/objects/view", json=body, headers=headers_admin_token)
     assert resp.status == 404
+
 
 async def test_response_objects_data(cli, db_cursor):
     insert_objects([get_test_object(1, object_type="markdown", owner_id=1, pop_keys=["object_data"])], db_cursor)
@@ -57,8 +56,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     data = await resp.json()
 
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
-        "Objects view, correct request as admin, markdown object_data_ids only")
+    assert sorted(object_data_ids) == sorted(received_objects_data_ids)
 
 
 async def test_view_objects_with_non_published_tags(cli, db_cursor):
@@ -72,8 +70,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(requested_object_ids, received_objects_data_ids,
-        "Objects view, correct request as admin, markdown object_data_ids only")
+    assert sorted(requested_object_ids) == sorted(received_objects_data_ids)
 
 
 if __name__ == "__main__":

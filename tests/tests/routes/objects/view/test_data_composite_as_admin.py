@@ -18,8 +18,6 @@ from tests.db_operations.objects import insert_objects, insert_links, insert_com
 
 from tests.request_generators.objects import get_objects_view_request_body
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_view_non_existing_objects_data(cli):
     body = get_objects_view_request_body(object_ids=[], object_data_ids=[999, 1000])
@@ -74,9 +72,8 @@ async def test_view_non_published_composite_objects(cli, db_cursor):
     data = await resp.json()
     assert "objects_data" in data
 
-    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
-        "Objects view, correct request, composite object_data_ids only")
+    received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]    
+    assert sorted(object_data_ids) == sorted(received_objects_data_ids)
 
 
 async def test_view_composite_objects_without_subobjects(cli, db_cursor):
@@ -99,8 +96,7 @@ async def test_view_composite_objects_without_subobjects(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
-        "Objects view, composite objects without subobjects")
+    assert sorted(object_data_ids) == sorted(received_objects_data_ids)
     for object_data in data["objects_data"]:
         object_id = object_data["object_id"]
         assert object_id in object_data_ids
@@ -125,8 +121,7 @@ async def test_view_composite_with_at_least_one_non_published_tag(cli, db_cursor
     data = await resp.json()
 
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements([11, 12, 13], received_objects_data_ids, 
-        "Objects view, correct request as admin, composite object_data_ids only")
+    assert sorted([11, 12, 13]) == sorted(received_objects_data_ids)
 
 
 if __name__ == "__main__":

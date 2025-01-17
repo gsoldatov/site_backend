@@ -8,7 +8,6 @@ if __name__ == "__main__":
 
 from tests.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
 from tests.request_generators.objects import get_objects_view_request_body
-from tests.util import ensure_equal_collection_elements
 
 
 async def test_view_non_published_objects(cli, db_cursor):
@@ -23,8 +22,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     data = await resp.json()
 
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(expected_object_ids, received_objects_data_ids,
-        "Objects view, correct request as anonymous, markdown object_data_ids only")
+    assert sorted(expected_object_ids) == sorted(received_objects_data_ids)
 
 
 async def test_view_objects_with_non_published_tags(cli, db_cursor):
@@ -39,8 +37,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(expected_object_ids, received_objects_data_ids,
-        "Objects view, correct request as anonymous, markdown object_data_ids only")
+    assert sorted(expected_object_ids) == sorted(received_objects_data_ids)
 
 
 if __name__ == "__main__":

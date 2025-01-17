@@ -14,8 +14,6 @@ from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_view_existing_tags(cli, db_cursor):
     # Insert data
@@ -31,8 +29,7 @@ async def test_view_existing_tags(cli, db_cursor):
     # Check if only published tags are returned
     expected_ids = [tag["tag_id"] for tag in tag_list if tag["is_published"]]
     assert len(expected_ids) < len(tag_ids) # ensure there are non-published tags in the fixture
-    ensure_equal_collection_elements(expected_ids, [data["tags"][x]["tag_id"] for x in range(len(data["tags"]))], 
-        "Tags view, correct request")
+    assert sorted(expected_ids) == sorted([data["tags"][x]["tag_id"] for x in range(len(data["tags"]))])
         
     for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at", "is_published"):
         assert field in data["tags"][0]

@@ -16,8 +16,6 @@ from tests.db_operations.objects import insert_objects, insert_to_do_lists
 
 from tests.request_generators.objects import get_objects_view_request_body
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_view_non_existing_objects_data(cli):
     body = get_objects_view_request_body(object_ids=[], object_data_ids=[999, 1000])
@@ -69,8 +67,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     
     # Check if data is returned for all objects
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
-        "Objects view, correct request, to-do lists object_data_ids only")
+    assert sorted(object_data_ids) == sorted(received_objects_data_ids)
 
 
 async def test_view_objects_with_non_published_tags(cli, db_cursor):
@@ -84,8 +81,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     assert resp.status == 200
     data = await resp.json()
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(requested_object_ids, received_objects_data_ids,
-        "Objects view, correct request as admin, to-do list object_data_ids only")
+    assert sorted(requested_object_ids) == sorted(received_objects_data_ids)
 
 
 if __name__ == "__main__":

@@ -14,8 +14,6 @@ from tests.db_operations.objects import insert_objects
 
 from tests.request_generators.objects import get_objects_view_request_body
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_incorrect_request_body(cli):
     # Invalid JSON
@@ -103,8 +101,7 @@ async def test_view_non_published_objects(cli, db_cursor):
     data = await resp.json()
 
     received_object_ids = [data["objects_attributes_and_tags"][x]["object_id"] for x in range(len(data["objects_attributes_and_tags"]))]
-    ensure_equal_collection_elements(expected_object_ids, received_object_ids,
-        "Objects view, correct request as admin, object_ids only")
+    assert sorted(expected_object_ids) == sorted(received_object_ids)
     
     # Check if correct object IDs are returned in objects attributes and data
     # NOTE: object_data_ids only case is checked type-specific tests
@@ -118,11 +115,9 @@ async def test_view_non_published_objects(cli, db_cursor):
         assert attr in data
     
     received_object_ids = [data["objects_attributes_and_tags"][x]["object_id"] for x in range(len(data["objects_attributes_and_tags"]))]
-    ensure_equal_collection_elements(object_ids, received_object_ids, 
-        "Objects view, correct request for both object attributes and data as admin, object_ids")
+    assert sorted(object_ids) == sorted(received_object_ids)
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids,
-        "Objects view, correct request for both object attributes and data as admin, object_data_ids")
+    assert sorted(object_data_ids) == sorted(received_objects_data_ids)
 
 
 async def test_view_objects_with_non_published_tags(cli, db_cursor):
@@ -136,8 +131,7 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     data = await resp.json()
 
     received_object_ids = [data["objects_attributes_and_tags"][x]["object_id"] for x in range(len(data["objects_attributes_and_tags"]))]
-    ensure_equal_collection_elements(object_ids, received_object_ids, 
-        "Objects view, correct request as admin, object_ids only")
+    assert sorted(object_ids)  == sorted(received_object_ids)
     
     # Check if correct object IDs are returned in objects attributes and data
     # NOTE: object_data_ids only case is checked type-specific tests
@@ -149,11 +143,9 @@ async def test_view_objects_with_non_published_tags(cli, db_cursor):
     data = await resp.json()
     
     received_object_ids = [data["objects_attributes_and_tags"][x]["object_id"] for x in range(len(data["objects_attributes_and_tags"]))]
-    ensure_equal_collection_elements(object_ids, received_object_ids, 
-        "Objects view, correct request for both object attributes and data as admin, object_ids")
+    assert sorted(object_ids)  == sorted(received_object_ids)
     received_objects_data_ids = [data["objects_data"][x]["object_id"] for x in range(len(data["objects_data"]))]
-    ensure_equal_collection_elements(object_data_ids, received_objects_data_ids, 
-        "Objects view, correct request for both object attributes and data as admin, object_data_ids")
+    assert sorted(object_data_ids)  == sorted(received_objects_data_ids)
 
 
 if __name__ == "__main__":

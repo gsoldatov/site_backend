@@ -13,8 +13,6 @@ from tests.db_operations.objects import insert_objects
 from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.tags import insert_tags
 
-from tests.util import ensure_equal_collection_elements
-
 
 async def test_incorrect_request_body(cli):
     # Incorrect request body
@@ -49,8 +47,7 @@ async def test_view_existing_tags(cli, db_cursor):
     assert "tags" in data
 
     # Check if both published and non-published tags are returned
-    ensure_equal_collection_elements(tag_ids, [data["tags"][x]["tag_id"] for x in range(len(data["tags"]))], 
-        "Tags view, correct request")
+    assert sorted(tag_ids) == sorted([data["tags"][x]["tag_id"] for x in range(len(data["tags"]))])
         
     for field in ("tag_id", "tag_name", "tag_description", "created_at", "modified_at", "tag_description"):
         assert field in data["tags"][0]
