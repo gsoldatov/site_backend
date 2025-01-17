@@ -26,7 +26,7 @@ async def test_add_two_objects_with_the_same_name(cli, db_cursor):
         assert attr in resp_object
     for attr in ("object_name", "object_description", "is_published", "display_in_feed", "feed_timestamp", "show_description"):
         if attr == "feed_timestamp":
-            assert datetime.fromisoformat(link[attr]) == datetime.fromisoformat(resp_object[attr])
+            assert resp_object[attr] == None
         else:
             assert link[attr] == resp_object[attr]
 

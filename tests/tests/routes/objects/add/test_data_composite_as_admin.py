@@ -2,7 +2,7 @@
 Tests for composite objects' data operations performed as admin.
 """
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -357,19 +357,20 @@ async def test_add_correct_object_without_subobject_updates(cli, db_cursor, disp
 
 
 async def test_add_correct_object_with_new_subobjects(cli, db_cursor):
+    now = datetime.now(tz=timezone.utc)
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
 
     # Send request with new subobjects
     composite = get_test_object(1, object_type="composite", pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=-1, is_expanded=False, object_name="new link 1", object_description="new descr 1", 
-                            is_published=True, display_in_feed=True, show_description=True, object_type="link", 
+                            is_published=True, display_in_feed=True, feed_timestamp=now - timedelta(days=1), show_description=True, object_type="link", 
                             object_data=get_composite_subobject_object_data(1))
     add_composite_subobject(composite, object_id=-2, is_expanded=False, object_name="new markdown 1", object_description="new descr 2", 
-                            is_published=True, display_in_feed=False, show_description=False, object_type="markdown", 
+                            is_published=True, display_in_feed=False, feed_timestamp=now - timedelta(days=2), show_description=False, object_type="markdown", 
                             object_data=get_composite_subobject_object_data(4, object_type="markdown"))
     add_composite_subobject(composite, object_id=-3, is_expanded=False, object_name="new to-do list 1", object_description="new descr 3", 
-                            is_published=True, display_in_feed=True, show_description=True, object_type="to_do_list", 
+                            is_published=True, display_in_feed=True, feed_timestamp=now - timedelta(days=3), show_description=True, object_type="to_do_list", 
                             object_data=get_composite_subobject_object_data(7, object_type="to_do_list"))
     add_composite_subobject(composite, object_id=-4, column=1, object_name="new link 2", object_description="new descr 4", 
                             is_published=False, display_in_feed=False, show_description=False, object_type="link", owner_id=2, 
@@ -406,7 +407,10 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor):
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
         assert subobjects[object_id]["display_in_feed"] == row[5]
-        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"]) == row[6]
+        if (expected_feed_timestamp := subobjects[object_id]["feed_timestamp"]) is None:
+            assert row[6] == None
+        else:
+            assert datetime.fromisoformat(expected_feed_timestamp) == row[6]
         assert subobjects[object_id]["show_description"] == row[7]
         assert subobjects[object_id].get("owner_id", 1) == row[8]   # If owner_id is not set in request, token owner should be set as owner_id of new object
     
@@ -441,6 +445,7 @@ async def test_add_correct_object_with_new_subobjects(cli, db_cursor):
 
 
 async def test_add_correct_object_update_existing_subobjects(cli, db_cursor):
+    now = datetime.now(tz=timezone.utc)
     insert_users([get_test_user(2, pop_keys=["password_repeat"]), get_test_user(3, pop_keys=["password_repeat"])], db_cursor) # add users
     default_owner = 2
 
@@ -461,10 +466,11 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor):
     composite = get_test_object(1, object_type="composite", pop_keys=["object_id", "created_at", "modified_at"])
     composite["object_data"]["subobjects"] = []
     add_composite_subobject(composite, object_id=100, object_name="updated link name", object_description="updated link descr", 
-                            is_published=True, display_in_feed=True, show_description=True, object_type="link", owner_id=3, 
-                            object_data=get_composite_subobject_object_data(1))
+                            is_published=True, display_in_feed=True, feed_timestamp=now - timedelta(days=1), show_description=True,
+                            object_type="link", owner_id=3, object_data=get_composite_subobject_object_data(1))
     add_composite_subobject(composite, object_id=101, object_name="updated markdown name", object_description="updated mardkown descr", 
-                            is_published=False, display_in_feed=False, show_description=False, object_type="markdown", owner_id=1, 
+                            is_published=False, display_in_feed=False, feed_timestamp=now - timedelta(days=2),
+                            show_description=False, object_type="markdown", owner_id=1, 
                             object_data=get_composite_subobject_object_data(4, object_type="markdown"))
     add_composite_subobject(composite, object_id=102, object_name="updated to-do list name", object_description="updated to-do list descr", 
                             is_published=True, display_in_feed=True, show_description=True, object_type="to_do_list", 
@@ -484,7 +490,10 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor):
         assert subobjects[object_id]["object_type"] == row[3]
         assert subobjects[object_id]["is_published"] == row[4]
         assert subobjects[object_id]["display_in_feed"] == row[5]
-        assert datetime.fromisoformat(subobjects[object_id]["feed_timestamp"]) == row[6]
+        if (expected_feed_timestamp := subobjects[object_id]["feed_timestamp"]) is None:
+            assert row[6] == None
+        else:
+            assert datetime.fromisoformat(expected_feed_timestamp) == row[6]
         assert subobjects[object_id]["show_description"] == row[7]
         assert subobjects[object_id].get("owner_id", default_owner) == row[8]   # If owner_id is not set in request, it should not be changed
 

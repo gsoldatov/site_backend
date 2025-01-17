@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 if __name__ == "__main__":
     import os, sys
@@ -38,12 +38,19 @@ async def test_correct_update(cli, db_cursor):
     insert_data_for_update_tests(db_cursor)
 
     # Correct update (general attributes)
-    obj = get_test_object(3, is_published=True, show_description=True, pop_keys=["created_at", "modified_at", "object_type"])
+    feed_timestamp = datetime.now(tz=timezone.utc) - timedelta(days=1)
+    obj = get_test_object(3, is_published=True, show_description=True, feed_timestamp=feed_timestamp,
+                           pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     db_cursor.execute(f"SELECT object_name, is_published, display_in_feed, feed_timestamp, show_description FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() == (obj["object_name"], obj["is_published"], obj["display_in_feed"], datetime.fromisoformat(obj["feed_timestamp"]), obj["show_description"])
+    row = db_cursor.fetchone()
+    assert row[0] == obj["object_name"]
+    assert row[1] == obj["is_published"]
+    assert row[2] == obj["display_in_feed"]
+    assert row[3] == feed_timestamp
+    assert row[4] == obj["show_description"]
 
 
 @pytest.mark.parametrize("owner_id", [1, 2])    # set the same and another owner_id
@@ -59,7 +66,7 @@ async def test_correct_update_with_set_owner_id(cli, db_cursor, owner_id):
     resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
     assert resp.status == 200
     resp_object = (await resp.json())["object"]
-    assert datetime.fromisoformat(obj["feed_timestamp"]) == datetime.fromisoformat(resp_object["feed_timestamp"])
+    assert resp_object["feed_timestamp"] == None
     db_cursor.execute(f"SELECT object_name, owner_id FROM objects WHERE object_id = 1")
     assert db_cursor.fetchone() == (updated_name, owner_id)
 

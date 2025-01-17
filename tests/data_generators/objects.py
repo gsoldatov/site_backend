@@ -213,6 +213,11 @@ def add_composite_subobject(composite, object_id, row = None, column = None, sel
                     new_so[attr] = subobject_object_attribute_values[attr]
             else:
                 new_so[attr] = subobject_object_attribute_values[attr] if subobject_object_attribute_values[attr] is not None else default_values[attr]
+    
+    # Convert datetimes to ISO format
+    for attr in ("created_at", "modified_at", "feed_timestamp"):
+        if attr in new_so and isinstance(new_so[attr], datetime):
+            new_so[attr] = new_so[attr].isoformat()
 
     composite["object_data"]["subobjects"].append(new_so)
 
