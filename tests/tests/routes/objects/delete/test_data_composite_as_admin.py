@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
+from tests.data_generators.objects import get_test_object, get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.db_operations.objects import insert_objects, insert_composite
 from tests.request_generators.objects import get_objects_delete_body
@@ -19,16 +19,13 @@ async def test_delete_composite(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)
-    composite_data = get_test_object_data(10, object_type="composite")
-    composite_data["object_data"]["subobjects"] = []
-    for i in range(1, 4):
-        add_composite_subobject(composite_data, object_id=100 + i)
-    insert_composite([composite_data], db_cursor)
+    composite_data = get_composite_data(
+        subobjects=[get_composite_subobject_data(100 + i, 0, i - 1) for i in range(1, 4)]
+    )
+    insert_composite([{"object_id": 10, "object_data": composite_data}], db_cursor)
 
-    composite_data = get_test_object_data(11, object_type="composite")
-    composite_data["object_data"]["subobjects"] = []
-    add_composite_subobject(composite_data, object_id=103)
-    insert_composite([composite_data], db_cursor)
+    composite_data = get_composite_data(subobjects=[get_composite_subobject_data(103, 0, 0)])
+    insert_composite([{"object_id": 11, "object_data": composite_data}], db_cursor)
 
     # Delete composite
     body = get_objects_delete_body(object_ids=[10])
@@ -59,16 +56,13 @@ async def test_delete_with_subobjects(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)
-    composite_data = get_test_object_data(10, object_type="composite")
-    composite_data["object_data"]["subobjects"] = []
-    for i in range(1, 4):
-        add_composite_subobject(composite_data, object_id=100 + i)
-    insert_composite([composite_data], db_cursor)
+    composite_data = get_composite_data(
+        subobjects=[get_composite_subobject_data(100 + i, 0, i - 1) for i in range(1, 4)]
+    )
+    insert_composite([{"object_id": 10, "object_data": composite_data}], db_cursor)
 
-    composite_data = get_test_object_data(11, object_type="composite")
-    composite_data["object_data"]["subobjects"] = []
-    add_composite_subobject(composite_data, object_id=103)
-    insert_composite([composite_data], db_cursor)
+    composite_data = get_composite_data(subobjects=[get_composite_subobject_data(103, 0, 0)])
+    insert_composite([{"object_id": 11, "object_data": composite_data}], db_cursor)
 
     # Delete with subobjects: first composite (10), 1 non-subobject link (100) and 1 of its exclusive subobjects (101)
     body = get_objects_delete_body(object_ids=[10, 100, 101], delete_subobjects=True)

@@ -60,7 +60,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
         for so in data["subobjects"]:
-            subobject_id, object_type = so.get("object_id"), so.get("object_type")
+            subobject_id, object_type = so.get("subobject_id"), so.get("object_type")
 
             if subobject_id < 0:
                 new_objects_attributes[subobject_id] = {
@@ -103,10 +103,10 @@ async def _add_new_subobjects(request, obj_ids_and_data):
             new_object_ids_and_data = []
             object_type_data = new_data[object_type]
             if len(object_type_data) > 0:
-                for request_object_id in object_type_data:
+                for request_subobject_id in object_type_data:
                     new_object_ids_and_data.append({
-                        "object_id": id_mapping[request_object_id],
-                        "object_data": object_type_data[request_object_id]
+                        "object_id": id_mapping[request_subobject_id],
+                        "object_data": object_type_data[request_subobject_id]
                     })
             
                 handler = get_object_type_route_handler("add", object_type)
@@ -132,9 +132,9 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
         for so in data["subobjects"]:
-            if so["object_id"] > 0 and "object_type" in so:   # object_type is present only when subobject must be updated
+            if so["subobject_id"] > 0 and "object_type" in so:   # object_type is present only when subobject must be updated
                 updated_so_attributes = {
-                    "object_id": so["object_id"],
+                    "object_id": so["subobject_id"],
                     "object_name": so["object_name"],
                     "object_description": so["object_description"],
                     "is_published": so["is_published"],
@@ -149,7 +149,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
                 updated_objects_attributes.append(updated_so_attributes)
 
                 updated_ids_and_data[so["object_type"]].append({
-                    "object_id": so["object_id"],
+                    "object_id": so["subobject_id"],
                     "object_data": so["object_data"]
                 })
     
@@ -165,7 +165,8 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
         
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
-        request[request_log_event_key]("INFO", "db_operation", "Updated existing objects as composite subobjects", details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
+        request[request_log_event_key]("INFO", "db_operation", "Updated existing objects as composite subobjects",
+                                       details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
 
 
 async def _update_composite_properties(request, obj_ids_and_data):
@@ -215,7 +216,7 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
             composite_object_data.append({
                 "object_id": object_id,
                 # Map new subobject IDs, but keep existing IDs intact
-                "subobject_id": id_mapping.get(so["object_id"], so["object_id"]),
+                "subobject_id": id_mapping.get(so["subobject_id"], so["subobject_id"]),
                 "row": so["row"],
                 "column": so["column"],
                 "selected_tab": so["selected_tab"],

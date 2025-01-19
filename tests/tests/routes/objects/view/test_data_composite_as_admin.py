@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 
 from tests.data_generators.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
-    add_composite_subobject
+    get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.objects import composite_data_list, insert_data_for_composite_view_tests_objects_with_non_published_tags
@@ -34,11 +34,12 @@ async def test_response_objects_data(cli, db_cursor):
     ]
     insert_objects(objects, db_cursor)
 
-    composite_id_and_data = get_test_object_data(1, object_type="composite")
-    add_composite_subobject(composite_id_and_data, object_id=2)
-    add_composite_subobject(composite_id_and_data, object_id=3, is_expanded=False)
-    add_composite_subobject(composite_id_and_data, object_id=4, selected_tab=2)
-    insert_composite([composite_id_and_data], db_cursor)
+    composite_data = get_composite_data(subobjects=[
+        get_composite_subobject_data(2, 0, 0),
+        get_composite_subobject_data(3, 0, 1, is_expanded=False),
+        get_composite_subobject_data(4, 0, 2, selected_tab=2)
+    ])
+    insert_composite([{"object_id": 1, "object_data": composite_data}], db_cursor)
 
     # Check if object data is correctly returned
     body = get_objects_view_request_body(object_ids=[], object_data_ids=[1])
@@ -51,12 +52,12 @@ async def test_response_objects_data(cli, db_cursor):
     assert objects_data[0]["object_id"] == 1
     assert objects_data[0]["object_type"] == "composite"
     
-    expected_object_data = composite_id_and_data["object_data"]
     received_object_data = objects_data[0]["object_data"]
-    assert received_object_data["display_mode"] == expected_object_data["display_mode"]
-    assert received_object_data["numerate_chapters"] == expected_object_data["numerate_chapters"]
+    assert received_object_data["display_mode"] == composite_data["display_mode"]
+    assert received_object_data["numerate_chapters"] == composite_data["numerate_chapters"]
 
-    # TODO check returned subobjects after renaming `object_id` to `subobject_id` in generating function
+    assert sorted(received_object_data["subobjects"], key=lambda so: so["row"]) == \
+        sorted(composite_data["subobjects"], key=lambda so: so["row"])
 
 
 async def test_view_non_published_composite_objects(cli, db_cursor):

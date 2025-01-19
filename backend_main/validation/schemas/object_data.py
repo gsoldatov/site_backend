@@ -89,10 +89,10 @@ object_type_and_data_options_without_composite = {
 composite_subobject_item_options = [{ 
     # Existing subobjects without data update
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"],
+    "required": ["subobject_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite"],
     "additionalProperties": False,
     "properties": {
-        "object_id": object_id,
+        "subobject_id": object_id,
         "row": { "type": "integer", "minimum": 0 },
         "column": { "type": "integer", "minimum": 0 },
         "selected_tab": { "type": "integer", "minimum": 0 },
@@ -105,11 +105,11 @@ composite_subobject_item_options = [{
 composite_subobject_item_options.extend([{
     # New subobjects and existing subobjects with data updates (custom object_data for each object_type, composite subobjects are not allowed)
     "type": "object",
-    "required": ["object_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite",
+    "required": ["subobject_id", "row", "column", "selected_tab", "is_expanded", "show_description_composite", "show_description_as_link_composite",
                     "object_name", "object_description", "object_type", "is_published", "display_in_feed", "feed_timestamp", "show_description", "object_data"],
     "additionalProperties": False,    # added_tags and removed_tag_ids are optional (but currently not added => False)
     "properties": {                            
-        "object_id": { "type": "integer" }, # can be negative for new objects
+        "subobject_id": { "type": "integer" }, # can be negative for new objects
         "row": { "type": "integer", "minimum": 0 },
         "column": { "type": "integer", "minimum": 0 },
         "selected_tab": { "type": "integer", "minimum": 0 },

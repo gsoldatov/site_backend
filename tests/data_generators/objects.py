@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from typing import Literal, Any
 
 from backend_main.types.domains.objects import ObjectType
 
@@ -10,11 +11,12 @@ def get_test_object(
         modified_at: datetime | None = None,
         object_name: str | None = None,
         object_description: str | None = None,
-        is_published: bool = False,
-        display_in_feed: bool = False,
+        is_published: bool | None = None,
+        display_in_feed: bool | None = None,
         feed_timestamp: datetime | None = None,
-        show_description: bool = False,
+        show_description: bool | None = None,
         owner_id: int | None = None,
+        object_data: dict[str, Any] | None = None,
         pop_keys: list[str] = [],
         composite_subobject_object_type: ObjectType | None = None
     ):
@@ -40,12 +42,13 @@ def get_test_object(
         "modified_at": modified_at if modified_at is not None else curr_time,
         "object_name": object_name if object_name is not None else f"Object #{object_id}",
         "object_description": object_description if object_description is not None else f"Description to object {object_id}",
-        "is_published": is_published,
-        "display_in_feed": display_in_feed,
+        "is_published": is_published if is_published is not None else False,
+        "display_in_feed": display_in_feed if display_in_feed is not None else False,
         "feed_timestamp": feed_timestamp,
         "show_description": show_description if show_description is not None else False,
         "owner_id": owner_id,
-        "object_data": get_test_object_data(object_id, object_type, composite_subobject_object_type)["object_data"]
+        "object_data": object_data if object_data is not None else \
+            get_test_object_data(object_id, object_type, composite_subobject_object_type)["object_data"]
     }
 
     # Convert datetimes to ISO format
@@ -67,29 +70,30 @@ def get_test_object_data(object_id, object_type = "link", composite_subobject_ob
     If `composite_subobject_object_type` is set, composite object is returned with its first subobject containing object attributes & data of the specified type.
     """
     if object_type == "link":
-        object_data = {"link": f"https://test.link.{object_id}.com/", "show_description_as_link": False}
+        object_data = get_link_data(link=f"https://test.link.{object_id}.com/", show_description_as_link=False)
     
     elif object_type == "markdown":
-        object_data = {"raw_text": f"Raw markdown text #{object_id}"}
+        object_data = get_markdown_data(raw_text=f"Raw markdown text #{object_id}")
     
     elif object_type == "to_do_list":
         _item_states = ["active", "completed", "optional", "cancelled"]
-        object_data = {
-            "sort_type": "default",
+        object_data = get_to_do_list_data(
+            sort_type="default",
             # item key order must match the order in which columns are declared in DB schemas,
             # because to-do lists tests depend on this order when comparing added/updated data
-            "items": [{
-                "item_number": x + 1,
-                "item_state": _item_states[x % 4],
-                "item_text": f"To-do list #{object_id}, item #{x+1}",
-                "commentary": f"Commentary for to-do list #{object_id}, item #{x+1}",
-                "indent": 0 if x % 4 < 2 else 1,
-                "is_expanded": True
-            } for x in range(max(object_id % 20, 1))]
-        }
+            items=[
+                get_to_do_list_item_data(
+                    item_number=x + 1,
+                    item_state=_item_states[x % 4],
+                    item_text=f"To-do list #{object_id}, item #{x+1}",
+                    commentary=f"Commentary for to-do list #{object_id}, item #{x+1}",
+                    indent=0 if x % 4 < 2 else 1,
+                    is_expanded=True
+            ) for x in range(max(object_id % 20, 1))]
+        )
 
     elif object_type == "composite":
-        so = {"object_id": 1, "row": 0, "column": 0, "selected_tab": 0, "is_expanded": True, 
+        so = {"subobject_id": 1, "row": 0, "column": 0, "selected_tab": 0, "is_expanded": True, 
               "show_description_composite": "inherit", "show_description_as_link_composite": "inherit"}
         
         if composite_subobject_object_type:
@@ -100,13 +104,134 @@ def get_test_object_data(object_id, object_type = "link", composite_subobject_ob
             so["feed_timestamp"] = datetime.now(tz=timezone.utc).isoformat()
             so["show_description"] = False
             so["object_type"] = composite_subobject_object_type
-            so["object_data"] = get_composite_subobject_object_data(1, object_type=composite_subobject_object_type)
+            so["object_data"] = get_test_object_data(1, object_type=composite_subobject_object_type)["object_data"]
 
         object_data = { "subobjects": [so], "deleted_subobjects": [], "display_mode": "basic", "numerate_chapters": False }
     
     else: raise ValueError(f"Received an incorrect object_type in `get_test_object_data` function: {object_type}")
 
     return {"object_id": object_id, "object_data": object_data}
+
+
+def get_link_data(
+        link: str = "http://test.link.com",
+        show_description_as_link: bool = False
+    ):
+    """ Generates a dict with default of custom values, which represents link object's data. """
+    return {"link": link, "show_description_as_link": show_description_as_link}
+
+
+def get_markdown_data(raw_text: str = "Raw markdown text"):
+    """ Generates a dict with default of custom values, which represents markdown object's data. """
+    return {"raw_text": raw_text}
+
+
+def get_to_do_list_data(
+        sort_type: Literal["default", "state"] = "default",
+        items: list = []
+    ):
+    """ Generates a dict with default of custom values, which represents to-do list's object's data. """
+    return {"sort_type": sort_type, "items": items}
+
+
+def get_to_do_list_item_data(
+        item_number: int = 0,
+        item_state: Literal["active", "completed", "optional", "cancelled"] = "active",
+        item_text: str | None = None,
+        commentary: str | None = None,
+        indent: int = 0,
+        is_expanded: bool = True
+    ):
+    """ Generates a dict with default of custom values, which represents a single to-do list item. """
+    return {
+        "item_number": item_number,
+        "item_state": item_state,
+        "item_text": item_text if item_text is not None else f"item {item_number} text",
+        "commentary": commentary if commentary is not None else f"item {item_number} commentary",
+        "indent": indent,
+        "is_expanded": is_expanded
+    }
+
+
+def get_composite_data(
+        subobjects: list = [],
+        deleted_subobjects: list = [],
+        display_mode: Literal["basic", "grouped_links", "multicolumn", "chapters"] = "basic",
+        numerate_chapters: bool = False
+    ):
+    """ Generates a dict with default of custom values, which represents composite object's data. """
+    return {"subobjects": subobjects, "deleted_subobjects": deleted_subobjects,
+            "display_mode": display_mode, "numerate_chapters": numerate_chapters}
+
+
+def get_composite_subobject_data(
+        subobject_id: int,
+        column: int,
+        row: int,
+        selected_tab: int = 0,
+        is_expanded: bool = True,
+        show_description_composite: Literal["yes", "no", "inherit"] = "inherit",
+        show_description_as_link_composite: Literal["yes", "no", "inherit"] = "inherit",
+        
+        object_type: ObjectType | None = None,
+        object_name: str | None = None,
+        object_description: str | None = None,
+        is_published: bool | None = None,
+        display_in_feed: bool | None = None,
+        feed_timestamp: datetime | None = None,
+        show_description: bool | None = None,
+        owner_id: int | None = None,
+        object_data: dict[str, Any] | None = None
+    ):
+    """
+    Generates a dict with default of custom values, which represents a single composite subobject.
+    If any object attribute value (`object_type`, `object_name`, etc.) is not None,
+    adds default or provided object attributes to the result (for /objects/add & /objects/update tests).
+    """
+    # Add subobject attributes
+    result = {
+        "subobject_id": subobject_id,
+        "row": row,
+        "column": column,
+        "selected_tab": selected_tab,
+        "is_expanded": is_expanded,
+        "show_description_composite": show_description_composite,
+        "show_description_as_link_composite": show_description_as_link_composite
+    }
+
+    # Add object attributes, if any attribute is provided
+    object_attribute_map = {
+        "object_type": object_type,
+        "object_name": object_name,
+        "object_description": object_description,
+        "is_published": is_published,
+        "display_in_feed": display_in_feed,
+        "feed_timestamp": feed_timestamp,
+        "show_description": show_description,
+        "owner_id": owner_id,
+        "object_data": object_data
+    }
+    
+    if list(filter(lambda x: x is not None, object_attribute_map.values())):
+        object_attributes = get_test_object(subobject_id, **object_attribute_map)
+
+        for attr in object_attribute_map:
+            if attr in object_attributes:   # owner_id may be absent
+                result[attr] = object_attributes[attr]
+    
+    # Convert datetimes to ISO format
+    for attr in ("created_at", "modified_at", "feed_timestamp"):
+        if attr in result and isinstance(result[attr], datetime):
+            result[attr] = result[attr].isoformat()
+
+    return result
+
+
+def get_deleted_subobject(object_id: int, is_full_delete: bool = True):
+    """
+    Returns a dict, which indicates, that composite subobject is deleted
+    """
+    return {"object_id": object_id, "is_full_delete": is_full_delete}
 
 
 def get_objects_attributes_list(min_id, max_id, owner_id = 1):
@@ -161,77 +286,3 @@ def get_objects_attributes_list(min_id, max_id, owner_id = 1):
         "show_description": False,
         "owner_id": owner_id
     } for x in range(min_id, max_id + 1)]
-
-
-def add_composite_subobject(composite, object_id, row = None, column = None, selected_tab = 0, is_expanded = True, \
-    show_description_composite = "inherit", show_description_as_link_composite = "inherit", \
-    object_name = None, object_description = None, object_type = None, is_published = None, 
-    display_in_feed = None, feed_timestamp = None, show_description = None, owner_id = None, \
-    object_data = None):
-    """
-    TODO rename `object_id` to `subobject_id` => update insert function => update usage in tests
-
-    Accepts a `composite` (dict respesenting `object_data` property of a composite object)
-    and inserts a new subobject with provided or default props and data updates (if specified).
-    """
-    # Check if subobject attributes/data are correctly provided
-    locals_ = locals()
-    subobject_object_attributes = ("object_name", "object_description", "object_type", "is_published", "display_in_feed", "feed_timestamp", 
-        "show_description", "owner_id", "object_data")
-    subobject_object_attribute_values = {attr: locals_.get(attr) for attr in subobject_object_attributes}
-    required_subobject_object_attribute_values = {attr: locals_.get(attr) for attr in ("object_name", "object_type")}
-    optional_subobject_object_attributes = ("owner_id",)
-
-    for attr in subobject_object_attributes:
-        if subobject_object_attribute_values[attr] is not None:
-            if None in required_subobject_object_attribute_values:
-                raise Exception("Received incorrect subobject attributes or data when adding a new subobject.")
-            break
-    
-    # Set default column value (last existing column)
-    if column is None:
-        column = 0
-        for so in composite["object_data"]["subobjects"]:
-            if so["column"] > column:
-                column = so["column"]
-    
-    # Set default row value (new row)
-    if row is None:
-        row = 0
-        for so in composite["object_data"]["subobjects"]:
-            if so["row"] >= row and so["column"] == column:
-                row = so["row"] + 1
-
-    # Add new subobject
-    new_so = {"object_id": object_id, "row": row, "column": column, "selected_tab": selected_tab, "is_expanded": is_expanded,
-                "show_description_composite": show_description_composite, "show_description_as_link_composite": show_description_as_link_composite}
-    if object_name != None:
-        default_values = get_test_object(object_id, object_type=object_type, object_name=object_name)
-        for attr in subobject_object_attributes:
-            if attr in optional_subobject_object_attributes:
-                if subobject_object_attribute_values[attr] is not None:
-                    new_so[attr] = subobject_object_attribute_values[attr]
-            else:
-                new_so[attr] = subobject_object_attribute_values[attr] if subobject_object_attribute_values[attr] is not None else default_values[attr]
-    
-    # Convert datetimes to ISO format
-    for attr in ("created_at", "modified_at", "feed_timestamp"):
-        if attr in new_so and isinstance(new_so[attr], datetime):
-            new_so[attr] = new_so[attr].isoformat()
-
-    composite["object_data"]["subobjects"].append(new_so)
-
-
-def add_composite_deleted_subobject(composite, object_id, is_full_delete = True):
-    """
-    Accepts a `composite` (dict respesenting `object_data` property of a composite object)
-    and inserts a new deleted subobject.
-    """
-    composite["object_data"]["deleted_subobjects"].append({"object_id": object_id, "is_full_delete": is_full_delete})
-
-
-def get_composite_subobject_object_data(object_id, object_type = "link"):
-    """
-    Returns a dict with object data to be used as composite subobject data.
-    """
-    return get_test_object_data(object_id, object_type=object_type)["object_data"]

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, add_composite_subobject
+from tests.data_generators.objects import get_test_object, get_test_object_data, get_composite_subobject_data
 from tests.data_generators.tags import get_test_tag
 from tests.data_generators.users import get_test_user
 
@@ -183,35 +183,40 @@ def insert_non_cyclic_hierarchy(db_cursor, root_is_published = True, root_has_no
     composite_object_data = []
 
     d = get_test_object_data(99999, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1)
-    add_composite_subobject(d, object_id=2)
-    add_composite_subobject(d, object_id=3)
-    add_composite_subobject(d, object_id=4)
-    add_composite_subobject(d, object_id=5)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(1, 0, 0),
+        get_composite_subobject_data(2, 0, 1),
+        get_composite_subobject_data(3, 0, 2),
+        get_composite_subobject_data(4, 0, 3),
+        get_composite_subobject_data(5, 0, 4)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(1, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=11)
-    add_composite_subobject(d, object_id=12)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(11, 0, 0),
+        get_composite_subobject_data(12, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(11, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=111)
-    add_composite_subobject(d, object_id=112)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(111, 0, 0),
+        get_composite_subobject_data(112, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(2, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=21)
-    add_composite_subobject(d, object_id=22)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(21, 0, 0),
+        get_composite_subobject_data(22, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(22, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=221)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(221, 0, 0)
+    ]
     composite_object_data.append(d)
 
     insert_composite(composite_object_data, db_cursor)
@@ -285,58 +290,67 @@ def insert_non_cyclic_hierarchy_with_max_depth_exceeded(db_cursor):
     composite_object_data = []
 
     d = get_test_object_data(99999, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1)
-    add_composite_subobject(d, object_id=2)
-    add_composite_subobject(d, object_id=3)
-    add_composite_subobject(d, object_id=4)
-    add_composite_subobject(d, object_id=5)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(1, 0, 0),
+        get_composite_subobject_data(2, 0, 1),
+        get_composite_subobject_data(3, 0, 2),
+        get_composite_subobject_data(4, 0, 3),
+        get_composite_subobject_data(5, 0, 4)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(1, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=11)
-    add_composite_subobject(d, object_id=12)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(11, 0, 0),
+        get_composite_subobject_data(12, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(11, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=111)
-    add_composite_subobject(d, object_id=112)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(111, 0, 0),
+        get_composite_subobject_data(112, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(111, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1111)
-    add_composite_subobject(d, object_id=1112)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(1111, 0, 0),
+        get_composite_subobject_data(1112, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(1111, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=11111)
-    add_composite_subobject(d, object_id=11112)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(11111, 0, 0),
+        get_composite_subobject_data(11112, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(11111, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=111111)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(111111, 0, 0)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(111111, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1111111)
-    add_composite_subobject(d, object_id=3)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(111111, 0, 0),
+        get_composite_subobject_data(3, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(2, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=21)
-    add_composite_subobject(d, object_id=22)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(21, 0, 0),
+        get_composite_subobject_data(22, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(22, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=221)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(221, 0, 0)
+    ]
     composite_object_data.append(d)
 
     insert_composite(composite_object_data, db_cursor)
@@ -392,41 +406,47 @@ def insert_a_cyclic_hierarchy(db_cursor):
     composite_object_data = []
 
     d = get_test_object_data(99999, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1)
-    add_composite_subobject(d, object_id=2)
-    add_composite_subobject(d, object_id=3)
-    add_composite_subobject(d, object_id=4)
-    add_composite_subobject(d, object_id=5)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(1, 0, 0),
+        get_composite_subobject_data(2, 0, 1),
+        get_composite_subobject_data(3, 0, 2),
+        get_composite_subobject_data(4, 0, 3),
+        get_composite_subobject_data(5, 0, 4)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(1, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=11)
-    add_composite_subobject(d, object_id=12)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(11, 0, 0),
+        get_composite_subobject_data(12, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(11, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=111)
-    add_composite_subobject(d, object_id=112)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(111, 0, 0),
+        get_composite_subobject_data(112, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(111, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=1)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(1, 0, 0)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(2, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=21)
-    add_composite_subobject(d, object_id=22)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(21, 0, 0),
+        get_composite_subobject_data(22, 0, 1)
+    ]
     composite_object_data.append(d)
 
     d = get_test_object_data(22, object_type="composite")
-    d["object_data"]["subobjects"] = []
-    add_composite_subobject(d, object_id=221)
-    add_composite_subobject(d, object_id=21)
+    d["object_data"]["subobjects"] = [
+        get_composite_subobject_data(221, 0, 0),
+        get_composite_subobject_data(21, 0, 1)
+    ]
     composite_object_data.append(d)
 
     insert_composite(composite_object_data, db_cursor)

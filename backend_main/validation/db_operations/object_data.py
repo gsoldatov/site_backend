@@ -29,7 +29,7 @@ def validate_composite(object_id_and_data):
     # Subobjects IDs are unique
     subobject_ids = []
     for so in object_data["subobjects"]:
-        so_id = so["object_id"]
+        so_id = so["subobject_id"]
         if so_id in subobject_ids:
             raise RequestValidationException(f"Validation error for composite object ID `{object_id}`, subobject ID `{so_id}` is not unique.")
         else:
@@ -38,7 +38,7 @@ def validate_composite(object_id_and_data):
     # Row + column combinations must be unique among all subobjects
     subobject_positions = []
     for so in object_data["subobjects"]:
-        so_id = so["object_id"]
+        so_id = so["subobject_id"]
         so_pos = (so["row"], so["column"])
         if so_pos in subobject_positions:
             raise RequestValidationException(f"Validation error for composite object ID `{object_id}`, position `{so_pos}` of subobject `{so_id}` is not unique.")

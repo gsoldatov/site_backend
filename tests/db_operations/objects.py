@@ -91,8 +91,6 @@ def insert_composite(composite, db_cursor):
             for field in field_names:
                 if field == "object_id":
                     pass
-                elif field == "subobject_id":
-                    params.append(so["object_id"])
                 else:
                     params.append(so[field])
     db_cursor.execute(query, params)
