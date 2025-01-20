@@ -15,8 +15,9 @@ from backend_main.app.config import get_config
 from backend_main.logging.loggers.scheduled import get_logger
 from backend_main.db_operations.searchables import update_searchables
 
-
-logger = None
+from psycopg2._psycopg import connection
+from backend_main.types.app import Config
+from backend_main.types.scheduled import SearchablesUpdateMode
 
 
 def parse_args():
@@ -27,17 +28,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_ids(conn, mode):
+def get_ids(conn: connection, mode: SearchablesUpdateMode):
     try:
         cursor = conn.cursor()
 
         # full
         if mode == "full":
             cursor.execute("SELECT tag_id FROM tags")
-            tag_ids = tuple(r[0] for r in cursor.fetchall())
+            tag_ids: tuple[int, ...] = tuple(r[0] for r in cursor.fetchall())
 
             cursor.execute("SELECT object_id FROM objects")
-            object_ids = tuple(r[0] for r in cursor.fetchall())
+            object_ids: tuple[int, ...] = tuple(r[0] for r in cursor.fetchall())
 
             return tag_ids, object_ids
         
@@ -69,14 +70,13 @@ def get_ids(conn, mode):
         if not cursor.closed: cursor.close()
 
 
-def main(mode, config = None):
+def main(mode: SearchablesUpdateMode, config: Config | None = None):
+    # Get app config and logger
+    config = config or get_config()
+    logger = get_logger("update_searchables", config)
+    enable_searchables_updates = config.auxillary.enable_searchables_updates
+    
     try:
-        # Get app config and logger
-        config = config or get_config()
-        global logger 
-        logger = get_logger("update_searchables", config)
-        enable_searchables_updates = config.auxillary.enable_searchables_updates
-
         # Exit if search is disabled
         if not enable_searchables_updates:
             logger.warning("Searchable updates are disabled in the configuration file, exiting.")

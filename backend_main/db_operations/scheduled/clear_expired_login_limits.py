@@ -11,9 +11,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))
 from backend_main.app.config import get_config
 from backend_main.db.init_db import connect, disconnect
 from backend_main.logging.loggers.scheduled import get_logger
+
+from backend_main.types.app import Config
     
 
-def main(config = None):
+def main(config: Config | None = None):
     try:
         # Get config and logger
         config = config or get_config()
