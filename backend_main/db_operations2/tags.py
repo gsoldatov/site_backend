@@ -4,11 +4,10 @@ from sqlalchemy.sql import and_
 from backend_main.auth.query_clauses import get_tags_auth_filter_clause
 
 from backend_main.util.exceptions import TagsNotFound
-from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from sqlalchemy.sql.expression import Select
 from backend_main.types.app import app_tables_key
-from backend_main.types.request import Request, request_log_event_key, request_connection_key, request_time_key
+from backend_main.types.request import Request, request_connection_key, request_time_key
 from backend_main.types.domains.tags import Tag, AddedTag, TagNameToIDMap, \
     TagsPaginationInfo, TagsPaginationInfoWithResult, TagsSearchQuery
 
@@ -81,12 +80,6 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
 
     new_names_to_ids: dict[str, int] = {row["tag_name"]: row["tag_id"] for row in await result.fetchall()}
     new_tag_ids: list[int] = [v for v in new_names_to_ids.values()]
-    
-    # Add new tags as pending for `searchables` update
-    request[request_log_event_key](
-        "INFO", "db_operation","Added new tags by name.", details=f"tag_ids = {new_tag_ids}"
-    )
-    add_searchable_updates_for_tags(request, new_tag_ids)
 
     # Returns tag name to ID mapping
     return TagNameToIDMap(map={**existing_names_to_ids, **new_names_to_ids})

@@ -12,6 +12,7 @@ from backend_main.db_operations2.tags import add_tags_by_name as _add_tags_by_na
 
 from backend_main.util.exceptions import ObjectsTagsNotFound
 from backend_main.util.json import error_json
+from backend_main.util.searchables import add_searchable_updates_for_tags
 
 from backend_main.types.request import Request, request_log_event_key
 from backend_main.types.domains.objects_tags import ObjectsTagsLists, ObjectsTagsMap
@@ -48,6 +49,11 @@ async def add_objects_tags(request: Request, object_ids: list[int], tags: list[i
     
     # Add new tags
     added_tag_names_to_id_map = await _add_tags_by_name(request, added_tag_names)
+
+    if len(new_tag_ids := list(added_tag_names_to_id_map.map.values())) > 0:    
+        # Add new tags as pending for `searchables` update
+        request[request_log_event_key]("INFO", "domain","Added new tags by name.", details=f"tag_ids = {new_tag_ids}")
+        add_searchable_updates_for_tags(request, new_tag_ids)
 
     # Get added tag IDs list & remove duplicate object & tag IDs
     # (handle case, where tag is passed both as a string & as an ID)
