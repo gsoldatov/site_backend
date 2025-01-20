@@ -92,3 +92,44 @@ async def update_objects(request, objects_attributes):
     add_searchable_updates_for_objects(request, [o["object_id"] for o in records])
     
     return records
+
+
+async def add_objects_data(request, object_type, obj_ids_and_data):
+    """ 
+    Resolves the db operation which adds object data from `obj_ids_and_data` list 
+    based on its `object_type`, and calls it.
+    """
+    if object_type == "link":
+        await add_links(request, obj_ids_and_data)
+    elif object_type == "markdown":
+        await add_markdown(request, obj_ids_and_data)
+    elif object_type == "to_do_list":
+        await add_to_do_lists(request, obj_ids_and_data)
+    elif object_type == "composite":
+        return await add_composite(request, obj_ids_and_data)
+    else:
+        raise NotImplementedError(f"Could not resolve add operation for object type '{object_type}'.")
+
+
+async def update_objects_data(request, object_type, obj_ids_and_data):
+    """ 
+    Resolves the db operation which updates object data from `obj_ids_and_data` list 
+    based on its `object_type`, and calls it.
+    """
+    if object_type == "link":
+        await update_links(request, obj_ids_and_data)
+    elif object_type == "markdown":
+        await update_markdown(request, obj_ids_and_data)
+    elif object_type == "to_do_list":
+        await update_to_do_lists(request, obj_ids_and_data)
+    elif object_type == "composite":
+        return await update_composite(request, obj_ids_and_data)
+    else:
+        raise NotImplementedError(f"Could not resolve update operation for object type '{object_type}'.")
+
+
+# Imports at the bottom of the file to avoid circular references
+from backend_main.db_operations.untyped.objects_links import add_links, update_links
+from backend_main.db_operations.untyped.objects_markdown import add_markdown, update_markdown
+from backend_main.db_operations.untyped.objects_to_do_lists import add_to_do_lists, update_to_do_lists
+from backend_main.db_operations.untyped.objects_composite import add_composite, update_composite

@@ -5,16 +5,18 @@ from backend_main.util.searchables import add_searchable_updates_for_objects
 from aiohttp import web
 from sqlalchemy import select
 
-from backend_main.db_operations.objects import add_objects, update_objects
+from backend_main.db_operations.untyped.objects import add_objects, update_objects, add_objects_data, update_objects_data
 from backend_main.domains.objects.general import delete_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json
 from backend_main.validation.db_operations.object_data import validate_composite
-from backend_main.util.object_type_route_handler_resolving import object_type_func_name_mapping, get_object_type_route_handler
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, request_connection_key
+
+
+_OBJECT_TYPES_WITHOUT_COMPOSITE = ("link", "markdown", "to_do_list")
 
 
 async def add_composite(request, obj_ids_and_data):
@@ -55,7 +57,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
 
     # Get new subobjects' attributes and data
     new_objects_attributes = {}
-    new_data = {object_type: {} for object_type in object_type_func_name_mapping}
+    new_data = {object_type: {} for object_type in ("link", "markdown", "to_do_list")}
     
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
@@ -99,7 +101,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
         id_mapping = {sorted_request_subobject_ids[i]: sorted_new_subobject_ids[i] for i in range(len(sorted_new_subobject_ids))}
 
         # Add new objects' data
-        for object_type in object_type_func_name_mapping:
+        for object_type in _OBJECT_TYPES_WITHOUT_COMPOSITE:
             new_object_ids_and_data = []
             object_type_data = new_data[object_type]
             if len(object_type_data) > 0:
@@ -108,9 +110,7 @@ async def _add_new_subobjects(request, obj_ids_and_data):
                         "object_id": id_mapping[request_subobject_id],
                         "object_data": object_type_data[request_subobject_id]
                     })
-            
-                handler = get_object_type_route_handler("add", object_type)
-                await handler(request, new_object_ids_and_data)
+                await add_objects_data(request, object_type, new_object_ids_and_data)
         
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, sorted_new_subobject_ids)
@@ -127,7 +127,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
     
     # Get existing subobjects' attributes and data
     updated_objects_attributes = []
-    updated_ids_and_data = {object_type: [] for object_type in object_type_func_name_mapping}
+    updated_ids_and_data = {object_type: [] for object_type in _OBJECT_TYPES_WITHOUT_COMPOSITE}
     
     for obj_id_and_data in obj_ids_and_data:
         data = obj_id_and_data["object_data"]
@@ -158,10 +158,9 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
         await update_objects(request, updated_objects_attributes)
 
         # Update existing subobjects' data
-        for object_type in object_type_func_name_mapping:
+        for object_type in _OBJECT_TYPES_WITHOUT_COMPOSITE:
             if len(updated_ids_and_data[object_type]) > 0:
-                handler = get_object_type_route_handler("update", object_type)
-                await handler(request, updated_ids_and_data[object_type])
+                await update_objects_data(request, object_type, updated_ids_and_data[object_type])
         
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
@@ -204,7 +203,6 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
     """
     NOTE: check if a transaction is needed if this function is used outside of `_add_update_composite`
     """
-    
     objects = request.config_dict[app_tables_key].objects
     composite = request.config_dict[app_tables_key].composite
 

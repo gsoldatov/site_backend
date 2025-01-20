@@ -5,9 +5,8 @@ from aiohttp import web
 from jsonschema import validate
 
 from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema
-from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
-from backend_main.db_operations.objects import add_objects, update_objects
+from backend_main.db_operations.untyped.objects import add_objects, update_objects, add_objects_data, update_objects_data
 from backend_main.domains.objects.attributes import update_modified_at, view_objects_attributes_and_tags
 from backend_main.domains.objects.data import view_objects_data
 from backend_main.domains.objects.general import view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
@@ -15,7 +14,7 @@ from backend_main.domains.objects_tags import add_objects_tags, delete_objects_t
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
-from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
+from backend_main.validation.util import validate_object_data
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.domains.objects.general import CompositeHierarchy
@@ -37,6 +36,7 @@ async def add(request):
     data["object"]["created_at"] = request_time
     data["object"]["modified_at"] = request_time
     data["object"]["feed_timestamp"] = deserialize_str_to_datetime(data["object"]["feed_timestamp"], allow_none=True, error_msg="Incorrect feed timestamp value.")
+    object_type = data["object"]["object_type"]
     added_tags = data["object"].pop("added_tags", [])
     object_data = data["object"].pop("object_data")
 
@@ -53,10 +53,10 @@ async def add(request):
     record = (await add_objects(request, [data["object"]]))[0]
     response_data = row_proxy_to_dict(record)
     object_id = record["object_id"]
+    
     # Call handler to add object-specific data
-    specific_data = [{"object_id": object_id, "object_data": object_data}]
-    handler = get_object_type_route_handler("add", data["object"]["object_type"])
-    returned_object_data = await handler(request, specific_data)
+    obj_ids_and_data = [{"object_id": object_id, "object_data": object_data}]
+    returned_object_data = await add_objects_data(request, object_type, obj_ids_and_data)
     if returned_object_data != None:
         response_data["object_data"] = returned_object_data
 
@@ -90,10 +90,10 @@ async def update(request):
     response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
 
     # Validate object_data property and call handler to update object-specific data
-    validate(instance=object_data, schema=get_object_data_update_schema(response_data["object_type"]))
-    specific_data = [{"object_id": response_data["object_id"], "object_data": object_data}]
-    handler = get_object_type_route_handler("update", response_data["object_type"])
-    returned_object_data = await handler(request, specific_data)
+    object_type = response_data["object_type"]
+    validate_object_data(object_type, object_data)
+    obj_ids_and_data = [{"object_id": object_id, "object_data": object_data}]
+    returned_object_data = await update_objects_data(request, object_type, obj_ids_and_data)
     if returned_object_data != None:
         response_data["object_data"] = returned_object_data
     
@@ -206,11 +206,6 @@ async def delete(request: Request) -> ObjectsDeleteResponseBody:
         details=f"object_ids = {data.object_ids}, delete_subobjects = {data.delete_subobjects}"
     )
     return ObjectsDeleteResponseBody(object_ids=data.object_ids)
-
-
-
-def get_object_data_update_schema(object_type):
-    return globals()[f"{object_type}_object_data"]
 
 
 def get_subapp():
