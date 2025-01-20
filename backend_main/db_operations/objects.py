@@ -2,21 +2,16 @@
 Common operations with objects table.
 """
 from aiohttp import web
-from sqlalchemy import select, func
-from sqlalchemy.sql import and_
-from sqlalchemy.sql.expression import true
-from sqlalchemy.sql.functions import coalesce
 
 from backend_main.auth.route_access.common import forbid_non_admin_changing_object_owner
 from backend_main.auth.route_checks.objects import authorize_objects_modification
-from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 from backend_main.domains.users import ensure_user_ids_exist
 
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 
-from backend_main.types.app import app_config_key, app_tables_key
-from backend_main.types.request import request_time_key, request_log_event_key, request_connection_key
+from backend_main.types.app import app_tables_key
+from backend_main.types.request import request_log_event_key, request_connection_key
 
 
 async def add_objects(request, objects_attributes):

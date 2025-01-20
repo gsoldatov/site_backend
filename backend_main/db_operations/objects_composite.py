@@ -6,7 +6,7 @@ from aiohttp import web
 from sqlalchemy import select
 
 from backend_main.db_operations.objects import add_objects, update_objects
-from backend_main.domains.objects import delete_objects
+from backend_main.domains.objects.general import delete_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json

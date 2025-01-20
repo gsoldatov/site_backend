@@ -3,8 +3,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
 from backend_main.types.common import PositiveInt, Name, Datetime
-from backend_main.types.domains.objects import ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, \
-    ObjectsSearchQuery, ObjectAttributesAndTags, ObjectIDTypeData
+from backend_main.types.domains.objects.general import ObjectsPaginationInfo, ObjectsPaginationInfoWithResult, \
+    ObjectsSearchQuery
+from backend_main.types.domains.objects.attributes import ObjectAttributesAndTags
+from backend_main.types.domains.objects.data import ObjectIDTypeData
 
 
 # /objects/update_tags

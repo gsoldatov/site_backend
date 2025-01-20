@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal, Any
 
-from backend_main.types.domains.objects import ObjectType
+from backend_main.types.domains.objects.attributes import ObjectType
 
 
 def get_test_object(

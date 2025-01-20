@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import cast
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
-from backend_main.types.domains.objects import ObjectAttributesAndTags, ObjectType
+from backend_main.types.domains.objects.attributes import ObjectAttributesAndTags, ObjectType
 
 
 async def update_modified_at(request: Request, object_ids: list[int], modified_at: datetime) -> datetime:

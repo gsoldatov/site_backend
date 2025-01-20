@@ -1,30 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, AnyUrl, field_serializer, TypeAdapter
 from typing import Literal, Annotated
 
-from backend_main.types.common import PositiveInt, NonNegativeInt, Name, Datetime
-
-
-ObjectType = Literal["link", "markdown", "to_do_list", "composite"]
-
-
-class ObjectAttributesAndTags(BaseModel):
-    """
-    Object attributes and current tag IDs, as returned by /objects/view route.
-    """
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    object_id: int
-    object_type: ObjectType
-    created_at: Datetime
-    modified_at: Datetime
-    object_name: Name
-    object_description: str
-    owner_id: PositiveInt
-    is_published: bool
-    display_in_feed: bool
-    feed_timestamp: Datetime | None
-    show_description: bool
-    current_tag_ids: list[PositiveInt]
+from backend_main.types.common import NonNegativeInt
 
 
 class Link(BaseModel):
@@ -151,60 +128,3 @@ ObjectIDTypeData = LinkIDTypeData | MarkdownIDTypeData | ToDoListIDTypeData | Co
 """ Object ID, type and data. """
 _AnnotatedObjectIDTypeData = Annotated[ObjectIDTypeData, Field(discriminator="object_type")]
 objectIDTypeDataAdapter: TypeAdapter[ObjectIDTypeData] = TypeAdapter(_AnnotatedObjectIDTypeData)
-
-
-# class ObjectAttributesAndTagsMap(BaseModel):
-#     """
-#     Mapping between object IDs and corresponding attributes & tags.
-#     """
-#     model_config = ConfigDict(extra="forbid", strict=True)
-
-#     map: dict[int, ObjectAttributesAndTags]
-
-
-# Objects pagination
-class ObjectsPaginationInfo(BaseModel):
-    """
-    Objects pagination info attributes, used in request.
-    """
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    page: int = Field(ge=1)
-    items_per_page: int = Field(ge=1)
-    order_by: Literal["object_name", "modified_at", "feed_timestamp"]
-    sort_order: Literal["asc", "desc"]
-    filter_text: str = Field(default="", max_length=255)
-    object_types: list[ObjectType] = Field(default_factory=list, max_length=4)
-    tags_filter: list[PositiveInt] = Field(default_factory=list, max_length=100)
-    show_only_displayed_in_feed: bool = Field(default=False)
-
-
-class ObjectsPaginationInfoWithResult(ObjectsPaginationInfo):
-    """
-    Objects pagination info attributes and query results.
-    """
-    object_ids: list[int]
-    total_items: int
-
-
-# Objects search
-class ObjectsSearchQuery(BaseModel):
-    """
-    Objects search query attributes.
-    """
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    query_text: Name
-    maximum_values: int = Field(ge=1, le=100)
-    existing_ids: list[PositiveInt] = Field(max_length=100)
-
-
-# Composite hierarchy
-class CompositeHierarchy(BaseModel):
-    """
-    Object IDs present in the hierarchy of a composite object.
-    """
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    composite: list[int]
-    non_composite: list[int]

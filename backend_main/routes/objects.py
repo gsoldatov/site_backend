@@ -8,8 +8,9 @@ from backend_main.validation.schemas.objects import objects_add_schema, objects_
 from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, to_do_list_object_data, composite_object_data
 
 from backend_main.db_operations.objects import add_objects, update_objects
-from backend_main.domains.objects import update_modified_at, view_objects_attributes_and_tags, \
-    view_objects_data, view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
+from backend_main.domains.objects.attributes import update_modified_at, view_objects_attributes_and_tags
+from backend_main.domains.objects.data import view_objects_data
+from backend_main.domains.objects.general import view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
 from backend_main.middlewares.connection import start_transaction
 
@@ -17,7 +18,7 @@ from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dic
 from backend_main.util.object_type_route_handler_resolving import get_object_type_route_handler
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
-from backend_main.types.domains.objects import CompositeHierarchy
+from backend_main.types.domains.objects.general import CompositeHierarchy
 from backend_main.types.routes.objects import ObjectsViewRequestBody, ObjectsViewResponseBody, \
     ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
     ObjectsSearchRequestBody, ObjectsSearchResponseBody, \

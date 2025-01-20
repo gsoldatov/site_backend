@@ -7,7 +7,7 @@ from backend_main.auth.query_clauses import get_objects_data_auth_filter_clause
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
-from backend_main.types.domains.objects import MarkdownIDTypeData
+from backend_main.types.domains.objects.data import MarkdownIDTypeData
 
 
 async def view_markdown(request: Request, object_ids: list[int]) -> list[MarkdownIDTypeData]:

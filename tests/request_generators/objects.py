@@ -1,6 +1,6 @@
 from typing import Literal
 
-from backend_main.types.domains.objects import ObjectType
+from backend_main.types.domains.objects.attributes import ObjectType
 
 
 def get_update_tags_request_body(
