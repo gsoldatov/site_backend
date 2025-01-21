@@ -1,6 +1,6 @@
 from backend_main.auth.route_checks.objects import authorize_objects_modification
 
-from backend_main.db_operations2.objects.attributes import update_modified_at as _update_modified_at, \
+from backend_main.db_operations.objects.attributes import update_modified_at as _update_modified_at, \
     view_objects_attributes_and_tags as _view_objects_attributes_and_tags
 
 from datetime import datetime

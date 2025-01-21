@@ -2,7 +2,7 @@ from aiohttp import web
 from datetime import timedelta
 from math import ceil
 
-from backend_main.db_operations2.login_rate_limits import \
+from backend_main.db_operations.login_rate_limits import \
     get_login_rate_limit as _get_login_rate_limit, \
     upsert_login_rate_limit as _upsert_login_rate_limit, \
     delete_login_rate_limits as _delete_login_rate_limits

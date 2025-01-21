@@ -1,10 +1,10 @@
 from typing import get_args
 
-from backend_main.db_operations2.objects.attributes import view_objects_types as _view_objects_types
-from backend_main.db_operations2.objects.data.links import view_links as _view_links
-from backend_main.db_operations2.objects.data.markdown import view_markdown as _view_markdown
-from backend_main.db_operations2.objects.data.to_do_lists import view_to_do_lists as _view_to_do_lists
-from backend_main.db_operations2.objects.data.composite import view_composite as _view_composite
+from backend_main.db_operations.objects.attributes import view_objects_types as _view_objects_types
+from backend_main.db_operations.objects.data.links import view_links as _view_links
+from backend_main.db_operations.objects.data.markdown import view_markdown as _view_markdown
+from backend_main.db_operations.objects.data.to_do_lists import view_to_do_lists as _view_to_do_lists
+from backend_main.db_operations.objects.data.composite import view_composite as _view_composite
 
 from backend_main.types.request import Request
 from backend_main.types.domains.objects.attributes import ObjectType

@@ -1,4 +1,4 @@
-from backend_main.db_operations2.sessions import add_session as _add_session, \
+from backend_main.db_operations.sessions import add_session as _add_session, \
     prolong_access_token_and_get_user_info as _prolong_access_token_and_get_user_info, \
     delete_sessions_by_access_tokens as _delete_sessions_by_access_tokens, \
     delete_sessions_by_user_ids as _delete_sessions_by_user_ids

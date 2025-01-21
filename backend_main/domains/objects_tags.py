@@ -3,12 +3,12 @@ from aiohttp import web
 from backend_main.auth.route_checks.objects import authorize_objects_modification
 from backend_main.auth.route_checks.tags import authorize_tag_modification, authorize_objects_tagging
 
-from backend_main.db_operations2.objects_tags import \
+from backend_main.db_operations.objects_tags import \
     add_objects_tags as _add_objects_tags, \
     view_objects_tags as _view_objects_tags, \
     view_tags_objects as _view_tags_objects, \
     delete_objects_tags as _delete_objects_tags
-from backend_main.db_operations2.tags import add_tags_by_name as _add_tags_by_name
+from backend_main.db_operations.tags import add_tags_by_name as _add_tags_by_name
 
 from backend_main.util.exceptions import ObjectsTagsNotFound
 from backend_main.util.json import error_json

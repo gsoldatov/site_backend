@@ -2,7 +2,7 @@ from aiohttp import web
 
 from backend_main.auth.route_access.common import forbid_non_admin_adding_non_published_tag
 
-from backend_main.db_operations2.tags import add_tag as _add_tag, \
+from backend_main.db_operations.tags import add_tag as _add_tag, \
     update_tag as _update_tag, view_tags as _view_tags, delete_tags as _delete_tags, \
     view_page_tag_ids as _view_page_tag_ids, search_tags as _search_tags
 

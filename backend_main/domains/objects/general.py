@@ -2,8 +2,8 @@ from aiohttp import web
 
 from backend_main.auth.route_checks.objects import authorize_objects_modification
 
-from backend_main.db_operations2.objects.data.composite import view_exclusive_subobject_ids as _view_exclusive_subobject_ids
-from backend_main.db_operations2.objects.general import view_page_object_ids as _view_page_object_ids, \
+from backend_main.db_operations.objects.data.composite import view_exclusive_subobject_ids as _view_exclusive_subobject_ids
+from backend_main.db_operations.objects.general import view_page_object_ids as _view_page_object_ids, \
     search_objects as _search_objects, view_composite_hierarchy as _view_composite_hierarchy, delete_objects as _delete_objects
 
 from backend_main.util.exceptions import ObjectsNotFound, ObjectIsNotComposite

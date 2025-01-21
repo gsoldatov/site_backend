@@ -1,4 +1,4 @@
-from backend_main.db_operations2.settings import update_settings as _update_settings, \
+from backend_main.db_operations.settings import update_settings as _update_settings, \
     view_settings as _view_settings
 
 from backend_main.middlewares.connection import start_transaction

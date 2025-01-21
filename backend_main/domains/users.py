@@ -1,7 +1,7 @@
 from aiohttp import web
 from typing import Iterable
 
-from backend_main.db_operations2.users import \
+from backend_main.db_operations.users import \
     add_user as _add_user, \
     update_user as _update_user, \
     get_user_by_login_and_password as _get_user_by_login_and_password, \
