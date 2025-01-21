@@ -4,7 +4,7 @@ Object routes.
 from aiohttp import web
 from jsonschema import validate
 
-from backend_main.validation.schemas.objects import objects_add_schema, objects_update_schema
+from backend_main.types._jsonschema.schemas.objects import objects_add_schema, objects_update_schema
 
 from backend_main.db_operations.untyped.objects import add_objects, update_objects, add_objects_data, update_objects_data
 from backend_main.domains.objects.attributes import update_modified_at, view_objects_attributes_and_tags
@@ -14,7 +14,7 @@ from backend_main.domains.objects_tags import add_objects_tags, delete_objects_t
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
-from backend_main.validation.util import validate_object_data
+from backend_main.types._jsonschema.util import validate_object_data
 
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.domains.objects.general import CompositeHierarchy

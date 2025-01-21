@@ -1,12 +1,3 @@
-def non_empty_list_of_ids(max_items = 1000, unique = True):
-    return {
-        "type": "array",
-        "uniqueItems": unique,
-        "minItems": 1,
-        "maxItems": max_items,
-        "items": object_id
-    }
-
 def list_of_ids(max_items = 1000, unique = True):
     return {
         "type": "array",

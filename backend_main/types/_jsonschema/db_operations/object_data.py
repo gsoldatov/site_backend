@@ -4,7 +4,7 @@ Validation functions performed before running database operations for object dat
 from urllib.parse import urlparse
 from collections import Counter
 
-from backend_main.validation.util import RequestValidationException
+from backend_main.types._jsonschema.util import RequestValidationException
 
 
 def validate_link(link):

@@ -1,10 +1,10 @@
 """
 Data converting functions for preparing JSON responses.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 import json
 
-from backend_main.validation.util import RequestValidationException
+from backend_main.types._jsonschema.util import RequestValidationException
 
 
 def row_proxy_to_dict(row_proxy):

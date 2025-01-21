@@ -1,5 +1,5 @@
 from jsonschema import validate
-from backend_main.validation.schemas.object_data import link_object_data, markdown_object_data, \
+from backend_main.types._jsonschema.schemas.object_data import link_object_data, markdown_object_data, \
     to_do_list_object_data, composite_object_data
 
 

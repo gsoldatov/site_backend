@@ -10,7 +10,7 @@ from backend_main.domains.objects.general import delete_objects
 from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json
-from backend_main.validation.db_operations.object_data import validate_composite
+from backend_main.types._jsonschema.db_operations.object_data import validate_composite
 
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import request_time_key, request_log_event_key, request_user_info_key, request_connection_key

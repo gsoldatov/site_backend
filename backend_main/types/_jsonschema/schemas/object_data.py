@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from backend_main.validation.schemas.common import object_id, name, description, show_description_composite
+from backend_main.types._jsonschema.schemas.common import object_id, name, description, show_description_composite
 
 
 # Link object data
