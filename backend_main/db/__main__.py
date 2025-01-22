@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument("--migrate", help="Apply migrations to the database only.",
                         action="store_true")
     parser.set_defaults(force=False, revision=False, migrate=False)
-    args = _DBArgs(**parser.parse_args())
+    args = _DBArgs(**vars(parser.parse_args()))
 
     if args.revision and (args.message is None):
         parser.error("--revision argument must be specified with --message.")
