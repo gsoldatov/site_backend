@@ -205,6 +205,9 @@ async def delete_objects(request: Request, object_ids: list[int]) -> None:
     """
     Deletes objects with provided `object_ids`.
     """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return
+
     objects = request.config_dict[app_tables_key].objects
     
     # Run delete query & return result

@@ -89,9 +89,6 @@ async def view_tags_objects(request: Request, tag_ids: list[int]) -> ObjectsTags
 
 async def delete_objects_tags(request: Request, object_ids: list[int], tag_ids: list[int]) -> ObjectsTagsLists:
     """ Removes all tags with `tag_ids` from `object_ids`. """
-    # Handle empty lists
-    if len(object_ids) == 0 or len(tag_ids) == 0: return ObjectsTagsLists(object_ids=[], tag_ids=[])
-
     # Removed duplicates
     object_ids = list(set(object_ids))
     tag_ids = list(set(tag_ids))

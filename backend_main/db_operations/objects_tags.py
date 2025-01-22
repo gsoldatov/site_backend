@@ -40,10 +40,14 @@ async def view_objects_tags(request: Request, object_ids: list[int]) -> ObjectsT
     """
     Returns a mapping between `object_ids` and lists of their current tags' IDs.
     """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return ObjectsTagsMap(map={})
+
     objects = request.config_dict[app_tables_key].objects
     objects_tags = request.config_dict[app_tables_key].objects_tags
     
     # Objects filter for non 'admin` user level
+    # NOTE: this also filters objects with non-published tags
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
 
     result = await request[request_connection_key].execute(
@@ -69,6 +73,9 @@ async def view_tags_objects(request: Request, tag_ids: list[int]) -> ObjectsTags
     """
     Returns a mapping between `tag_ids` and lists of their current objects' IDs.
     """
+    # Handle empty `tag_ids`
+    if len(tag_ids) == 0: return ObjectsTagsMap(map={})
+
     objects = request.config_dict[app_tables_key].objects
     tags = request.config_dict[app_tables_key].tags
     objects_tags = request.config_dict[app_tables_key].objects_tags
@@ -103,6 +110,9 @@ async def view_tags_objects(request: Request, tag_ids: list[int]) -> ObjectsTags
 
 async def delete_objects_tags(request: Request, object_ids: list[int], tag_ids: list[int]) -> None:
     """ Removes all tags with `tag_ids` from `object_ids`. """
+    # Handle empty object or tag IDs
+    if len(object_ids) == 0 or len(tag_ids) == 0: return
+
     objects_tags = request.config_dict[app_tables_key].objects_tags
 
     await request[request_connection_key].execute(

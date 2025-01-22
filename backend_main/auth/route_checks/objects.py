@@ -17,8 +17,7 @@ async def authorize_objects_modification(request: Request, object_ids: list[int]
     Raises 401 for anonymous.
     Raises 403 if user is not admin and does not own at least one object. Non-existing objects do not trigger the exception.
     """
-    if len(object_ids) == 0:
-        return
+    if len(object_ids) == 0: return
     
     forbid_anonymous(request)
 
@@ -45,8 +44,7 @@ async def authorize_tagged_objects_modification(request: Request, tag_ids: list[
     Raises 401 for anonymous.
     Raises 403 if user is not admin and does not own at least one object.
     """
-    if len(tag_ids) == 0:
-        return
+    if len(tag_ids) == 0: return
 
     forbid_anonymous(request)
 

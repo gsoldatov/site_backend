@@ -15,10 +15,12 @@ async def update_settings(request: Request, serialized_settings: SerializedSetti
     """
     settings = request.config_dict[app_tables_key].settings
 
-    # Query all modified rows from the table & build new rows to be inserted
+    # Exit if no settings were updated
     updated_setting_names = {n for n in serialized_settings.model_fields.keys() 
                              if getattr(serialized_settings, n, None) is not None}
+    if len(updated_setting_names) == 0: return
 
+    # Query all modified rows from the table & build new rows to be inserted
     result = await request[request_connection_key].execute(
         select(settings.c.setting_name, settings.c.is_public)
         .where(settings.c.setting_name.in_(updated_setting_names))
@@ -47,8 +49,10 @@ async def view_settings(request: Request, setting_names: list[str] | None) -> li
     """
     Returns the settings specified in `setting_names` (or all app settings if it's `None`).
     """
+    # Handle empty `setting_names`
+    if setting_names is not None and len(setting_names) == 0: return []
+
     # Auth checks for view all settings case (debounce non-admins)
-    
     settings = request.config_dict[app_tables_key].settings
     clause = settings.c.setting_name.in_(setting_names) if setting_names is not None else true()
 

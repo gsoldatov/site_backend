@@ -87,6 +87,9 @@ async def delete_sessions_by_access_tokens(request: Request, access_tokens: list
     """
     Deletes sessions for with specified `access_tokens`.
     """
+    # Handle empty `access_tokens`
+    if len(access_tokens) == 0: return
+
     sessions = request.config_dict[app_tables_key].sessions
 
     await request[request_connection_key].execute(
@@ -99,6 +102,9 @@ async def delete_sessions_by_user_ids(request: Request, user_ids: list[int]) -> 
     """
     Deletes sessions of users with specified `user_ids`.
     """
+    # Handle empty `user_ids`
+    if len(user_ids) == 0: return
+
     sessions = request.config_dict[app_tables_key].sessions
 
     await request[request_connection_key].execute(

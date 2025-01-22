@@ -76,6 +76,9 @@ async def view_exclusive_subobject_ids(request: Request, object_ids: list[int]) 
     """
     Returns a list of object IDs, which are subobjects only to the objects with specified `object_ids`.
     """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return []
+    
     composite = request.config_dict[app_tables_key].composite
 
     # Get all subobject IDs of deleted subobjects

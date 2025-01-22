@@ -3,8 +3,8 @@ User-related database operations.
 """
 from sqlalchemy import select, and_
 from sqlalchemy.sql import text
-from typing import Iterable
 
+from collections.abc import Collection
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.users import NewUser, User, UserFull, UserMin, UserUpdate
@@ -122,6 +122,9 @@ async def view_users(request: Request, user_ids: list[int], full_view_mode: bool
     Returns public user attributes for the users with provided `user_ids`.
     If `full_view_mode` is true, returns full information about user, otherwise - only `username` and `registered_at`.
     """
+    # Handle empty `user_ids`
+    if len(user_ids) == 0: return []
+
     users = request.config_dict[app_tables_key].users
     
     result = await request[request_connection_key].execute(
@@ -142,10 +145,13 @@ async def view_users(request: Request, user_ids: list[int], full_view_mode: bool
         return [UserMin.model_validate(row) for row in await result.fetchall()]
 
 
-async def get_existing_user_ids(request: Request, user_ids: Iterable[int]) -> set[int]:
+async def get_existing_user_ids(request: Request, user_ids: Collection[int]) -> set[int]:
     """
     Returns a set with user IDs from `user_ids`, which exist in the database.
     """
+    # Handle empty `user_ids`
+    if len(user_ids) == 0: return set()
+
     users = request.config_dict[app_tables_key].users
 
     result = await request[request_connection_key].execute(

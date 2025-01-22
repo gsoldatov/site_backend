@@ -17,12 +17,13 @@ async def update_modified_at(request: Request, object_ids: list[int], modified_a
     Updates `modified_at` attribute of the objects with provided `object_ids` to the provided value.
     Returns the updated `modified_at` value.
     """
-    # Update modified_at
-    objects = request.config_dict[app_tables_key].objects
-    await request[request_connection_key].execute(objects.update()
-        .where(objects.c.object_id.in_(object_ids))
-        .values(modified_at=modified_at)
-    )
+    if len(object_ids) > 0:
+        # Update modified_at
+        objects = request.config_dict[app_tables_key].objects
+        await request[request_connection_key].execute(objects.update()
+            .where(objects.c.object_id.in_(object_ids))
+            .values(modified_at=modified_at)
+        )
     return modified_at
 
 
@@ -30,6 +31,9 @@ async def view_objects_attributes_and_tags(request: Request, object_ids: list[in
     """
     Returns attributes and tags of object with provided `object_ids`.
     """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return []
+
     objects = request.config_dict[app_tables_key].objects
     objects_tags = request.config_dict[app_tables_key].objects_tags
 
@@ -75,6 +79,9 @@ async def view_objects_types(request: Request, object_ids: list[int]) -> list[Ob
     """
     Returns a unique list of object types of the object with the provided `object_ids`.
     """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return []
+    
     objects = request.config_dict[app_tables_key].objects
 
     # Objects filter for non 'admin` user level

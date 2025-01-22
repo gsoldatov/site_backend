@@ -23,6 +23,7 @@ async def authorize_objects_tagging(request: Request, tag_ids: list[int]) -> Non
     forbid_anonymous(request)
     
     if request[request_user_info_key].user_level == "admin": return
+    if len(tag_ids) == 0: return
 
     tags = request.config_dict[app_tables_key].tags
 

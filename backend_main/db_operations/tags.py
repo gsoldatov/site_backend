@@ -40,6 +40,7 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
     Adds tags for each name from `tag_names`, which does not exist in the database.
     Returns a mapping between tag names and added or existing tag IDs.
     """
+    # Handle empty `tag_names`
     if len(tag_names) == 0: return TagNameToIDMap(map={})
 
     tags = request.config_dict[app_tables_key].tags
@@ -115,6 +116,9 @@ async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
     """
     Returns a list tag attributes for the provided `tag_ids`.
     """
+    # Handle empty `tag_ids`
+    if len(tag_ids) == 0: return []
+
     tags = request.config_dict[app_tables_key].tags
 
     # Tags auth filter for non-admin user levels
@@ -136,6 +140,9 @@ async def delete_tags(request: Request, tag_ids: list[int]) -> None:
     """
     Deletes tags with provided `tag_ids`.
     """
+    # Handle empty `tag_ids`
+    if len(tag_ids) == 0: return
+
     tags = request.config_dict[app_tables_key].tags
     result = await request[request_connection_key].execute(
         tags.delete()
