@@ -9,6 +9,7 @@ request_time_key = web.AppKey("request_time_key", datetime)
 request_id_key = web.AppKey("request_id_key", str)
 request_monotonic_time_key = web.AppKey("request_monotonic_time_key", float)
 
+
 class _LogEvent(Protocol):
     """ `log_event` function signature definition. """
     def __call__(self,
@@ -19,6 +20,18 @@ class _LogEvent(Protocol):
         exc_info: bool | None = None
     ) -> None: ...
 request_log_event_key = web.AppKey("request_log_event_key", _LogEvent)
+
+
+class AuthCaches:
+    """
+    Provides caches objects' and tags' auth checks, which require running a DB query.
+    """
+    def __init__(self) -> None:
+        self.modifiable_object_ids: set[int] = set()
+        """ Set with object IDs, which are authorized for modification during the request. """
+        self.applicable_tag_ids: set[int] = set()
+        """ Set with tag IDs, which are authorized for being applied to or removed from objects during the request. """
+request_auth_caches_key = web.AppKey("request_auth_cache_key", AuthCaches)
 
 
 class UserInfo:

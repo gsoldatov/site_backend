@@ -11,16 +11,22 @@ from backend_main.domains.sessions import prolong_access_token_and_get_user_info
 from backend_main.util.json import error_json
 from backend_main.util.constants import AUTH_SUBAPP_PREFIX, ROUTES_ACCESSIBLE_WITH_INVALID_ACCESS_TOKEN
 
-from backend_main.types.request import Request, Handler, UserInfo, request_log_event_key, request_user_info_key
+from backend_main.types.request import Request, Handler, UserInfo, request_log_event_key, request_user_info_key, \
+    request_auth_caches_key, AuthCaches
 
 
 @web.middleware
 async def auth_middleware(request: Request, handler: Handler) -> web.Response:
     """
     Checks if requested resource can be accessed by a user with the provided access token.
+
+    Initializes auth caches for the request.
     """
     # Skip middleware for CORS requests
     if request.method in ("OPTIONS", "HEAD"): return await handler(request)
+
+    # Initialize auth caches
+    request[request_auth_caches_key] = AuthCaches()
     
     # Get parsed access token
     access_token = _get_access_token(request)
