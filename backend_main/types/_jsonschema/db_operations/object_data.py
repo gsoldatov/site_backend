@@ -1,10 +1,11 @@
 """
 Validation functions performed before running database operations for object data.
 """
+# type: ignore
 from urllib.parse import urlparse
 from collections import Counter
 
-from backend_main.types._jsonschema.util import RequestValidationException
+from backend_main.util.exceptions import RequestValidationException
 
 
 def validate_link(link):

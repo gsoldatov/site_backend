@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from typing import NoReturn
 
 from backend_main.util.json import error_json
-from backend_main.types._jsonschema.util import RequestValidationException
+from backend_main.util.exceptions import RequestValidationException
 
 from backend_main.types.app import app_config_key
 from backend_main.types.request import Request, Handler, request_log_event_key

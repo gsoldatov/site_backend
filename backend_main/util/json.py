@@ -6,7 +6,7 @@ import json
 
 from typing import Any
 from aiopg.sa.result import RowProxy
-from backend_main.types._jsonschema.util import RequestValidationException
+from backend_main.util.exceptions import RequestValidationException
 
 
 def row_proxy_to_dict(row_proxy: RowProxy) -> dict[Any, Any]:

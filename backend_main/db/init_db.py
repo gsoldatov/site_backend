@@ -6,11 +6,9 @@ import alembic.config
 
 from backend_main.logging.loggers.db import get_logger
 
+from backend_main.util.exceptions import InitDBException
+
 from backend_main.types.app import Config
-
-
-class InitDBException(Exception):
-    pass
 
 
 def connect(

@@ -45,3 +45,13 @@ class TagsNotFound(Exception):
     Raised when a database operation is performed on non-existing tags.
     """
     pass
+
+
+class RequestValidationException(Exception):
+    """ Custom validation checks exception. """
+    pass
+
+
+class InitDBException(Exception):
+    """ Raised in `backend_main.db` module. """
+    pass

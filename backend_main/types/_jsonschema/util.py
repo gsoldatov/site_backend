@@ -3,10 +3,6 @@ from backend_main.types._jsonschema.schemas.object_data import link_object_data,
     to_do_list_object_data, composite_object_data
 
 
-class RequestValidationException(Exception):
-    pass
-
-
 def validate_object_data(object_type, object_data):
     """ Calls a specific schema validator for `object_data` based on its `object_type`."""
     if object_type == "link":
