@@ -7,7 +7,6 @@ from sqlalchemy import select
 
 from backend_main.db_operations.untyped.objects import add_objects, update_objects, add_objects_data, update_objects_data
 from backend_main.domains.objects.general import delete_objects
-from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, error_json
 from backend_main.types._jsonschema.db_operations.object_data import validate_composite
@@ -30,9 +29,6 @@ async def update_composite(request, obj_ids_and_data):
 async def _add_update_composite(request, obj_ids_and_data):
     """ Full add/update logic for composite objects with subobject data. """
     _validate(request, obj_ids_and_data)
-
-    # Ensure a transaction is started
-    await start_transaction(request)
 
     id_mapping = await _add_new_subobjects(request, obj_ids_and_data)
     await _update_existing_subobjects(request, obj_ids_and_data)

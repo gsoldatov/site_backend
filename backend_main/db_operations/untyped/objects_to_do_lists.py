@@ -3,8 +3,6 @@
 """
 from aiohttp import web
 
-from backend_main.middlewares.connection import start_transaction
-
 from backend_main.util.json import error_json
 from backend_main.util.searchables import add_searchable_updates_for_objects
 from backend_main.types._jsonschema.db_operations.object_data import validate_to_do_list
@@ -35,9 +33,6 @@ async def add_to_do_lists(request, obj_ids_and_data):
             "indent": item["indent"],
             "is_expanded": item["is_expanded"]
         } for item in object_data["items"]))
-    
-    # Ensure a transaction is started
-    await start_transaction(request)
 
     # Insert to-do list general object data
     await request[request_connection_key].execute(
@@ -74,9 +69,6 @@ async def update_to_do_lists(request, obj_ids_and_data):
             "indent": item["indent"],
             "is_expanded": item["is_expanded"]
         } for item in object_data["items"]]
-
-        # Ensure a transaction is started
-        await start_transaction(request)
 
         # Update to-do list general object data
         result = await request[request_connection_key].execute(

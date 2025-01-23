@@ -6,13 +6,12 @@ from backend_main.auth.route_checks.users import authorize_user_update, validate
 from backend_main.domains.sessions import delete_user_sessions
 from backend_main.domains.users import update_user, view_users
 
-from backend_main.middlewares.connection import start_transaction
-
 from backend_main.util.json import error_json
 
+from backend_main.types.app import app_start_transaction_key
+from backend_main.types.request import Request, request_log_event_key
 from backend_main.types.domains.users import UserUpdate
 from backend_main.types.routes.users import UsersUpdateRequestBody, UsersViewRequestBody, UsersViewResponseBody
-from backend_main.types.request import Request, request_log_event_key, request_user_info_key
 
 
 async def update(request: Request) -> None:
@@ -23,8 +22,8 @@ async def update(request: Request) -> None:
     # Check if token owner can update data
     authorize_user_update(request, user_update)
 
-    # Ensure a transaction is started
-    await start_transaction(request)
+    # Start a transaction
+    await request.config_dict[app_start_transaction_key](request)
 
     # Check if token owner submitted a correct password
     await validate_user_update_issuer(request, data)

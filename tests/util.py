@@ -1,8 +1,12 @@
+from aiohttp import web
+import json
+import inspect
 import os
 import asyncio
 import pytest
 
 from backend_main.types.common import HiddenString
+from backend_main.types.request import Request
 
 
 def get_test_name(name, test_uuid):
@@ -39,3 +43,14 @@ async def wait_for(fn, timeout = 1, interval = 0.1, msg = "Timeout expired.", *a
 def run_pytest_tests(file):
     """Runs pytest tests in the provided `file`"""
     os.system(f'pytest "{os.path.abspath(file)}" -v --asyncio-mode=auto')
+
+
+async def start_transaction_stub(request: Request):
+    """
+    Stub for a transaction function, which finishes request
+    and returns the filename of its caller.
+    """
+    raise web.HTTPOk(text=json.dumps({
+        "sent_by_start_transaction_stub": True,
+        "caller_filename": inspect.stack()[1].filename
+    }), content_type="application/json")

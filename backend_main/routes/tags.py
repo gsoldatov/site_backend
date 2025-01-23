@@ -2,10 +2,8 @@ from aiohttp import web
 
 from backend_main.domains.tags import add_tag, update_tag, view_tags, delete_tags, view_page_tag_ids, search_tags
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
-from backend_main.middlewares.connection import start_transaction
 
-from backend_main.middlewares.connection import start_transaction
-
+from backend_main.types.app import app_start_transaction_key
 from backend_main.types.request import Request, request_time_key, request_log_event_key
 from backend_main.types.domains.tags import AddedTag, Tag, TagsPaginationInfoWithResult
 from backend_main.types.routes.tags import TagsAddRequestBody, TagsAddUpdateResponseBody, \
@@ -16,14 +14,14 @@ from backend_main.types.routes.tags import TagsAddRequestBody, TagsAddUpdateResp
 async def add(request: Request) -> TagsAddUpdateResponseBody:
     # Validate request data
     data = TagsAddRequestBody.model_validate(await request.json())
-
-    # Start a transaction
-    await start_transaction(request)
-
-    # Add tag
     added_tag = AddedTag.model_validate({**data.tag.model_dump(), **{
         "created_at": request[request_time_key], "modified_at": request[request_time_key]
     }})
+    
+    # Start a transaction
+    await request.config_dict[app_start_transaction_key](request)
+
+    # Add tag
     tag = await add_tag(request, added_tag)
 
     # Add tag's objects
@@ -43,14 +41,14 @@ async def add(request: Request) -> TagsAddUpdateResponseBody:
 async def update(request: Request) -> TagsAddUpdateResponseBody:
     # Validate request data
     data = TagsUpdateRequestBody.model_validate(await request.json())
-
-    # Start a transaction
-    await start_transaction(request)
-
-    # Update tag
     tag = Tag.model_validate({**data.tag.model_dump(), **{
         "created_at": request[request_time_key], "modified_at": request[request_time_key]
-    }})
+    }})    
+    
+    # Start a transaction
+    await request.config_dict[app_start_transaction_key](request)
+
+    # Update tag
     updated_tag = await update_tag(request, tag)
 
     # Update tag's objects

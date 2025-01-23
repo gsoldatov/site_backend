@@ -11,11 +11,11 @@ from backend_main.domains.objects.attributes import update_modified_at, view_obj
 from backend_main.domains.objects.data import view_objects_data
 from backend_main.domains.objects.general import view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
-from backend_main.middlewares.connection import start_transaction
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
 from backend_main.types._jsonschema.util import validate_object_data
 
+from backend_main.types.app import app_start_transaction_key
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.domains.objects.general import CompositeHierarchy
 from backend_main.types.routes.objects import ObjectsViewRequestBody, ObjectsViewResponseBody, \
@@ -47,7 +47,7 @@ async def add(request):
         data["object"]["owner_id_is_autoset"] = True
     
     # Start a transaction
-    await start_transaction(request)
+    await request.config_dict[app_start_transaction_key](request)
     
     # Insert general object data
     record = (await add_objects(request, [data["object"]]))[0]
@@ -83,7 +83,7 @@ async def update(request):
     object_data = data["object"].pop("object_data")
 
     # Start a transaction
-    await start_transaction(request)
+    await request.config_dict[app_start_transaction_key](request)
 
     # Update general object data
     object_id = data["object"]["object_id"]
@@ -114,8 +114,10 @@ async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
     # Validate request data
     data = ObjectsUpdateTagsRequestBody.model_validate(await request.json())
 
+    # Start a transaction
+    await request.config_dict[app_start_transaction_key](request)
+
     # Update tags and objects `modified_at` attribute
-    await start_transaction(request)
     added_objects_tags = await add_objects_tags(request, data.object_ids, data.added_tags)
     removed_objects_tags = await delete_objects_tags(request, data.object_ids, data.removed_tag_ids)
     modified_at = await update_modified_at(request, data.object_ids, request[request_time_key])
@@ -195,9 +197,6 @@ async def view_composite_hierarchy_elements(request: Request) -> CompositeHierar
 async def delete(request: Request) -> ObjectsDeleteResponseBody:
     # Validate request body
     data = ObjectsDeleteRequestBody.model_validate(await request.json())
-
-    # Start transaction
-    await start_transaction(request)
 
     # Delete objects, log and send response
     await delete_objects(request, data.object_ids, data.delete_subobjects)

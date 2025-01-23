@@ -11,14 +11,13 @@ from backend_main.domains.login_rate_limits import get_request_sender_login_rate
 from backend_main.domains.sessions import add_session, delete_session_by_access_token
 from backend_main.domains.users import add_user, get_user_by_login_and_password
 
-from backend_main.middlewares.connection import start_transaction
-
 from backend_main.util.exceptions import IncorrectCredentialsException
 from backend_main.util.json import error_json
 
+from backend_main.types.app import app_start_transaction_key
+from backend_main.types.request import Request, request_log_event_key, request_user_info_key, request_time_key
 from backend_main.types.domains.users import NewUser
 from backend_main.types.routes.auth import AuthRegisterRequestBody, AuthLoginRequestBody, AuthLoginResponseBody
-from backend_main.types.request import Request, request_log_event_key, request_user_info_key, request_time_key
 
 
 async def register(request: Request) -> web.Response:
@@ -63,6 +62,10 @@ async def login(request: Request) -> web.Response:
     try:
         data = await request.json()
         credentials = AuthLoginRequestBody(**data)
+       
+        # Start a transaction
+        await request.config_dict[app_start_transaction_key](request)
+        
         user = await get_user_by_login_and_password(request, credentials.login, credentials.password)
     except IncorrectCredentialsException:
         # Raise `IncorrectCredentialsException` after increasing login rate limit below
@@ -82,9 +85,6 @@ async def login(request: Request) -> web.Response:
             msg = "User is not allowed to login."
             request[request_log_event_key]("WARNING", "route_handler", msg)
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
-        
-        # Start a transaction
-        await start_transaction(request)
         
         # Create a session
         session = await add_session(request, user.user_id)

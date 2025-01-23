@@ -5,21 +5,14 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 4)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
-from tests.data_generators.searchables import get_test_searchable
-from tests.data_generators.sessions import headers_admin_token, admin_token
-from tests.data_generators.tags import get_test_tag
+from tests.data_generators.sessions import admin_token
 from tests.data_generators.users import get_test_user
 
-from tests.db_operations.objects import insert_objects, insert_links
-from tests.db_operations.searchables import insert_searchables
-from tests.db_operations.tags import insert_tags
+from tests.data_sets.common import insert_data_for_successful_requests
+
 from tests.db_operations.users import insert_users
 
-from tests.request_generators.objects import get_objects_view_request_body, get_objects_delete_body, \
-    get_page_object_ids_request_body, get_objects_search_request_body, get_update_tags_request_body
-from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body, \
-    get_page_tag_ids_request_body, get_tags_search_request_body
+from tests.request_generators.common import get_route_handler_info_map
 
 
 async def test_access_token_parsing(app, cli):
@@ -65,46 +58,11 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor):
 
 async def test_access_token_prolongation(app, cli, db_cursor, config):
     # Insert mock data
-    obj_list = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(100, 102)]
-    obj_list.append(get_test_object(99999, object_type="composite", owner_id=1, pop_keys=["object_data"]))
-    l_list = [get_test_object_data(i, object_type="link") for i in range(100, 102)]
-    insert_objects(obj_list, db_cursor)
-    insert_links(l_list, db_cursor)
-
-    tag_list = [get_test_tag(i) for i in range(100, 102)]
-    insert_tags(tag_list, db_cursor)
-
-    insert_searchables([get_test_searchable(object_id=101, text_a="word")], db_cursor)
-
-    # Correct request bodies
-    # NOTE: correct request body for new non-auth route handlers must be included in the dict below
-    correct_request_bodies = {
-        "/tags/add": {"POST": get_tags_add_request_body()},
-        "/tags/update": {"PUT": get_tags_update_request_body(tag_id=100)},
-        "/tags/view": {"POST": {"tag_ids": [100]}},
-        "/tags/delete": {"DELETE": {"tag_ids": [100]}},
-        "/tags/get_page_tag_ids": {"POST": get_page_tag_ids_request_body()},
-        "/tags/search": {"POST": get_tags_search_request_body(maximum_values=2)},
-        
-        "/objects/add": {"POST": {"object": get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])}},
-        "/objects/update": {"PUT": {"object": get_test_object(100, object_type="link", pop_keys=["created_at", "modified_at", "object_type"])}},
-        "/objects/view": {"POST": get_objects_view_request_body(object_ids=[100], object_data_ids=[])},
-        "/objects/delete": {"DELETE": get_objects_delete_body(object_ids=[100])},
-        "/objects/get_page_object_ids": {"POST": get_page_object_ids_request_body()},
-        "/objects/search": {"POST": get_objects_search_request_body()},
-        "/objects/update_tags": {"PUT": get_update_tags_request_body(object_ids=[101], added_tags=[101], removed_tag_ids=[])},
-        "/objects/view_composite_hierarchy_elements": {"POST": {"object_id": 99999}},
-
-        "/settings/update": {"PUT": {"settings": {"non_admin_registration_allowed": False}}},
-        "/settings/view": {"POST": {"view_all": True}},
-
-        "/users/update": {"PUT": {"user": {"user_id": 1, "username": "new username"}, "token_owner_password": config.app.default_user.password.value}},
-        "/users/view": {"POST": {"user_ids": [1]}},
-
-        "/search": {"POST": {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}}
-    }
+    insert_data_for_successful_requests(db_cursor)
 
     # Check token prolongation on successful requests for all non-auth routes
+    route_handler_info_map = get_route_handler_info_map(config)
+
     for route in app.router.routes():
         url = str(route.url_for())
         if str(url).startswith("/auth"): continue
@@ -116,10 +74,10 @@ async def test_access_token_prolongation(app, cli, db_cursor, config):
         
         # Send a correct request to route
         client_method = getattr(cli, route.method.lower())
-        request_body = correct_request_bodies[url][route.method]
+        route_handler_info = route_handler_info_map[url][route.method]
 
         # Check if correct access_token_expiration_time was returned in the request field
-        resp = await client_method(url, json=request_body, headers=headers_admin_token)
+        resp = await client_method(url, json=route_handler_info.body, headers=route_handler_info.headers)
         assert resp.status == 200, f"Received a non 200 reponse code for route '{url}' and method '{route.method}'"
         data = await resp.json()
         assert "auth" in data

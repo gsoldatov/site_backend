@@ -1,7 +1,5 @@
 """
     Middleware for handling asynchronous connection pooling & transaction completion.
-
-    NOTE: threaded_pool connections are being dispatched in `threading` middleware.
 """
 from aiohttp import web
 
@@ -35,12 +33,3 @@ async def connection_middleware(request: Request, handler: Handler) -> web.Respo
             request.pop("searchable_updates_tag_ids", None)
             request.pop("searchable_updates_object_ids", None)
             raise e
-
-
-async def start_transaction(request: Request):
-    """ Starts a transaction and adds it to request, if there is currently no active transaction in `request` storage. """
-    if request_transaction_key in request:
-        if request[request_transaction_key].is_active:
-            return
-
-    request[request_transaction_key] = await request[request_connection_key].begin()

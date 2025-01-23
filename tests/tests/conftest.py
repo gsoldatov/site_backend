@@ -15,10 +15,11 @@ sys.path.insert(0, project_root_dir)
 from backend_main.app import create_app
 from backend_main.app.config import Config
 from backend_main.db.init_db import migrate_as_superuser as migrate_as_superuser_, migrate as migrate_
+from backend_main.db.tables import get_tables
 
 from backend_main.types.app import app_tables_key
 
-from tests.util import get_test_name
+from tests.util import get_test_name, start_transaction_stub
 from tests.data_generators.sessions import admin_token
 
 
@@ -125,8 +126,9 @@ def db_cursor(config, migrate):
 
 
 @pytest.fixture
-def insert_data(config, db_cursor):
+def insert_and_cleanup_data(config, db_cursor):
     """Insert mock data into the migrated database."""
+    # Delete data created by migrations
     for table in ("settings", "users", "sessions"):
         db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
     
@@ -148,17 +150,19 @@ def insert_data(config, db_cursor):
     db_cursor.execute(f"""INSERT INTO sessions (user_id, access_token, expiration_time)
                         VALUES ({default_user_id}, '{admin_token}', '{expiration_time}')""")
 
+    yield
+
+    # Reset database after a test
+    for table in get_tables()[0].__dict__:
+        print(f"Cleaning {table}")
+        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
+    
+
 
 @pytest.fixture
-async def app(config, db_cursor, insert_data):
-    """
-    aiohttp web.Application object with its own configured test database.
-    """
-    app = await create_app(config=config)
-    yield app
-
-    for table in app[app_tables_key].__dict__:
-        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
+async def app(config, insert_and_cleanup_data):
+    """ aiohttp web.Application object with its own configured test database. """
+    return await create_app(config=config)
 
 
 @pytest.fixture
@@ -168,23 +172,34 @@ async def cli(aiohttp_client, app) -> TestClient:
 
 
 @pytest.fixture
-async def app_with_search(config_with_search, db_cursor, insert_data, aiohttp_client):
+async def app_with_search(config_with_search, insert_and_cleanup_data, aiohttp_client):
     """
-    aiohttp web.Application object with its own configured test database.
+    aiohttp web.Application object with its own configured test database and search enabled.
 
     NOTE: `aiohttp_client` fixture is required, so that its teardown is called after teardown of `app`.
     This is necessary to properly await for searchable data updates to finish in corresponding tests.
     Another option is to call `app.shutdown` & `app.cleanup` in app fixture, but this requires additional workaround
     to avoid errors in teardown of some tests.
     """
-    app = await create_app(config=config_with_search)
-    yield app
-
-    for table in app[app_tables_key].__dict__:
-        db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
+    return await create_app(config=config_with_search)
 
 
 @pytest.fixture
 async def cli_with_search(aiohttp_client, app_with_search) -> TestClient:
-    """ Test client object. """
+    """ Test client object for the app with search enabled. """
     return await aiohttp_client(app_with_search)
+
+
+@pytest.fixture
+async def app_with_start_transaction_stub(config, insert_and_cleanup_data, aiohttp_client):
+    """
+    aiohttp web.Application object with its own configured test database
+    and a stub replacing transaction starting function.
+    """
+    return await create_app(config=config, start_transaction_fn=start_transaction_stub)
+
+
+@pytest.fixture
+async def cli_with_start_transaction_stub(aiohttp_client, app_with_start_transaction_stub) -> TestClient:
+    """ Test client object for the app with a stub replacing transaction starting function. """
+    return await aiohttp_client(app_with_start_transaction_stub)
