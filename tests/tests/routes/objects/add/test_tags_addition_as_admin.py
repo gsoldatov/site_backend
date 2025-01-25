@@ -86,7 +86,7 @@ async def test_correct_add_string_tags(cli, db_cursor):
 
     # Check added objects' tags
     db_cursor.execute(f"SELECT tag_id FROM objects_tags WHERE object_id = 1")
-    assert [r[0] for r in db_cursor.fetchall()] == [1, 2, 3, 4, 5]
+    assert sorted((r[0] for r in db_cursor.fetchall())) == [1, 2, 3, 4, 5]
 
     # Check if new tags were added & is_published is set to true
     db_cursor.execute(f"SELECT tag_id, is_published FROM tags WHERE tag_name IN ('New tag', 'Duplicate tag')")
