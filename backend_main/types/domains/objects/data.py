@@ -1,6 +1,6 @@
 from collections import Counter
-from pydantic import BaseModel, ConfigDict, Field, AnyUrl, field_serializer, model_validator
-from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field, AnyUrl, field_serializer, model_validator, TypeAdapter
+from typing import Literal, Annotated
 from typing_extensions import Self
 
 from backend_main.types.common import NonNegativeInt
@@ -134,7 +134,7 @@ class LinkIDTypeData(BaseModel):
     """
     Link object ID, type and data.
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     object_id: int
     object_type: Literal["link"]
@@ -145,7 +145,7 @@ class MarkdownIDTypeData(BaseModel):
     """
     Markdown object ID, type and data.
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     object_id: int
     object_type: Literal["markdown"]
@@ -156,7 +156,7 @@ class ToDoListIDTypeData(BaseModel):
     """
     To-do list object ID, type and data.
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     object_id: int
     object_type: Literal["to_do_list"]
@@ -167,7 +167,7 @@ class CompositeIDTypeData(BaseModel):
     """
     Composite object ID, type and data.
     """
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     object_id: int
     object_type: Literal["composite"]
@@ -176,3 +176,10 @@ class CompositeIDTypeData(BaseModel):
 
 ObjectIDTypeData = LinkIDTypeData | MarkdownIDTypeData | ToDoListIDTypeData | CompositeIDTypeData
 """ Object ID, type and data. """
+
+# NOTE: dicriminated union of models is implemented using TypeAdapter,
+# as suggested here: https://github.com/pydantic/pydantic/discussions/4950.
+# Another implementation option is to use discriminated union sub-model a field
+#
+_AnnotatedObjectIDTypeData = Annotated[ObjectIDTypeData, Field(discriminator="object_type")]
+objectIDTypeDataAdapter: TypeAdapter[ObjectIDTypeData] = TypeAdapter(_AnnotatedObjectIDTypeData)

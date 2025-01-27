@@ -25,25 +25,32 @@ class ObjectIsNotComposite(Exception):
     pass
 
 
-class ObjectsTagsNotFound(Exception):
-    """
-    Raised when adding objects' tags fails due to a foreign key violation
-    """
+class ForeignKeyViolationException(Exception):
+    """ Parses aiopg ForeignKeyViolation exception text for field and value, which caused the exception. """
     def __init__(self, e: ForeignKeyViolation):
         super().__init__(str(e))
 
         match = re.findall(r"\((.*?)\)", str(e))
         self.field = match[0]
-        self.id = match[1]    
+        self.id = match[1]
 
+
+class ObjectsTagsNotFound(ForeignKeyViolationException):
+    """
+    Raised when adding objects' tags fails due to a foreign key violation
+    """
     def __str__(self) -> str:
         return f"Could not add objects tags: {self.field} = {self.id} not found."
 
 
+class UserNotFound(ForeignKeyViolationException):
+    """ Raised, when a database operation involving non-existing users is performed. """
+    def __str__(self) -> str:
+        return f"User ID {self.id} not found."
+
+
 class TagsNotFound(Exception):
-    """
-    Raised when a database operation is performed on non-existing tags.
-    """
+    """ Raised when a database operation is performed on non-existing tags. """
     pass
 
 

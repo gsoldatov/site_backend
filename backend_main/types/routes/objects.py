@@ -28,6 +28,14 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
         return self
 
 
+# NOTE: same schema is used for /objects/view route response
+class ObjectsBulkUpsertResponseBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    objects_attributes_and_tags: list[ObjectAttributesAndTags]
+    objects_data: list[ObjectIDTypeData]
+
+
 # /objects/update_tags
 class ObjectsUpdateTagsRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -57,11 +65,8 @@ class ObjectsViewRequestBody(BaseModel):
         return self
 
 
-class ObjectsViewResponseBody(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    objects_attributes_and_tags: list[ObjectAttributesAndTags]
-    objects_data: list[ObjectIDTypeData]
+class ObjectsViewResponseBody(ObjectsBulkUpsertResponseBody):
+    pass
 
 
 # /objects/get_page_object_ids

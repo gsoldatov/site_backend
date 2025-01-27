@@ -10,21 +10,25 @@ from backend_main.types.domains.objects.data import LinkIDTypeData, MarkdownIDTy
 # Objects bulk upsert
 class UpsertedLink(UpsertedObjectAttributesAndTags, LinkIDTypeData):
     """ Upserted link object attributes, tags & data. """
+    model_config = ConfigDict(extra="forbid", strict=True)
     pass
 
 
 class UpsertedMarkdown(UpsertedObjectAttributesAndTags, MarkdownIDTypeData):
     """ Upserted markdown object attributes, tags & data. """
+    model_config = ConfigDict(extra="forbid", strict=True)
     pass
 
 
 class UpsertedToDoList(UpsertedObjectAttributesAndTags, ToDoListIDTypeData):
     """ Upserted to-do list object attributes, tags & data. """
+    model_config = ConfigDict(extra="forbid", strict=True)
     pass
 
 
 class UpsertedComposite(UpsertedObjectAttributesAndTags, CompositeIDTypeData):
     """ Upserted to-do list object attributes, tags & data. """
+    model_config = ConfigDict(extra="forbid", strict=True)
     pass
 
 

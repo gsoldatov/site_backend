@@ -31,7 +31,7 @@ class UpsertedObjectAttributes(BaseModel):
     """ Attributes of an object, which is upserted into the database. """
     model_config = ConfigDict(extra="ignore", strict=True)
 
-    object_id: PositiveInt
+    object_id: int
     object_type: ObjectType
     created_at: Datetime
     modified_at: Datetime

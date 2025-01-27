@@ -204,11 +204,14 @@ async def view_composite_hierarchy(request: Request, object_id: int) -> Composit
 async def delete_objects(request: Request, object_ids: list[int]) -> None:
     """
     Deletes objects with provided `object_ids`.
+
+    Raises an exception, if at least one object does not exist
     """
     # Handle empty `object_ids`
     if len(object_ids) == 0: return
 
     objects = request.config_dict[app_tables_key].objects
+    object_ids_set = set((i for i in object_ids))
     
     # Run delete query & return result
     result = await request[request_connection_key].execute(
@@ -216,4 +219,6 @@ async def delete_objects(request: Request, object_ids: list[int]) -> None:
         .where(objects.c.object_id.in_(object_ids))
         .returning(objects.c.object_id)
     )
-    if not await result.fetchone(): raise ObjectsNotFound
+    deleted_object_ids = set((r[0] for r in await result.fetchall()))
+    non_existing_ids = object_ids_set.difference(deleted_object_ids)
+    if len(non_existing_ids) > 0: raise ObjectsNotFound(f"Objects {non_existing_ids} do not exist.")

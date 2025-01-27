@@ -10,11 +10,12 @@ from backend_main.util.json import error_json
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_log_event_key, request_user_info_key, request_connection_key, \
     request_auth_caches_key
+from backend_main.types.domains.objects.attributes import UpsertedObjectAttributes
 
 
 async def authorize_objects_modification(request: Request, object_ids: list[int]):
     """
-    Checks is `request[request_user_info_key].user_id` is an admin or a user owning all objects with the provided `object_ids`.
+    Checks if `request[request_user_info_key].user_id` is an admin or a user owning all objects with the provided `object_ids`.
     Raises 401 for anonymous.
     Raises 403 if user is not admin and does not own at least one object. Non-existing objects do not trigger the exception.
     """
@@ -43,6 +44,26 @@ async def authorize_objects_modification(request: Request, object_ids: list[int]
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
         
         request[request_auth_caches_key].modifiable_object_ids.update(unchecked_object_ids)
+
+
+def authorize_object_owner_modification(
+        request: Request,
+        upserted_objects_attributes: list[UpsertedObjectAttributes]
+    ) -> None:
+    """
+    Checks `owner_id` values from `upserted_objects_attributes` can be set by `request` issuer.
+    Raises 401 for anonymous.
+    Raises 403 for non-admins, who try to set any other user ID as object owners.
+    """
+    forbid_anonymous(request)
+
+    if request[request_user_info_key].user_level != "admin":
+        user_id = request[request_user_info_key].user_id
+        unallowed_owner_ids = set((o.owner_id for o in upserted_objects_attributes if o.owner_id != user_id))
+        if len(unallowed_owner_ids) > 0:
+            msg = "Object owner update is not allowed."
+            request[request_log_event_key]("WARNING", "auth", msg, details=f"user_id = {user_id}, unallowed owners = {unallowed_owner_ids}")
+            raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
 # async def authorize_tagged_objects_modification(request: Request, tag_ids: list[int]):

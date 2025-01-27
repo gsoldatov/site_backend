@@ -5,12 +5,49 @@ from sqlalchemy import select, and_
 
 from backend_main.auth.query_clauses import get_objects_data_auth_filter_clause
 
+from collections.abc import Collection
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects.data import CompositeIDTypeData
 
 
-async def view_composite(request: Request, object_ids: list[int]) -> list[CompositeIDTypeData]:
+async def upsert_composite(request: Request, data: list[CompositeIDTypeData]) -> None:
+    """ Upserts composite objects' data into the database. """
+    if len(data) == 0: return
+
+    # Delete old data in main table
+    composite_properties = request.config_dict[app_tables_key].composite_properties
+    object_ids = set(o.object_id for o in data)
+    await request[request_connection_key].execute(
+        composite_properties.delete()
+        .where(composite_properties.c.object_id.in_(object_ids))
+    )
+
+    # Insert new data in main table
+    values = [{"object_id": o.object_id, **o.object_data.model_dump(exclude={"subobjects"})} for o in data]
+
+    await request[request_connection_key].execute(
+        composite_properties.insert()
+        .values(values)
+    )
+
+    # Delete old data in items' table
+    composite = request.config_dict[app_tables_key].composite
+    await request[request_connection_key].execute(
+        composite.delete()
+        .where(composite.c.object_id.in_(object_ids))
+    )
+
+    # Insert new data in items' table
+    items_values = [{"object_id": o.object_id, **i.model_dump()} for o in data for i in o.object_data.subobjects]
+
+    await request[request_connection_key].execute(
+        composite.insert()
+        .values(items_values)
+    )
+
+
+async def view_composite(request: Request, object_ids: Collection[int]) -> list[CompositeIDTypeData]:
     # Handle empty `object_ids`
     if len(object_ids) == 0: return []
 
@@ -102,3 +139,17 @@ async def view_exclusive_subobject_ids(request: Request, object_ids: list[int]) 
     
     # Return subobject IDs which are present only in deleted composite objects
     return [o for o in subobjects_of_deleted_objects if o not in subobjects_present_in_other_objects]
+
+
+async def view_existing_subobject_ids(request: Request, subobject_ids: Collection[int]) -> set[int]:
+    """ Returns a set of IDs from `subobject_ids`, which belong to any parent composite object. """
+    if len(subobject_ids) == 0: return set()
+    composite = request.config_dict[app_tables_key].composite
+
+    result = await request[request_connection_key].execute(
+        select(composite.c.subobject_id)
+        .distinct()
+        .where(composite.c.subobject_id.in_(subobject_ids))
+    )
+
+    return set((r[0] for r in await result.fetchall()))

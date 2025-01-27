@@ -5,12 +5,34 @@ from sqlalchemy import select
 
 from backend_main.auth.query_clauses import get_objects_data_auth_filter_clause
 
+from collections.abc import Collection
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects.data import LinkIDTypeData
 
 
-async def view_links(request: Request, object_ids: list[int]) -> list[LinkIDTypeData]:
+async def upsert_links(request: Request, data: list[LinkIDTypeData]) -> None:
+    """ Upserts link objects' data into the database. """
+    if len(data) == 0: return
+
+    # Delete old data
+    links = request.config_dict[app_tables_key].links
+    object_ids = set(o.object_id for o in data)
+    await request[request_connection_key].execute(
+        links.delete()
+        .where(links.c.object_id.in_(object_ids))
+    )
+
+    # Insert new data
+    values = [{"object_id": o.object_id, **o.object_data.model_dump()} for o in data]
+
+    await request[request_connection_key].execute(
+        links.insert()
+        .values(values)
+    )
+
+
+async def view_links(request: Request, object_ids: Collection[int]) -> list[LinkIDTypeData]:
     # Handle empty `object_ids`
     if len(object_ids) == 0: return []
     

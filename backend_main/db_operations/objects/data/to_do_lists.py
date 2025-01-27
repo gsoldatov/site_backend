@@ -5,12 +5,49 @@ from sqlalchemy import select
 
 from backend_main.auth.query_clauses import get_objects_data_auth_filter_clause
 
+from collections.abc import Collection
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
 from backend_main.types.domains.objects.data import ToDoListIDTypeData
 
 
-async def view_to_do_lists(request: Request, object_ids: list[int]) -> list[ToDoListIDTypeData]:
+async def upsert_to_do_lists(request: Request, data: list[ToDoListIDTypeData]) -> None:
+    """ Upserts to-do list objects' data into the database. """
+    if len(data) == 0: return
+
+    # Delete old data in main table
+    to_do_lists = request.config_dict[app_tables_key].to_do_lists
+    object_ids = set(o.object_id for o in data)
+    await request[request_connection_key].execute(
+        to_do_lists.delete()
+        .where(to_do_lists.c.object_id.in_(object_ids))
+    )
+
+    # Insert new data in main table
+    values = [{"object_id": o.object_id, **o.object_data.model_dump(exclude={"items"})} for o in data]
+
+    await request[request_connection_key].execute(
+        to_do_lists.insert()
+        .values(values)
+    )
+
+    # Delete old data in items' table
+    to_do_list_items = request.config_dict[app_tables_key].to_do_list_items
+    await request[request_connection_key].execute(
+        to_do_list_items.delete()
+        .where(to_do_list_items.c.object_id.in_(object_ids))
+    )
+
+    # Insert new data in items' table
+    items_values = [{"object_id": o.object_id, **i.model_dump()} for o in data for i in o.object_data.items]
+
+    await request[request_connection_key].execute(
+        to_do_list_items.insert()
+        .values(items_values)
+    )
+
+
+async def view_to_do_lists(request: Request, object_ids: Collection[int]) -> list[ToDoListIDTypeData]:
     # Handle empty `object_ids`
     if len(object_ids) == 0: return []
 

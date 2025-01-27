@@ -1,3 +1,4 @@
+from psycopg2.errors import ForeignKeyViolation
 from sqlalchemy import select
 from sqlalchemy.sql import and_
 from sqlalchemy.sql.functions import coalesce
@@ -5,11 +6,66 @@ from sqlalchemy.dialects.postgresql import array_agg
 
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 
+from backend_main.util.exceptions import UserNotFound, ObjectsNotFound
+
+from collections.abc import Collection
 from datetime import datetime
 from typing import cast
 from backend_main.types.app import app_tables_key
 from backend_main.types.request import Request, request_connection_key
-from backend_main.types.domains.objects.attributes import ObjectAttributesAndTags, ObjectType
+from backend_main.types.domains.objects.general import ObjectsIDsMap
+from backend_main.types.domains.objects.attributes import UpsertedObjectAttributes, ObjectAttributesAndTags, ObjectType
+
+
+async def add_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> ObjectsIDsMap:
+    """
+    Inserts provided `objects_attributes` into the database as new objects' attributes (with ID auto generation)
+    and returns mapping between provided and generated object IDs.
+    """
+    # Sort new objects by their IDs to create a correct old to new ID mapping.
+    # Identity should generate new IDs for multiple rows in ascending order for the order they were inserted in:
+    # https://stackoverflow.com/questions/50809120/postgres-insert-into-with-select-ordering
+    sorted_objects_attributes = sorted(objects_attributes, key=lambda o: o.object_id, reverse=True)
+    values = [o.model_dump(exclude={"object_id"}) for o in sorted_objects_attributes]
+
+    # Insert new objects
+    objects = request.config_dict[app_tables_key].objects
+
+    try:
+        result = await request[request_connection_key].execute(
+            objects.insert()
+            .returning(objects.c.object_id)
+            .values(values))
+        
+        records = await result.fetchall()
+
+        sorted_new_object_ids = sorted([o["object_id"] for o in records])
+        object_id_mapping = {sorted_objects_attributes[i].object_id: sorted_new_object_ids[i] for i in range(len(sorted_new_object_ids))}
+
+        return ObjectsIDsMap(map=object_id_mapping)
+    except ForeignKeyViolation as e:
+        raise UserNotFound(e)
+
+
+async def update_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> None:
+    """
+    Updates provided existing `objects_attributes` in the database.
+    Raises if any object does not exist.
+    """
+    objects = request.config_dict[app_tables_key].objects
+    
+    for oa in objects_attributes:
+        values = oa.model_dump()
+    
+        result = await request[request_connection_key].execute(
+            objects.update()
+            .where(objects.c.object_id == oa.object_id)
+            .values(values)
+            .returning(objects.c.object_id)
+        )
+        
+        if await result.fetchone() is None:
+            raise ObjectsNotFound(f"Cannot update non-existing object {oa.object_id}.")
 
 
 async def update_modified_at(request: Request, object_ids: list[int], modified_at: datetime) -> datetime:
@@ -97,3 +153,30 @@ async def view_objects_types(request: Request, object_ids: list[int]) -> list[Ob
     )
 
     return [cast(ObjectType, r[0]) for r in await result.fetchall()]
+
+
+async def view_existing_object_ids(
+        request: Request,
+        object_ids: Collection[int],
+        object_types: Collection[ObjectType]
+    ) -> set[int]:
+    """
+    Returns a set of `object_ids`, which existing in `objects` table
+    and have provided `object_type`.
+    """
+    # Handle empty `object_ids`
+    if len(object_ids) == 0: return []
+
+    # Objects filter for non 'admin` user level
+    objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
+
+    objects = request.config_dict[app_tables_key].objects
+    result = await request[request_connection_key].execute(
+        select(objects.c.object_id)
+        .where(and_(
+            objects_auth_filter_clause,
+            objects.c.object_id.in_(object_ids),
+            objects.c.object_type.in_(object_types)
+        ))
+    )
+    return set((cast(int, r[0]) for r in await result.fetchall()))

@@ -6,11 +6,16 @@ from jsonschema import validate
 
 from backend_main.types._jsonschema.schemas.objects import objects_add_schema, objects_update_schema
 
-from backend_main.db_operations.untyped.objects import add_objects, update_objects, add_objects_data, update_objects_data
-from backend_main.domains.objects.attributes import update_modified_at, view_objects_attributes_and_tags
-from backend_main.domains.objects.data import view_objects_data
-from backend_main.domains.objects.general import view_page_object_ids, search_objects, view_composite_hierarchy, delete_objects
-from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags
+from backend_main.db_operations.untyped.objects import add_objects as add_objects_untyped, \
+    update_objects as update_objects_untyped, add_objects_data as add_objects_data_untyped, \
+    update_objects_data as update_objects_data_untyped
+from backend_main.domains.objects.attributes import add_objects, update_objects, \
+    update_modified_at, view_objects_attributes_and_tags
+from backend_main.domains.objects.data import upsert_objects_data, view_objects_data, fully_delete_subobjects
+from backend_main.domains.objects.general import view_page_object_ids, search_objects, \
+    view_composite_hierarchy, delete_objects, map_objects_ids
+from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, \
+    bulk_add_objects_tags, bulk_delete_objects_tags
 
 from backend_main.util.json import deserialize_str_to_datetime, row_proxy_to_dict, error_json
 from backend_main.types._jsonschema.util import validate_object_data
@@ -18,12 +23,16 @@ from backend_main.types._jsonschema.util import validate_object_data
 from backend_main.types.app import app_start_transaction_key
 from backend_main.types.request import Request, request_time_key, request_log_event_key, request_user_info_key
 from backend_main.types.domains.objects.general import CompositeHierarchy
-from backend_main.types.routes.objects import ObjectsViewRequestBody, ObjectsViewResponseBody, \
+from backend_main.types.domains.objects.attributes import UpsertedObjectAttributes
+from backend_main.types.domains.objects.data import objectIDTypeDataAdapter
+from backend_main.types.routes.objects import ObjectsBulkUpsertRequestBody, ObjectsBulkUpsertResponseBody, \
+    ObjectsViewRequestBody, ObjectsViewResponseBody, \
     ObjectsGetPageObjectIDsRequestBody, ObjectsGetPageObjectIDsResponseBody, \
     ObjectsSearchRequestBody, ObjectsSearchResponseBody, \
     ObjectsUpdateTagsRequestBody, ObjectsUpdateTagsResponseBody, \
     ObjectsViewCompositeHierarchyElementsRequestBody, \
     ObjectsDeleteRequestBody, ObjectsDeleteResponseBody
+from backend_main.types.domains.objects_tags import ObjectIDAndAddedTags, ObjectIDAndRemovedTagIDs
 
 
 async def add(request):
@@ -50,13 +59,13 @@ async def add(request):
     await request.config_dict[app_start_transaction_key](request)
     
     # Insert general object data
-    record = (await add_objects(request, [data["object"]]))[0]
+    record = (await add_objects_untyped(request, [data["object"]]))[0]
     response_data = row_proxy_to_dict(record)
     object_id = record["object_id"]
     
     # Call handler to add object-specific data
     obj_ids_and_data = [{"object_id": object_id, "object_data": object_data}]
-    returned_object_data = await add_objects_data(request, object_type, obj_ids_and_data)
+    returned_object_data = await add_objects_data_untyped(request, object_type, obj_ids_and_data)
     if returned_object_data != None:
         response_data["object_data"] = returned_object_data
 
@@ -87,13 +96,13 @@ async def update(request):
 
     # Update general object data
     object_id = data["object"]["object_id"]
-    response_data = row_proxy_to_dict((await update_objects(request, [data["object"]]))[0])
+    response_data = row_proxy_to_dict((await update_objects_untyped(request, [data["object"]]))[0])
 
     # Validate object_data property and call handler to update object-specific data
     object_type = response_data["object_type"]
     validate_object_data(object_type, object_data)
     obj_ids_and_data = [{"object_id": object_id, "object_data": object_data}]
-    returned_object_data = await update_objects_data(request, object_type, obj_ids_and_data)
+    returned_object_data = await update_objects_data_untyped(request, object_type, obj_ids_and_data)
     if returned_object_data != None:
         response_data["object_data"] = returned_object_data
     
@@ -108,6 +117,56 @@ async def update(request):
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
     request[request_log_event_key]("INFO", "route_handler", f"Finished updating object.", details=f"object_id = {object_id}.")
     return {"object": response_data}
+
+
+async def bulk_upsert(request: Request) -> ObjectsBulkUpsertResponseBody:
+    # Validate request data
+    data = ObjectsBulkUpsertRequestBody.model_validate(await request.json())
+    request_time = request[request_time_key]
+
+    # Start a transaction
+    await request.config_dict[app_start_transaction_key](request)
+
+    # Add new objects' attributes
+    upserted_objects_attributes = [UpsertedObjectAttributes.model_validate({
+        **o.model_dump(), "created_at": request_time, "modified_at": request_time,
+    }) for o in data.objects]
+
+    new_objects_attributes = [o for o in upserted_objects_attributes if o.object_id <= 0]
+    objects_ids_map = await add_objects(request, new_objects_attributes)
+
+    # Update existing objects' attributes
+    existing_objects_attributes = [o for o in upserted_objects_attributes if o.object_id > 0]
+    await update_objects(request, existing_objects_attributes)
+
+    # Map IDs of new objects & subobjects
+    mapped_objects = map_objects_ids(data.objects, objects_ids_map)
+
+    # Update objects tags
+    objects_ids_and_added_tags = [ObjectIDAndAddedTags.model_validate(o, from_attributes=True) for o in mapped_objects]
+    await bulk_add_objects_tags(request, objects_ids_and_added_tags)
+    objects_ids_and_removed_tag_ids = [ObjectIDAndRemovedTagIDs.model_validate(o, from_attributes=True) for o in mapped_objects]
+    await bulk_delete_objects_tags(request, objects_ids_and_removed_tag_ids)
+
+    # Update objects data
+    objects_id_type_and_data = [objectIDTypeDataAdapter.validate_python(o, from_attributes=True) for o in mapped_objects]
+    await upsert_objects_data(request, objects_id_type_and_data)    
+
+    # Delete subobjects marked as fully deleted
+    # (NOTE: this is done after composite object data is updated, because
+    # domain function does not check, if parent IDs belong to the upserted objects
+    # (which should be excluded from the check))
+    await fully_delete_subobjects(request, data.fully_deleted_subobject_ids)
+
+    # View upserts objects attributes, tags & data and return them
+    object_ids = list(objects_ids_map.map.values())
+    objects_attributes_and_tags = await view_objects_attributes_and_tags(request, object_ids)
+    objects_data = await view_objects_data(request, object_ids)
+    request[request_log_event_key]("INFO", "route_handler", f"Finished upserting objects.", details=f"object_ids = {object_ids}.")
+    return ObjectsViewResponseBody(
+        objects_attributes_and_tags=objects_attributes_and_tags,
+        objects_data=objects_data
+    )
 
 
 async def update_tags(request: Request) -> ObjectsUpdateTagsResponseBody:
@@ -212,6 +271,7 @@ def get_subapp():
     app.add_routes([
                     web.post("/add", add, name="add"),
                     web.put("/update", update, name="update"),
+                    web.post("/bulk_upsert", bulk_upsert, name="bulk_upsert"),
                     web.put("/update_tags", update_tags, name="update_tags"),
                     web.post("/view", view, name="view"),
                     web.post("/get_page_object_ids", get_page_object_ids, name="get_page_object_ids"),
