@@ -20,6 +20,8 @@ from backend_main.types.domains.objects.attributes import UpsertedObjectAttribut
 
 
 async def add_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> ObjectsIDsMap:
+    if len(objects_attributes) == 0: return ObjectsIDsMap(map={})
+
     # Check if `owner_id` values can be set by request issuer
     authorize_object_owner_modification(request, objects_attributes)
 
@@ -35,6 +37,8 @@ async def add_objects(request: Request, objects_attributes: list[UpsertedObjectA
 
 
 async def update_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> None:
+    if len(objects_attributes) == 0: return
+
     # Check if user can update objects
     object_ids = [o.object_id for o in objects_attributes]
     await authorize_objects_modification(request, object_ids)
@@ -46,15 +50,24 @@ async def update_objects(request: Request, objects_attributes: list[UpsertedObje
     # Check if `owner_id` values can be set by request issuer
     authorize_object_owner_modification(request, objects_attributes)
 
-    try:
-        # Update objects and trigger searchables update
-        await _update_objects(request, objects_attributes)
-        add_searchable_updates_for_objects(request, [o.object_id for o in objects_attributes])
+    # Ensure that object IDs exist
+    object_id_type_map = {o.object_id: o.object_type for o in await view_objects_attributes_and_tags(request, object_ids)}
+    non_existing_ids = tuple(i for i in object_ids if i not in object_id_type_map)
+    if len(non_existing_ids) > 0:
+        msg = "Cannot update non-existing objects"
+        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details=f"object_ids = {non_existing_ids}")
+        raise web.HTTPBadRequest(text=error_json(f"{msg}: {non_existing_ids}."), content_type="application/json")
 
-    except ObjectsNotFound as e:
-        # Handle attempts to update non-existing objects
-        request[request_log_event_key]("WARNING", "domain", str(e))
-        raise web.HTTPBadRequest(text=error_json(str(e)), content_type="application/json")
+    # Ensure that object types are not being changed
+    objects_with_changed_types = tuple(o.object_id for o in objects_attributes if object_id_type_map[o.object_id] != o.object_type)
+    if len(objects_with_changed_types) > 0:
+        msg = "Cannot change type of objects."
+        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details=f"object_ids = {objects_with_changed_types}")
+        raise web.HTTPBadRequest(text=error_json(f"{msg}: {objects_with_changed_types}."), content_type="application/json")
+
+    # Update objects and trigger searchables update
+    await _update_objects(request, objects_attributes)
+    add_searchable_updates_for_objects(request, [o.object_id for o in objects_attributes])
 
 
 async def update_modified_at(request: Request, object_ids: list[int], modified_at: datetime) -> datetime:

@@ -154,7 +154,6 @@ def insert_and_cleanup_data(config, db_cursor):
 
     # Reset database after a test
     for table in get_tables()[0].__dict__:
-        print(f"Cleaning {table}")
         db_cursor.execute(f"TRUNCATE {table} RESTART IDENTITY CASCADE")
     
 

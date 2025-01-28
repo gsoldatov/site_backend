@@ -1,9 +1,9 @@
 from datetime import datetime
 from math import inf
-from typing import Annotated, Iterable, cast
+from typing import Annotated, Iterable, cast, Any
 from typing_extensions import Self
 
-from pydantic import BaseModel, Field, PlainSerializer, model_validator
+from pydantic import BaseModel, Field, PlainValidator, PlainSerializer, model_validator
 
 
 # Numeric
@@ -53,9 +53,20 @@ class HiddenString:
 
 
 # Datetime
+def validate_datetime(value: Any) -> datetime:
+    """
+    Custom validator for the `Datetime` type, which allows ISO-formatted strings.
+    """
+    if isinstance(value, datetime): return value
+    elif isinstance(value, str): return datetime.fromisoformat(value)
+    else: raise ValueError("Input should be a valid datetime")
+
+
 Datetime = Annotated[
     datetime,
-    Field(strict=False),    # allow converting from strings
+    # Field(strict=False),    # allow converting from strings 
+    #                         # (NOTE: this does not work in type unions with strict mode enabled)
+    PlainValidator(validate_datetime),
     PlainSerializer(lambda x: x.isoformat(), when_used="always")
 ]
 """

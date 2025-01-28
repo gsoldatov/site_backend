@@ -1,6 +1,67 @@
-from typing import Literal
+from tests.data_generators.objects import get_test_object
 
+from typing import Literal, Any
+from datetime import datetime
 from backend_main.types.domains.objects.attributes import ObjectType
+
+
+def get_bulk_upsert_request_body(
+        objects: list[dict[str, Any]] | None = None,
+        fully_deleted_subobject_ids: list[int] | None = None
+    ):
+    """
+    Returns /objects/bulk_upsert request body with default or custom values.
+
+    Defaults:
+    - `objects` => a single new link with object ID = 0;
+    - `fully_deleted_subobject_ids` => empty list;
+    """
+    return {
+        "objects": objects if objects is not None else [get_bulk_upsert_object()],
+        "fully_deleted_subobject_ids": fully_deleted_subobject_ids if fully_deleted_subobject_ids is not None else []
+    }
+
+
+def get_bulk_upsert_object(
+        object_id: int = 0,
+        object_type: ObjectType = "link",
+        object_name: str | None = None,
+        object_description: str | None = None,
+        is_published: bool | None = None,
+        display_in_feed: bool | None = None,
+        feed_timestamp: datetime | None = None,
+        show_description: bool | None = None,
+        owner_id: int | None = None,
+        added_tags: list[int | str] | None = None,
+        removed_tag_ids: list[int] | None = None,
+        object_data: dict[str, Any] | None = None
+    ):
+    """
+    Generates a sing upserted object for /objects/bulk_upsert request body
+    with default of custom attributes, tags & data.
+    """
+    result = {
+        **get_test_object(
+            object_id=object_id,
+            object_type=object_type,
+            object_name=object_name,
+            object_description=object_description,
+            is_published=is_published,
+            display_in_feed=display_in_feed,
+            feed_timestamp=feed_timestamp,
+            show_description=show_description,
+            owner_id=owner_id or 1,     # owner_id is required for this route            
+            object_data=object_data,
+            pop_keys=["created_at", "modified_at"]
+        ),
+        "added_tags": added_tags if added_tags is not None else [],
+        "removed_tag_ids": removed_tag_ids if removed_tag_ids is not None else []
+    }
+
+    # Remove `deleted_subobjects` from composite object data
+    result["object_data"].pop("deleted_subobjects", None)
+    
+    return result
 
 
 def get_update_tags_request_body(

@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import array_agg
 
 from backend_main.auth.query_clauses import get_objects_auth_filter_clause
 
-from backend_main.util.exceptions import UserNotFound, ObjectsNotFound
+from backend_main.util.exceptions import UserNotFound
 
 from collections.abc import Collection
 from datetime import datetime
@@ -22,6 +22,8 @@ async def add_objects(request: Request, objects_attributes: list[UpsertedObjectA
     Inserts provided `objects_attributes` into the database as new objects' attributes (with ID auto generation)
     and returns mapping between provided and generated object IDs.
     """
+    if len(objects_attributes) == 0: return ObjectsIDsMap(map={})
+
     # Sort new objects by their IDs to create a correct old to new ID mapping.
     # Identity should generate new IDs for multiple rows in ascending order for the order they were inserted in:
     # https://stackoverflow.com/questions/50809120/postgres-insert-into-with-select-ordering
@@ -50,22 +52,21 @@ async def add_objects(request: Request, objects_attributes: list[UpsertedObjectA
 async def update_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> None:
     """
     Updates provided existing `objects_attributes` in the database.
-    Raises if any object does not exist.
+    
+    NOTE: checks for object existince and type change are done in domain function.
     """
+    if len(objects_attributes) == 0: return
+
     objects = request.config_dict[app_tables_key].objects
     
     for oa in objects_attributes:
-        values = oa.model_dump()
+        values = oa.model_dump(exclude={"created_at"})
     
-        result = await request[request_connection_key].execute(
+        await request[request_connection_key].execute(
             objects.update()
             .where(objects.c.object_id == oa.object_id)
             .values(values)
-            .returning(objects.c.object_id)
         )
-        
-        if await result.fetchone() is None:
-            raise ObjectsNotFound(f"Cannot update non-existing object {oa.object_id}.")
 
 
 async def update_modified_at(request: Request, object_ids: list[int], modified_at: datetime) -> datetime:

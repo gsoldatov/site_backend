@@ -75,7 +75,6 @@ async def test_update_correct_object_with_subobject_full_and_not_full_delete(cli
         pop_keys=["object_type", "created_at", "modified_at"]
     )
     resp = await cli.put("/objects/update", json={"object": composite}, headers=headers_admin_token)
-    print(await resp.json())
     assert resp.status == 200
 
     # Check database

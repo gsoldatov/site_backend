@@ -1,8 +1,8 @@
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
 
-from tests.request_generators.objects import get_objects_view_request_body, get_objects_delete_body, \
-    get_page_object_ids_request_body, get_objects_search_request_body, get_update_tags_request_body
+from tests.request_generators.objects import get_bulk_upsert_request_body, get_objects_view_request_body, \
+    get_objects_delete_body, get_page_object_ids_request_body, get_objects_search_request_body, get_update_tags_request_body
 from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body, \
     get_page_tag_ids_request_body, get_tags_search_request_body
 
@@ -20,7 +20,6 @@ class RouteHandlerInfo:
             body: dict[Any, Any],
             headers: dict[Any, Any] | None = headers_admin_token,
             uses_transaction: bool = False,
-            expects_anonymous: bool = False,
             returns_json: bool = True
         ):
         self.path = path
@@ -69,10 +68,16 @@ def get_route_handler_info_map(config):
             "/objects/add", "POST", {"object": get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])},
             uses_transaction=True
         ),
+
         RouteHandlerInfo(
             "/objects/update", "PUT", {"object": get_test_object(
                 100, object_type="link", pop_keys=["created_at", "modified_at", "object_type"]
             )}, uses_transaction=True),
+
+        RouteHandlerInfo(
+            "/objects/bulk_upsert", "POST" , get_bulk_upsert_request_body(), uses_transaction=True
+        ),
+
         RouteHandlerInfo("/objects/update_tags", "PUT", get_update_tags_request_body(
             object_ids=[101], added_tags=[101], removed_tag_ids=[]
             ), uses_transaction=True),
