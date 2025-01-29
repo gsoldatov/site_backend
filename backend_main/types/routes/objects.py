@@ -20,12 +20,23 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_objects(self) -> Self:
+        self._ensure_unique_object_ids()
+        self._ensure_shared_tags_limits()
+        return self
+    
+    def _ensure_unique_object_ids(self) -> None:
         """ Check if object IDs are unique."""
         c = Counter((o.object_id for o in self.objects))
         non_unique_object_ids = [i for i in c if c[i] > 1]
         if len(non_unique_object_ids) > 0:
             raise ValueError(f"Received non-unique object IDs {non_unique_object_ids}.")
-        return self
+    
+    def _ensure_shared_tags_limits(self) -> None:
+        ao_max, roi_max = 1000, 1000    # Shared limits for tag arrays
+        if sum(len(o.added_tags) for o in self.objects) > ao_max:
+            raise ValueError(f"Added tags can contain a maximum of {ao_max} for all objects combined.")
+        if sum(len(o.removed_tag_ids) for o in self.objects) > roi_max:
+            raise ValueError(f"Removed tag IDs can contain a maximum of {roi_max} for all objects combined.")
 
 
 # NOTE: same schema is used for /objects/view route response
