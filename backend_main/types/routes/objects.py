@@ -1,4 +1,5 @@
 from collections import Counter
+from itertools import chain
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from typing_extensions import Self
@@ -21,6 +22,7 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
     @model_validator(mode="after")
     def validate_unique_objects(self) -> Self:
         self._ensure_unique_object_ids()
+        self._ensure_new_subobjects_have_objects()
         self._ensure_shared_tags_limits()
         return self
     
@@ -30,6 +32,18 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
         non_unique_object_ids = [i for i in c if c[i] > 1]
         if len(non_unique_object_ids) > 0:
             raise ValueError(f"Received non-unique object IDs {non_unique_object_ids}.")
+    
+    def _ensure_new_subobjects_have_objects(self) -> None:
+        """ Check if every new subobject (id <= 0) is passed as an object as well. """
+        new_subobject_ids = set(
+            so.subobject_id for so in
+                chain(*(o.object_data.subobjects for o in self.objects if o.object_type == "composite"))
+            if so.subobject_id <= 0
+        )
+        new_object_ids = set(o.object_id for o in self.objects if o.object_id <= 0)
+        subobject_ids_without_objects = new_subobject_ids.difference(new_object_ids)
+        if len(subobject_ids_without_objects) > 0:
+            raise ValueError(f"Composite subobjects {subobject_ids_without_objects} must be passed as separate objects.")
     
     def _ensure_shared_tags_limits(self) -> None:
         ao_max, roi_max = 1000, 1000    # Shared limits for tag arrays

@@ -83,7 +83,7 @@ def get_test_object_data(object_id, object_type = "link", composite_subobject_ob
             # because to-do lists tests depend on this order when comparing added/updated data
             items=[
                 get_to_do_list_item_data(
-                    item_number=x + 1,
+                    item_number=x,
                     item_state=_item_states[x % 4],
                     item_text=f"To-do list #{object_id}, item #{x+1}",
                     commentary=f"Commentary for to-do list #{object_id}, item #{x+1}",

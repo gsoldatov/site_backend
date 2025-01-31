@@ -54,12 +54,23 @@ class ToDoList(BaseModel):
 
     @model_validator(mode="after")
     def validate_to_do_list(self) -> Self:
-        # Check if item numbers are unique
+        self._ensure_unique_item_numbers()
+        self._normalize_item_numbers()
+        return self
+    
+    def _ensure_unique_item_numbers(self) -> None:
+        """ Check if item numbers are unique. """
         c = Counter((i.item_number for i in self.items))
         non_unique_item_numbers = [n for n in c if c[n] > 1]
         if len(non_unique_item_numbers) > 0:
             raise ValueError(f"Received non-unique to-do list item numbers {non_unique_item_numbers}.")
-        return self
+    
+    def _normalize_item_numbers(self) -> None:
+        """ Normalizes item numbers to a sequential zero-based indexing. """
+        item_numbers = set(i.item_number for i in self.items)
+        item_numbers_map = {n: i for i, n in enumerate(sorted(item_numbers))}
+        for i in self.items:
+            i.item_number = item_numbers_map[i.item_number]
 
 
 class CompositeSubobject(BaseModel):

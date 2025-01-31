@@ -39,6 +39,8 @@ async def upsert_composite(request: Request, data: list[CompositeIDTypeData]) ->
     )
 
     # Insert new data in items' table
+    data = [d for d in data if len(d.object_data.subobjects) > 0]   # filter composite without subobjects
+    if len(data) == 0: return
     items_values = [{"object_id": o.object_id, **i.model_dump()} for o in data for i in o.object_data.subobjects]
 
     await request[request_connection_key].execute(
