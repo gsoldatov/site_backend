@@ -156,7 +156,12 @@ async def bulk_upsert(request: Request) -> ObjectsBulkUpsertResponseBody:
     # (NOTE: this is done after composite object data is updated, because
     # domain function does not check, if parent IDs belong to the upserted objects
     # (which should be excluded from the check))
-    await fully_delete_subobjects(request, data.fully_deleted_subobject_ids)
+    #
+    # Object IDs, added during the request, are filtered from full deletion
+    fully_deleted_subobject_ids = list(
+        set(data.fully_deleted_subobject_ids).difference(set(objects_ids_map.map.values()))
+    )
+    await fully_delete_subobjects(request, fully_deleted_subobject_ids)
 
     # View upserts objects attributes, tags & data and return them
     object_ids = list(o.object_id for o in mapped_objects)

@@ -166,7 +166,7 @@ async def view_existing_object_ids(
     and have provided `object_type`.
     """
     # Handle empty `object_ids`
-    if len(object_ids) == 0: return []
+    if len(object_ids) == 0: return set()
 
     # Objects filter for non 'admin` user level
     objects_auth_filter_clause = get_objects_auth_filter_clause(request, object_ids=object_ids)
