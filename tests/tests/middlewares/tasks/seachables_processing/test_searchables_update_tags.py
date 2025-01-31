@@ -1,9 +1,9 @@
 """
-Tests for automatic tag processing after route handler execution.
+Tests for processing of searchable data from added or updated tags.
 """
 if __name__ == "__main__":
     import os, sys
-    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 5)))
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
 from datetime import datetime
@@ -17,12 +17,13 @@ from tests.db_operations.objects import insert_objects, insert_links
 from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 
+from tests.request_generators.objects import get_bulk_upsert_request_body, get_bulk_upsert_object
 from tests.request_generators.tags import get_tags_add_request_body, get_tags_update_request_body
 
 from tests.util import wait_for
 
 
-async def test_add_tag(cli_with_search, db_cursor):
+async def test_tags_add(cli_with_search, db_cursor):
     # Add 2 tags
     for w in ("first", "second"):
         body = get_tags_add_request_body(tag_name=f"{w} name", tag_description=f"{w} descr")
@@ -48,7 +49,7 @@ async def test_add_tag(cli_with_search, db_cursor):
             assert resp_json["items"] == [{"item_id": tag_id, "item_type": "tag"}]
 
 
-async def test_update_tag(cli_with_search, db_cursor):
+async def test_tags_update(cli_with_search, db_cursor):
     # Insert mock values
     tag_list = [get_test_tag(1), get_test_tag(2)]
     insert_tags(tag_list, db_cursor)
@@ -88,7 +89,7 @@ async def test_update_tag(cli_with_search, db_cursor):
             assert resp_json["items"] == [{"item_id": tag_id, "item_type": "tag"}]
 
 
-async def test_add_object_with_new_tags(cli_with_search, db_cursor):
+async def test_objects_add(cli_with_search, db_cursor):
     # Add an object with new tags
     link = get_test_object(2, pop_keys=["object_id", "created_at", "modified_at"])
     link["added_tags"] = ["first tag", "second tag"]
@@ -118,7 +119,7 @@ async def test_add_object_with_new_tags(cli_with_search, db_cursor):
         assert resp_json["items"][0]["item_type"] == "tag"
 
 
-async def test_update_object_with_new_tags(cli_with_search, db_cursor):
+async def test_objects_update(cli_with_search, db_cursor):
     # Insert an object
     insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
@@ -127,6 +128,42 @@ async def test_update_object_with_new_tags(cli_with_search, db_cursor):
     link = get_test_object(1, object_name="updated object name", pop_keys=["object_type", "created_at", "modified_at"])
     link["added_tags"] = ["first tag", "second tag"]
     resp = await cli_with_search.put("/objects/update", json={"object": link}, headers=headers_admin_token)
+    assert resp.status == 200
+
+    # Wait for tag searchables to be added
+    def fn():
+        db_cursor.execute("SELECT COUNT(*) FROM searchables WHERE NOT tag_id ISNULL")
+        return db_cursor.fetchone()[0] == 2
+
+    await wait_for(fn, msg="Tag searchables were not processed in time.")
+
+    # Check if tags can are found by their names
+    for i, w in enumerate(("first", "second")):
+        tag_id = i + 1
+        query_text = f"{w} tag"
+        body = {"query": {"query_text": query_text, "page": 1, "items_per_page": 10}}
+        resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
+        assert resp.status == 200
+        resp_json = await resp.json()
+
+        # NOTE: id order is not guaranteed to match the order of new tags in request body
+        # due to deduplication
+        # assert resp_json["items"] == [{"item_id": tag_id, "item_type": "tag"}]
+        assert len(resp_json["items"]) == 1
+        assert resp_json["items"][0]["item_type"] == "tag"
+
+
+async def test_objects_bulk_upsert(cli_with_search, db_cursor):
+    # Insert an object
+    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_links([get_test_object_data(1)], db_cursor)
+
+    # Upsert a new & update an existing object and add string tags
+    body = get_bulk_upsert_request_body(objects=[
+        get_bulk_upsert_object(object_id=0, added_tags=["first tag"]),
+        get_bulk_upsert_object(object_id=1, added_tags=["second tag"])
+    ])
+    resp = await cli_with_search.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
     # Wait for tag searchables to be added

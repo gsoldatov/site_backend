@@ -1,9 +1,9 @@
 """
-Tests for automatic object processing after route handler execution.
+Tests for processing of searchable data from objects passed to /objects/add & /objects/update routes.
 """
 if __name__ == "__main__":
     import os, sys
-    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 5)))
+    sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests    
 
 from datetime import datetime
@@ -34,7 +34,7 @@ async def test_add_objects_attribute_search(cli_with_search, db_cursor):
 
     await wait_for(fn, msg="Object searchables were not processed in time.")
 
-    # Check if tags can are found by their names and descriptions
+    # Check if objects can be found by their names and descriptions
     for f in ("name", "descr"):
         for i, w in enumerate(("first", "second")):
             object_id = i + 1
