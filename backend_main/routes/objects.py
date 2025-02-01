@@ -168,9 +168,10 @@ async def bulk_upsert(request: Request) -> ObjectsBulkUpsertResponseBody:
     objects_attributes_and_tags = await view_objects_attributes_and_tags(request, object_ids)
     objects_data = await view_objects_data(request, object_ids)
     request[request_log_event_key]("INFO", "route_handler", f"Finished upserting objects.", details=f"object_ids = {object_ids}.")
-    return ObjectsViewResponseBody(
+    return ObjectsBulkUpsertResponseBody(
         objects_attributes_and_tags=objects_attributes_and_tags,
-        objects_data=objects_data
+        objects_data=objects_data,
+        new_object_ids_map=objects_ids_map.map
     )
 
 

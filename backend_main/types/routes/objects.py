@@ -70,12 +70,13 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
             raise ValueError(f"Composite subobjects {fd_subobject_ids} cannot be marked as fully deleted.")
 
 
-# NOTE: same schema is used for /objects/view route response
 class ObjectsBulkUpsertResponseBody(BaseModel):
+    """ NOTE: this schema partially matches /objects/view response. """
     model_config = ConfigDict(extra="forbid", strict=True)
 
     objects_attributes_and_tags: list[ObjectAttributesAndTags]
     objects_data: list[ObjectIDTypeData]
+    new_object_ids_map: dict[int, int]
 
 
 # /objects/update_tags
@@ -107,8 +108,12 @@ class ObjectsViewRequestBody(BaseModel):
         return self
 
 
-class ObjectsViewResponseBody(ObjectsBulkUpsertResponseBody):
-    pass
+class ObjectsViewResponseBody(BaseModel):
+    """ NOTE: this schema partially matches /objects/bulk_upsert response. """
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    objects_attributes_and_tags: list[ObjectAttributesAndTags]
+    objects_data: list[ObjectIDTypeData]
 
 
 # /objects/get_page_object_ids
