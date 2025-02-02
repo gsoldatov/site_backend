@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from datetime import datetime, timezone, timedelta
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 from tests.db_operations.objects import insert_objects
 from tests.request_generators.objects import get_bulk_upsert_request_body, get_bulk_upsert_object
@@ -55,7 +55,7 @@ async def test_add_new_objects(cli, db_cursor):
 async def test_update_an_object(cli, db_cursor):
     # Insert an object into the database
     feed_timestamp = datetime.now(tz=timezone.utc) - timedelta(days=1)
-    insert_objects([get_test_object(1, feed_timestamp=feed_timestamp, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1, feed_timestamp=feed_timestamp)], db_cursor, generate_ids=True)
 
     # Update an object
     body = get_bulk_upsert_request_body(objects=[get_bulk_upsert_object(object_id=1, feed_timestamp=None)])

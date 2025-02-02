@@ -7,7 +7,7 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 
-from tests.data_generators.objects import get_test_object, get_objects_attributes_list, get_test_object_data, \
+from tests.data_generators.objects import get_object_attrs, get_objects_attributes_list, get_test_object_data, \
     get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 
@@ -27,10 +27,8 @@ async def test_view_non_existing_objects_data(cli):
 
 async def test_response_objects_data(cli, db_cursor):
     objects = [
-        get_test_object(1, object_type="composite", owner_id=1, pop_keys=["object_data"]),
-        get_test_object(2, owner_id=1, pop_keys=["object_data"]),
-        get_test_object(3, owner_id=1, pop_keys=["object_data"]),
-        get_test_object(4, owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(1, object_type="composite"),
+        get_object_attrs(2), get_object_attrs(3), get_object_attrs(4)
     ]
     insert_objects(objects, db_cursor)
 
@@ -79,8 +77,8 @@ async def test_view_non_published_composite_objects(cli, db_cursor):
 
 async def test_view_composite_objects_without_subobjects(cli, db_cursor):
     # Insert 2 objects (link & composite) + link data + composite properties
-    obj_list = [get_test_object(10, owner_id=1, object_type="link", pop_keys=["object_data"]),
-                get_test_object(11, owner_id=1, object_type="composite", pop_keys=["object_data"])]
+    obj_list = [get_object_attrs(10, object_type="link"),
+                get_object_attrs(11, object_type="composite")]
     insert_objects(obj_list, db_cursor)
 
     link_data = [get_test_object_data(10, object_type="link")]

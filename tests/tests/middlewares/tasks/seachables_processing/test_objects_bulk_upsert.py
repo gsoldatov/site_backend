@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from datetime import datetime
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, get_link_data, \
+from tests.data_generators.objects import get_object_attrs, get_test_object_data, get_link_data, \
     get_markdown_data, get_to_do_list_data, get_to_do_list_item_data
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import headers_admin_token
@@ -24,8 +24,7 @@ from tests.util import wait_for
 async def test_upserted_objects_attributes(cli_with_search, db_cursor):
     # Insert existing objects and searchables
     insert_objects([
-        get_test_object(i, object_name=f"old name {i}", object_description=f"old description {i}",
-                        owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(i, object_name=f"old name {i}", object_description=f"old description {i}")
         for i in range(1, 3)
     ], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(i) for i in range(1, 3)], db_cursor)
@@ -74,7 +73,7 @@ async def test_upserted_objects_attributes(cli_with_search, db_cursor):
 
 async def test_upserted_links(cli_with_search, db_cursor):
     # Insert existing objects and searchables
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"])
+    insert_objects([get_object_attrs(i)
         for i in range(1, 3)], db_cursor, generate_ids=True)
     insert_links([{
         "object_id": i,
@@ -121,7 +120,7 @@ async def test_upserted_links(cli_with_search, db_cursor):
 
 async def test_upserted_markdown(cli_with_search, db_cursor):
     # Insert existing objects and searchables
-    insert_objects([get_test_object(i, object_type="markdown", owner_id=1, pop_keys=["object_data"])
+    insert_objects([get_object_attrs(i, object_type="markdown")
         for i in range(1, 3)], db_cursor, generate_ids=True)
     insert_markdown([{
         "object_id": i,
@@ -170,7 +169,7 @@ async def test_upserted_markdown(cli_with_search, db_cursor):
 
 async def test_upserted_to_do_lists(cli_with_search, db_cursor):
     # Insert existing objects and searchables
-    insert_objects([get_test_object(i, object_type="to_do_list", owner_id=1, pop_keys=["object_data"])
+    insert_objects([get_object_attrs(i, object_type="to_do_list")
         for i in range(1, 3)], db_cursor, generate_ids=True)
     insert_to_do_lists([{
         "object_id": i,

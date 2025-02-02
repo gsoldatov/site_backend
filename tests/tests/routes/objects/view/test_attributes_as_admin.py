@@ -5,10 +5,11 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 
-from tests.data_sets.objects import insert_data_for_view_tests_non_published_objects, insert_data_for_view_tests_objects_with_non_published_tags
+from tests.data_sets.objects import insert_data_for_view_tests_non_published_objects, \
+    insert_data_for_view_tests_objects_with_non_published_tags
 
 from tests.db_operations.objects import insert_objects
 
@@ -59,9 +60,9 @@ async def test_view_non_existing_objects_attributes(cli):
 async def test_response_objects_attributes(cli, db_cursor):
     now = datetime.now(tz=timezone.utc)
     objects_map = {
-        1: get_test_object(1, created_at=now - timedelta(days=1), owner_id=1, pop_keys=["object_data"]),
-        2: get_test_object(2, object_type="markdown", created_at=now - timedelta(days=2),
-                           feed_timestamp=now - timedelta(days=5), owner_id=1, pop_keys=["object_data"])
+        1: get_object_attrs(1, created_at=now - timedelta(days=1)),
+        2: get_object_attrs(2, object_type="markdown", created_at=now - timedelta(days=2),
+                           feed_timestamp=now - timedelta(days=5))
     }
     insert_objects(objects_map.values(), db_cursor)
 

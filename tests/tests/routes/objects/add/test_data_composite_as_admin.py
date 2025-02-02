@@ -9,7 +9,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, \
+from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data, \
     get_composite_data, get_composite_subobject_data, get_deleted_subobject, \
     get_link_data, get_markdown_data, get_to_do_list_data, get_to_do_list_item_data
 from tests.data_generators.sessions import headers_admin_token
@@ -49,7 +49,7 @@ async def test_add_incorrect_top_level_data(cli):
 async def test_add_incorrect_subobject_attributes(cli, db_cursor, subobject_id):
     # Insert existing subobject
     if subobject_id > 0:
-        insert_objects([get_test_object(subobject_id, owner_id=1, pop_keys=["object_data"])], db_cursor)
+        insert_objects([get_object_attrs(subobject_id)], db_cursor)
         insert_links([get_test_object_data(subobject_id)], db_cursor)
     
     # Missing attributes (no subobject update)
@@ -110,7 +110,7 @@ async def test_add_incorrect_subobject_attributes(cli, db_cursor, subobject_id):
 async def test_add_incorrect_subobject_object_data_link(cli, db_cursor, subobject_id):
     # Insert existing subobject
     if subobject_id > 0:
-        insert_objects([get_test_object(subobject_id, owner_id=1, pop_keys=["object_data"])], db_cursor)
+        insert_objects([get_object_attrs(subobject_id)], db_cursor)
         insert_links([get_test_object_data(subobject_id)], db_cursor)
     
     # Missing subobject object_data attributes
@@ -344,7 +344,7 @@ async def test_add_validation_same_id_in_subobjects_and_deleted_subobjects(cli):
 async def test_add_subobject_with_a_non_existing_owner_id(cli, db_cursor, subobject_id):
     # Insert existing subobject
     if subobject_id > 0:
-        insert_objects([get_test_object(subobject_id, owner_id=1, pop_keys=["object_data"])], db_cursor)
+        insert_objects([get_object_attrs(subobject_id)], db_cursor)
         insert_links([get_test_object_data(subobject_id)], db_cursor)
     
     composite = get_test_object(
@@ -556,7 +556,7 @@ async def test_add_correct_object_update_existing_subobjects(cli, db_cursor):
 async def test_add_correct_subobject_with_a_specified_owner_id(cli, db_cursor, owner_id, subobject_id):
     # Insert existing subobject
     if subobject_id > 0:
-        insert_objects([get_test_object(subobject_id, owner_id=1, pop_keys=["object_data"])], db_cursor)
+        insert_objects([get_object_attrs(subobject_id)], db_cursor)
         insert_links([get_test_object_data(subobject_id)], db_cursor)
     # Insert another user
     if owner_id == 2:

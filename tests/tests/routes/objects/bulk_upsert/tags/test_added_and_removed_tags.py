@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 7)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
@@ -19,7 +19,7 @@ from tests.request_generators.objects import get_bulk_upsert_request_body, get_b
 
 async def test_add_and_remove_the_same_tag(cli, db_cursor):#
     # Insert an object and tags
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
     insert_objects_tags([1], [1, 2], db_cursor)
@@ -43,9 +43,7 @@ async def test_add_and_remove_the_same_tag(cli, db_cursor):#
 
 async def test_add_and_remove_tags(cli, db_cursor):
     # Insert objects and their tags
-    insert_objects([
-        get_test_object(i, owner_id=1, pop_keys=["object_data"])
-    for i in range(1, 3)], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(i) for i in range(1, 3)], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(i) for i in range(1, 3)], db_cursor)
     insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
     insert_objects_tags([1, 2], [1, 2], db_cursor)

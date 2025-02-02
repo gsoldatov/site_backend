@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from datetime import datetime
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.tags import get_test_tag
@@ -121,7 +121,7 @@ async def test_objects_add(cli_with_search, db_cursor):
 
 async def test_objects_update(cli_with_search, db_cursor):
     # Insert an object
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
 
     # Add an object with new tags
@@ -155,7 +155,7 @@ async def test_objects_update(cli_with_search, db_cursor):
 
 async def test_objects_bulk_upsert(cli_with_search, db_cursor):
     # Insert an object
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(1)], db_cursor)
 
     # Upsert a new & update an existing object and add string tags

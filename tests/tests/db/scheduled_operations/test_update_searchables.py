@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
 from backend_main.db_operations.scheduled.update_searchables import main as update_searchables
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.searchables import get_test_searchable
 
 from tests.data_sets.searchables import insert_mock_data_for_searchable_update
@@ -21,7 +21,7 @@ from tests.db_operations.searchables import insert_searchables
 
 def test_disabled_searchables_updates(db_cursor, config, app):
     # Insert mock data
-    obj_list=[get_test_object(1, owner_id=1, pop_keys=["object_data"])]
+    obj_list=[get_object_attrs(1)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=1, text_a="old", modified_at=datetime(2001, 1, 1, tzinfo=timezone.utc))]

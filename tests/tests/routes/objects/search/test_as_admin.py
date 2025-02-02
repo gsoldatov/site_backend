@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_objects_attributes_list, get_test_object
+from tests.data_generators.objects import get_objects_attributes_list, get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.objects import insert_data_for_view_tests_objects_with_non_published_tags
@@ -71,9 +71,10 @@ async def test_correct_search_non_published_objects(cli, db_cursor):
     assert data["object_ids"] == [1, 3]    # a0, c0
 
     # Correct request - check if query case is ignored
-    insert_objects([get_test_object(object_id=11, object_type="link", created_at=obj_list[0]["created_at"], modified_at=obj_list[0]["modified_at"], 
-                    object_name="A", object_description="", is_published=False, show_description=True, owner_id=1)]
-                , db_cursor)
+    insert_objects([get_object_attrs(
+        object_id=11, object_type="link", created_at=obj_list[0]["created_at"], modified_at=obj_list[0]["modified_at"],
+        object_name="A", object_description="", is_published=False, show_description=True
+    )], db_cursor)
     body = get_objects_search_request_body(query_text="A")
     resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
     assert resp.status == 200

@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 7)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, \
+from tests.data_generators.objects import get_object_attrs, get_test_object_data, \
     get_to_do_list_data, get_to_do_list_item_data
 from tests.data_generators.sessions import headers_admin_token
 
@@ -103,7 +103,7 @@ async def test_non_unique_item_number(cli, db_cursor):
 async def test_add_a_new_and_update_an_existing_to_do_list(cli, db_cursor):
     # Insert existing to-do list
     insert_objects([
-        get_test_object(i, object_type="to_do_list", owner_id=1, pop_keys=["object_data"]) for i in range(1, 3)
+        get_object_attrs(i, object_type="to_do_list") for i in range(1, 3)
     ], db_cursor, generate_ids=True)
     inserted_to_do_lists = [get_test_object_data(i, object_type="to_do_list") for i in range(1, 3)]
     unchanged_existing_object_data = inserted_to_do_lists[1]["object_data"]

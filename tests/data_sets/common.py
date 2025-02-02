@@ -1,4 +1,4 @@
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_object_attrs, get_test_object_data
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import get_test_session
 from tests.data_generators.tags import get_test_tag
@@ -13,8 +13,8 @@ from tests.db_operations.users import insert_users
 
 def insert_data_for_successful_requests(db_cursor):
     """ Inserts a dataset, which is required to successfully send a request to each of app's routes. """
-    obj_list = [get_test_object(i, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(100, 102)]
-    obj_list.append(get_test_object(99999, object_type="composite", owner_id=1, pop_keys=["object_data"]))
+    obj_list = [get_object_attrs(object_id=i, object_type="link") for i in range(100, 102)]
+    obj_list.append(get_object_attrs(99999, object_type="composite"))
     l_list = [get_test_object_data(i, object_type="link") for i in range(100, 102)]
     insert_objects(obj_list, db_cursor)
     insert_links(l_list, db_cursor)

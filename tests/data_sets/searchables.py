@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_object_attrs, get_test_object_data
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.tags import get_test_tag
 
@@ -12,9 +12,9 @@ from tests.db_operations.tags import insert_tags
 def insert_mock_data_for_searchable_update(db_cursor):
     # Insert 3 objects
     obj_list=[
-        get_test_object(1, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"]),
-        get_test_object(2, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"]),
-        get_test_object(3, object_name="new", object_description="", owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(1, object_name="new", object_description=""),
+        get_object_attrs(2, object_name="new", object_description=""),
+        get_object_attrs(3, object_name="new", object_description="")
     ]
     insert_objects(obj_list, db_cursor)
 

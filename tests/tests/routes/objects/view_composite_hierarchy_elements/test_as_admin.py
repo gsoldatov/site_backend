@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.objects import insert_non_cyclic_hierarchy, \
@@ -40,7 +40,7 @@ async def test_non_existing_object_id(cli):
 
 
 async def test_non_composite_root_object(cli, db_cursor):
-    obj_list = [get_test_object(1, owner_id=1, object_type="link", pop_keys=["object_data"])]
+    obj_list = [get_object_attrs()]
     insert_objects(obj_list, db_cursor)
     
     resp = await cli.post("/objects/view_composite_hierarchy_elements", json={"object_id": 1}, headers=headers_admin_token)

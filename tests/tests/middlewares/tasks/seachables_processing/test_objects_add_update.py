@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from datetime import datetime
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import headers_admin_token
 
@@ -48,7 +48,7 @@ async def test_add_objects_attribute_search(cli_with_search, db_cursor):
 
 async def test_update_objects_attribute_search(cli_with_search, db_cursor):
     # Insert mock values
-    obj_list = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), get_test_object(2, owner_id=1, pop_keys=["object_data"])]
+    obj_list = [get_object_attrs(i) for i in range(1, 3)]
     insert_objects(obj_list, db_cursor)
     old_modified_at = datetime(2001, 1, 1)
     insert_links([get_test_object_data(1), get_test_object_data(2)], db_cursor)

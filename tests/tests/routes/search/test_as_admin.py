@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from random import shuffle
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_test_object, get_object_attrs
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
@@ -25,7 +25,7 @@ from tests.util import wait_for
 
 async def test_correct_search_published_objects_and_tags(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, is_published=True, pop_keys=["object_data"]) for i in range(10)]
+    obj_list = [get_object_attrs(i + 1, is_published=True) for i in range(10)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="word" if i < 5 else "bird") for i in range(10)]
@@ -54,7 +54,7 @@ async def test_correct_search_published_objects_and_tags(cli_with_search, db_cur
 
 async def test_correct_search_non_published_objects(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, is_published=bool(i % 2), pop_keys=["object_data"]) for i in range(20)]
+    obj_list = [get_object_attrs(i + 1, is_published=bool(i % 2)) for i in range(20)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="word" if i < 10 else "bird") for i in range(20)]
@@ -93,7 +93,7 @@ async def test_correct_search_non_published_tags(cli_with_search, db_cursor):
 
 async def test_correct_search_objects_with_non_published_tags(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, is_published=bool(i % 2), pop_keys=["object_data"]) for i in range(20)]
+    obj_list = [get_object_attrs(i + 1, is_published=bool(i % 2)) for i in range(20)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="word" if i < 10 else "bird") for i in range(20)]
@@ -123,7 +123,7 @@ async def test_correct_search_objects_with_non_published_tags(cli_with_search, d
 
 async def test_search_without_match(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(10)]
+    obj_list = [get_object_attrs(i + 1) for i in range(10)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="bird") for i in range(10)]
@@ -136,7 +136,7 @@ async def test_search_without_match(cli_with_search, db_cursor):
 
 async def test_pagination_and_basic_ranking(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, pop_keys=["object_data"]) for i in range(20)]
+    obj_list = [get_object_attrs(i + 1) for i in range(20)]
     insert_objects(obj_list, db_cursor)
 
     searchables = []

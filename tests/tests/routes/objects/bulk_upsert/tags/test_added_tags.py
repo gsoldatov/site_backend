@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 7)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
@@ -62,7 +62,7 @@ async def test_add_a_new_object_without_added_tags(cli, db_cursor):
 
 async def test_update_an_existing_object_without_added_tags(cli, db_cursor):
     # Insert an existing object & its tags
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([get_test_tag(i) for i in range(1, 4)], db_cursor)
     insert_objects_tags([1], [1, 2, 3], db_cursor)
@@ -78,7 +78,7 @@ async def test_update_an_existing_object_without_added_tags(cli, db_cursor):
 
 async def test_update_an_existing_object_with_already_applied_tags(cli, db_cursor):
     # Insert an object & its tags
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([
         get_test_tag(1, tag_name="tag 1"),
@@ -104,7 +104,7 @@ async def test_update_an_existing_object_with_already_applied_tags(cli, db_curso
 
 async def test_add_string_tags(cli, db_cursor):
     # Insert an object & its tags
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([
         get_test_tag(1, tag_name="tag 1"),
@@ -164,7 +164,7 @@ async def test_add_string_tags(cli, db_cursor):
     
 async def test_add_numeric_tag_ids(cli, db_cursor):
     # Insert an object & its tags
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
     insert_objects_tags([1], [4], db_cursor)

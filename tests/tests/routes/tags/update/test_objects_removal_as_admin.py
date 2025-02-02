@@ -3,7 +3,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests    
 
-from tests.data_generators.objects import get_test_object, get_objects_attributes_list
+from tests.data_generators.objects import get_object_attrs, get_objects_attributes_list
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
@@ -16,7 +16,7 @@ from tests.request_generators.tags import get_tags_update_request_body
 
 async def test_incorrect_removed_object_ids_in_request_body(cli, db_cursor):
     insert_tags([get_test_tag(1)], db_cursor)
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
 
     # Incorrect types
     for removed_object_ids in ["not a list", 1, {}, [-1], [0]]:
@@ -33,7 +33,7 @@ async def test_incorrect_removed_object_ids_in_request_body(cli, db_cursor):
 async def test_update_tag_with_empty_removed_object_ids(cli, db_cursor):
     # Insert existing data
     insert_tags([get_test_tag(1, tag_name="old name")], db_cursor)
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
     insert_objects_tags([1], [1], db_cursor)
 
     # Update tag & check if tag was updated, but objects_tags were not

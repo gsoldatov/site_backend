@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 7)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.users import get_test_user
 
@@ -57,7 +57,7 @@ async def test_add_a_new_object(cli, db_cursor):
 
 async def test_update_an_object(cli, db_cursor):
     # Insert an object and another user into the database
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor)
 
     # Update an object (set another user)

@@ -5,7 +5,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_objects_attributes_list
+from tests.data_generators.objects import get_object_attrs, get_objects_attributes_list
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.objects import insert_data_for_view_tests_objects_with_non_published_tags
@@ -146,12 +146,12 @@ async def test_correct_request_sort_by_feed_timestamp(cli, db_cursor):
 async def test_correct_request_filter_text(cli, db_cursor):
     # Insert mock values
     obj_list = [
-        get_test_object(1, object_name="A-A", owner_id=1),
-        get_test_object(2, object_name="BAa", owner_id=1),
-        get_test_object(3, object_name="CAa", owner_id=1),
-        get_test_object(4, object_name="DAa", owner_id=1),
-        get_test_object(5, object_name="EAEa", owner_id=1),
-        get_test_object(6, object_name="FAEF", owner_id=1)
+        get_object_attrs(1, object_name="A-A"),
+        get_object_attrs(2, object_name="BAa"),
+        get_object_attrs(3, object_name="CAa"),
+        get_object_attrs(4, object_name="DAa"),
+        get_object_attrs(5, object_name="EAEa"),
+        get_object_attrs(6, object_name="FAEF")
     ]
     insert_objects(obj_list, db_cursor)
 
@@ -191,12 +191,12 @@ async def test_correct_request_filter_text(cli, db_cursor):
 async def test_correct_request_object_types_filter(cli, db_cursor):
     # Insert mock values
     obj_list = [
-        get_test_object(1, object_type="link", owner_id=1),
-        get_test_object(2, object_type="link", owner_id=1),
-        get_test_object(3, object_type="markdown", owner_id=1),
-        get_test_object(4, object_type="markdown", owner_id=1),
-        get_test_object(5, object_type="to_do_list", owner_id=1),
-        get_test_object(6, object_type="to_do_list", owner_id=1)
+        get_object_attrs(1, object_type="link"),
+        get_object_attrs(2, object_type="link"),
+        get_object_attrs(3, object_type="markdown"),
+        get_object_attrs(4, object_type="markdown"),
+        get_object_attrs(5, object_type="to_do_list"),
+        get_object_attrs(6, object_type="to_do_list")
     ]
     insert_objects(obj_list, db_cursor)
 
@@ -286,10 +286,10 @@ async def test_correct_request_tags_filter(cli, db_cursor):
 async def test_correct_request_show_only_displayed_in_feed(cli, db_cursor):
     # Insert mock values
     obj_list = [
-        get_test_object(1, object_type="link", display_in_feed=False, owner_id=1),
-        get_test_object(2, object_type="link", display_in_feed=False, owner_id=1),
-        get_test_object(3, object_type="link", display_in_feed=True, owner_id=1),
-        get_test_object(4, object_type="link", display_in_feed=True, owner_id=1)
+        get_object_attrs(1, object_type="link", display_in_feed=False),
+        get_object_attrs(2, object_type="link", display_in_feed=False),
+        get_object_attrs(3, object_type="link", display_in_feed=True),
+        get_object_attrs(4, object_type="link", display_in_feed=True)
     ]
     insert_objects(obj_list, db_cursor)
 

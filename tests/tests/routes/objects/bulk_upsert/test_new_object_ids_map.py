@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_link_data, \
+from tests.data_generators.objects import get_object_attrs, get_link_data, \
     get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 
@@ -17,7 +17,7 @@ from tests.request_generators.objects import get_bulk_upsert_request_body, get_b
 
 async def test_id_mapping_of_new_objects(cli, db_cursor):
     # Insert an existing object
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([{"object_id": 1, "object_data": get_link_data(1)}], db_cursor)
 
     # Add several new objects and update an existing
@@ -56,7 +56,7 @@ async def test_id_mapping_of_new_objects(cli, db_cursor):
 
 async def test_id_mapping_of_new_subobjects(cli, db_cursor):
     # Insert an existing object
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor, generate_ids=True)
+    insert_objects([get_object_attrs(1)], db_cursor, generate_ids=True)
     insert_links([{"object_id": 1, "object_data": get_link_data(1)}], db_cursor)
 
     # Add a composite object with new & existing subobjects

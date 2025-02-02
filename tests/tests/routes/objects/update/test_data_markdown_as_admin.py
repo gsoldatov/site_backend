@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.db_operations.objects import insert_objects, insert_markdown
@@ -14,9 +14,8 @@ from tests.db_operations.objects import insert_objects, insert_markdown
 
 async def test_update(cli, db_cursor):
     # Insert mock values
-    obj_list = [get_test_object(1, object_type="markdown", owner_id=1, pop_keys=["object_data"]), 
-                get_test_object(2, object_type="markdown", owner_id=1, pop_keys=["object_data"])]
-    md_list = [get_test_object_data(1, object_type="markdown"), get_test_object_data(2, object_type="markdown")]
+    obj_list = [get_object_attrs(i, object_type="markdown") for i in range(1, 3)]
+    md_list = [get_test_object_data(i, object_type="markdown") for i in range(1, 3)]
     insert_objects(obj_list, db_cursor)
     insert_markdown(md_list, db_cursor)
 

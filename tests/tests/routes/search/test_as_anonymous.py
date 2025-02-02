@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 5)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.searchables import get_test_searchable
 from tests.data_generators.tags import get_test_tag
 
@@ -18,7 +18,7 @@ from tests.db_operations.tags import insert_tags
 
 async def test_correct_search_non_published_objects(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, is_published=bool(i % 2), pop_keys=["object_data"]) for i in range(20)]
+    obj_list = [get_object_attrs(i + 1, is_published=bool(i % 2)) for i in range(20)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="word" if i < 10 else "bird") for i in range(20)]
@@ -57,7 +57,7 @@ async def test_correct_search_non_published_tags(cli_with_search, db_cursor):
 
 async def test_correct_search_objects_with_non_published_tags(cli_with_search, db_cursor):
     # Insert mock data
-    obj_list = [get_test_object(i + 1, object_type="link", owner_id=1, is_published=bool(i % 2), pop_keys=["object_data"]) for i in range(20)]
+    obj_list = [get_object_attrs(i + 1, is_published=bool(i % 2)) for i in range(20)]
     insert_objects(obj_list, db_cursor)
 
     searchables = [get_test_searchable(object_id=i + 1, text_a="word" if i < 10 else "bird") for i in range(20)]

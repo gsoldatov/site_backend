@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_objects_attributes_list
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.db_operations.objects import insert_objects
@@ -14,7 +14,7 @@ from tests.request_generators.tags import get_tags_add_request_body
 
 
 async def test_incorrect_request_body(cli, db_cursor):
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
 
     # Missing added object IDs
     body = get_tags_add_request_body()
@@ -38,7 +38,7 @@ async def test_incorrect_request_body(cli, db_cursor):
 
 async def test_add_non_existing_object_ids(cli, db_cursor):
     # Insert an existing object
-    insert_objects([get_test_object(1, owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1)], db_cursor)
 
     # Try adding a tag with non-existing object IDs
     body = get_tags_add_request_body(added_object_ids=[1, 2, 3])

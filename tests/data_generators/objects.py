@@ -63,6 +63,36 @@ def get_test_object(
     return obj
 
 
+def get_object_attrs(
+        object_id: int = 1,
+        object_type: ObjectType = "link",
+        created_at: datetime | None = None,
+        modified_at: datetime | None = None,
+        object_name: str | None = None,
+        object_description: str | None = None,
+        is_published: bool | None = None,
+        display_in_feed: bool | None = None,
+        feed_timestamp: datetime | None = None,
+        show_description: bool | None = None,
+        owner_id: int = 1
+    ):
+    """ Generates a dict with object's attributes, which can be inserted into the database. """
+    return get_test_object(
+        object_id=object_id,
+        object_type=object_type,
+        created_at=created_at,
+        modified_at=modified_at,
+        object_name=object_name,
+        object_description=object_description,
+        is_published=is_published,
+        display_in_feed=display_in_feed,
+        feed_timestamp=feed_timestamp,
+        show_description=show_description,
+        owner_id=owner_id,
+        pop_keys=["object_data"]
+    )
+
+
 def get_test_object_data(object_id, object_type = "link", composite_subobject_object_type = None):
     """
     Returns a dict with data to insert into and object data table (links, markdown, etc.)

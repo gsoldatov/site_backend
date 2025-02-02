@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, get_objects_attributes_list
+from tests.data_generators.objects import get_object_attrs, get_test_object_data, get_objects_attributes_list
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.objects import markdown_data_list, insert_data_for_view_tests_objects_with_non_published_tags
@@ -23,7 +23,7 @@ async def test_view_non_existing_objects_data(cli):
 
 
 async def test_response_objects_data(cli, db_cursor):
-    insert_objects([get_test_object(1, object_type="markdown", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_type="markdown")], db_cursor)
     markdown_id_and_data = get_test_object_data(1, object_type="markdown")
     insert_markdown([markdown_id_and_data], db_cursor)
 

@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 7)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data, \
+from tests.data_generators.objects import get_object_attrs, get_test_object_data, \
     get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 
@@ -90,7 +90,7 @@ async def test_incorrect_composite_item_attributes(cli, db_cursor):
 
 async def test_non_unique_subobject_ids(cli, db_cursor):
     # Insert objects
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 4)], db_cursor)
+    insert_objects([get_object_attrs(i) for i in range(1, 4)], db_cursor)
     insert_links([get_test_object_data(i) for i in range(1, 4)], db_cursor)
     body = get_bulk_upsert_request_body(objects=[
         get_bulk_upsert_object(
@@ -108,7 +108,7 @@ async def test_non_unique_subobject_ids(cli, db_cursor):
 
 async def test_non_unique_subobject_positions(cli, db_cursor):
     # Insert objects
-    insert_objects([get_test_object(i, owner_id=1, pop_keys=["object_data"]) for i in range(1, 4)], db_cursor)
+    insert_objects([get_object_attrs(i) for i in range(1, 4)], db_cursor)
     insert_links([get_test_object_data(i) for i in range(1, 4)], db_cursor)
     body = get_bulk_upsert_request_body(objects=[
         get_bulk_upsert_object(
@@ -140,8 +140,8 @@ async def test_new_subobjects_without_matching_object(cli, db_cursor):
 async def test_upsert_objects_without_subobjects(cli, db_cursor):
     # Insert an existing object & its subobject
     insert_objects([
-        get_test_object(1, owner_id=1, pop_keys=["object_data"]),
-        get_test_object(2, object_type="composite", owner_id=1, pop_keys=["object_data"]),
+        get_object_attrs(1),
+        get_object_attrs(2, object_type="composite"),
     ], db_cursor, generate_ids=True)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_composite([get_test_object_data(2, object_type="composite")], db_cursor)
@@ -173,12 +173,12 @@ async def test_upsert_objects_and_modify_subobjects(cli, db_cursor):
     # Insert existing objects
     ## 101-102 = existing composite
     insert_objects([
-        get_test_object(i, object_type="composite", owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(i, object_type="composite")
     for i in range(101, 103)], db_cursor)
     ## 11x - subobjects or 101, 12x - of 102
     suobjbect_ids = (110, 111, 112, 120, 121)
     insert_objects([
-        get_test_object(i, owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(i)
     for i in suobjbect_ids], db_cursor)
     ## object data
     insert_links([get_test_object_data(i) for i in suobjbect_ids], db_cursor)
@@ -254,7 +254,7 @@ async def test_upsert_objects_and_modify_subobjects(cli, db_cursor):
 async def test_new_subobjects_positions_are_normalized(cli, db_cursor):
     # Insert existing subobjects
     insert_objects([
-        get_test_object(i, owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(i)
     for i in range(10, 19)], db_cursor)
     insert_links([get_test_object_data(i) for i in range(10, 19)], db_cursor)
 
@@ -342,7 +342,7 @@ async def test_upsert_objects_and_check_top_level_attributes(cli, db_cursor):
 async def test_upsert_objects_and_check_subobject_attributes(cli, db_cursor):
     # Insert existing subobjects
     insert_objects([
-        get_test_object(i, owner_id=1, pop_keys=["object_data"])
+        get_object_attrs(i)
     for i in range(10, 13)], db_cursor)
     insert_links([get_test_object_data(i) for i in range(10, 13)], db_cursor)
 

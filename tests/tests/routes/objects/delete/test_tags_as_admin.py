@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.sessions import headers_admin_token
 
 from tests.data_sets.tags import tag_list
@@ -21,8 +21,7 @@ from tests.request_generators.objects import get_objects_delete_body
 async def test_objects_delete_route(cli, db_cursor):
     # Insert mock values
     insert_tags(tag_list, db_cursor, generate_ids=True)
-    objects = [get_test_object(1, owner_id=1, pop_keys=["object_data"]), 
-        get_test_object(2, owner_id=1, pop_keys=["object_data"]), get_test_object(3, owner_id=1, pop_keys=["object_data"])]
+    objects = [get_object_attrs(i) for i in range(1, 4)]
     insert_objects(objects, db_cursor)
     objects_tags = {1: [1, 2, 3], 2: [3, 4, 5], 3: [1, 2, 3, 4, 5]}
     insert_objects_tags([1], objects_tags[1], db_cursor)

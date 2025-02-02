@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object
+from tests.data_generators.objects import get_object_attrs
 from tests.data_generators.tags import get_test_tag
 from tests.data_generators.users import get_test_user
 
@@ -22,7 +22,7 @@ async def test_objects_update_tags_route(cli, db_cursor):
     # Insert mock data
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
 
-    object_attributes = [get_test_object(i, owner_id=1 if i <= 1 else 2, pop_keys=["object_data"]) for i in range(1, 3)]
+    object_attributes = [get_object_attrs(i, owner_id=1 if i <= 1 else 2) for i in range(1, 3)]
     insert_objects(object_attributes, db_cursor)
 
     tags = [get_test_tag(i) for i in range(1, 11)]

@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_composite_data, get_composite_subobject_data
+from tests.data_generators.objects import get_object_attrs, get_composite_data, get_composite_subobject_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.db_operations.objects import insert_objects, insert_composite
 from tests.request_generators.objects import get_objects_delete_body
@@ -14,8 +14,8 @@ from tests.request_generators.objects import get_objects_delete_body
 
 async def test_delete_composite(cli, db_cursor):
     # Insert mock objects (composite: 10, 11; links: 101, 102, 103)
-    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(1, 4)]   # 3 subobjects
-    obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    obj_list = [get_object_attrs(100 + i, object_type="link") for i in range(1, 4)]   # 3 subobjects
+    obj_list.extend([get_object_attrs(10 + i, object_type="composite") for i in range(2)]) # 2 composite objects
     insert_objects(obj_list, db_cursor)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)
@@ -51,8 +51,8 @@ async def test_delete_composite(cli, db_cursor):
 
 async def test_delete_with_subobjects(cli, db_cursor):
     # Insert mock objects (composite: 10, 11; links: 100, 101, 102, 103)
-    obj_list = [get_test_object(100 + i, owner_id=1, object_type="link", pop_keys=["object_data"]) for i in range(4)]   # 1 non-subobject + 3 subobjects
-    obj_list.extend([get_test_object(10 + i, owner_id=1, object_type="composite", pop_keys=["object_data"]) for i in range(2)]) # 2 composite objects
+    obj_list = [get_object_attrs(100 + i, object_type="link") for i in range(4)]   # 1 non-subobject + 3 subobjects
+    obj_list.extend([get_object_attrs(10 + i, object_type="composite") for i in range(2)]) # 2 composite objects
     insert_objects(obj_list, db_cursor)
 
     # Insert composite data (10: 101, 102, 103; 11: 103)

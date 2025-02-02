@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_object_attrs, get_test_object_data
 from tests.data_generators.users import get_test_user
 
 from tests.data_sets.objects import insert_data_for_composite_view_tests_objects_with_non_published_tags
@@ -19,9 +19,9 @@ from tests.request_generators.objects import get_objects_view_request_body
 
 async def test_view_non_published_composite(cli, db_cursor):
     insert_users([get_test_user(2, pop_keys=["password_repeat"])], db_cursor) # add a regular user
-    object_attributes = [get_test_object(1, owner_id=1, pop_keys=["object_data"])]
-    object_attributes.extend([get_test_object(i, object_type="composite", is_published=i % 2 == 0,
-        owner_id=1 if i <= 35 else 2, pop_keys=["object_data"]) for i in range(31, 41)])
+    object_attributes = [get_object_attrs(1)]
+    object_attributes.extend([get_object_attrs(i, object_type="composite", is_published=i % 2 == 0,
+        owner_id=1 if i <= 35 else 2) for i in range(31, 41)])
     insert_objects(object_attributes, db_cursor)
     composite_object_data = [get_test_object_data(i, object_type="composite") for i in range(31, 41)]
     insert_composite(composite_object_data, db_cursor)

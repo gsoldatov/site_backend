@@ -6,7 +6,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../" * 6)))
     from tests.util import run_pytest_tests
 
-from tests.data_generators.objects import get_test_object, get_test_object_data
+from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
@@ -16,7 +16,7 @@ from tests.db_operations.tags import insert_tags
 
 
 async def test_incorrect_request_body(cli, db_cursor):
-    insert_objects([get_test_object(1, object_name="old name", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_name="old name")], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
 
     # Incorrect added tags & items types & values
@@ -34,7 +34,7 @@ async def test_incorrect_request_body(cli, db_cursor):
 
 
 async def test_non_existing_tag_ids(cli, db_cursor):
-    insert_objects([get_test_object(1, object_name="old name", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_name="old name")], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([get_test_tag(1)], db_cursor)
 
@@ -52,7 +52,7 @@ async def test_non_existing_tag_ids(cli, db_cursor):
 
 
 async def test_empty_added_tags(cli, db_cursor):
-    insert_objects([get_test_object(1, object_name="old name", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_name="old name")], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
 
     obj = get_test_object(1, object_name="new name", pop_keys=["created_at", "modified_at", "object_type"])
@@ -68,7 +68,7 @@ async def test_empty_added_tags(cli, db_cursor):
 
 
 async def test_add_string_tags(cli, db_cursor):
-    insert_objects([get_test_object(1, object_name="old name", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_name="old name")], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([
         get_test_tag(1, tag_name="tag 1"),
@@ -109,7 +109,7 @@ async def test_add_string_tags(cli, db_cursor):
 
 
 async def test_add_numeric_tag_ids(cli, db_cursor):
-    insert_objects([get_test_object(1, object_name="old name", owner_id=1, pop_keys=["object_data"])], db_cursor)
+    insert_objects([get_object_attrs(1, object_name="old name")], db_cursor)
     insert_links([get_test_object_data(1)], db_cursor)
     insert_tags([get_test_tag(i) for i in range(1, 5)], db_cursor, generate_ids=True)
     insert_objects_tags([1], [4], db_cursor)
