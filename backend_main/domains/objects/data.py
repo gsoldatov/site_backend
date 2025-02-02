@@ -50,8 +50,8 @@ async def upsert_objects_data(request: Request, objects_id_type_and_data: list[O
 
     except ObjectsNotFound as e:
         # Handle attempts to update non-existing objects & objects with incorrect `object_type`
-        request[request_log_event_key]("WARNING", "domain", str(e))
-        raise web.HTTPBadRequest(text=error_json(str(e)), content_type="application/json")
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPBadRequest(text=error_json(e.msg), content_type="application/json")
 
 
 async def view_objects_data(request: Request, object_ids: list[int]) -> list[ObjectIDTypeData]:

@@ -22,32 +22,28 @@ async def view_page_object_ids(
     ) -> ObjectsPaginationInfoWithResult:
     try:
         return await _view_page_object_ids(request, pagination_info)
-    except ObjectsNotFound:
-        msg = "No objects found."
-        request[request_log_event_key]("WARNING", "domain", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except ObjectsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def search_objects(request: Request, query: ObjectsSearchQuery) -> list[int]:
     try:
         return await _search_objects(request, query)
-    except ObjectsNotFound:
-        msg = "No objects found."
-        request[request_log_event_key]("WARNING", "domain", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except ObjectsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def view_composite_hierarchy(request: Request, object_id: int) -> CompositeHierarchy:
     try:
         return await _view_composite_hierarchy(request, object_id)
-    except ObjectsNotFound:
-        msg = "Object not found."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"object_id = {object_id}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
-    except ObjectIsNotComposite:
-        msg = "Attempted to loop through a hierarchy of a non-composite object."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"object_id = {object_id}")
-        raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
+    except ObjectsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
+    except ObjectIsNotComposite as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPBadRequest(text=error_json(e.msg), content_type="application/json")
 
 
 async def delete_objects(request: Request, object_ids: Collection[int], delete_subobjects: bool) -> None:
@@ -65,9 +61,9 @@ async def delete_objects(request: Request, object_ids: Collection[int], delete_s
     try:
         await _delete_objects(request, deleted_object_ids)
         request[request_log_event_key]("INFO", "domain", "Deleted objects.",
-                                       details=f"object_ids = {object_ids}, subobject_ids = {subobject_ids_to_delete}")
+                                       details={"object_ids": list(object_ids), "subobject_ids": subobject_ids_to_delete})
     except ObjectsNotFound as e:
-        request[request_log_event_key]("WARNING", "domain", str(e))
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
         # Don't raise 404, so that changes are committed
         # raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
 

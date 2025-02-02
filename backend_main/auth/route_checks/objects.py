@@ -40,7 +40,7 @@ async def authorize_objects_modification(request: Request, object_ids: list[int]
         # Handle errors & update cache
         if len(not_owned_objects) > 0:
             msg = "User does not own object(-s)."
-            request[request_log_event_key]("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+            request[request_log_event_key]("WARNING", "auth", msg, details={"user_id": user_id, "object_ids": not_owned_objects})
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
         
         request[request_auth_caches_key].modifiable_object_ids.update(unchecked_object_ids)
@@ -59,10 +59,10 @@ def authorize_object_owner_modification(
 
     if request[request_user_info_key].user_level != "admin":
         user_id = request[request_user_info_key].user_id
-        unallowed_owner_ids = set((o.owner_id for o in upserted_objects_attributes if o.owner_id != user_id))
+        unallowed_owner_ids = list(set((o.owner_id for o in upserted_objects_attributes if o.owner_id != user_id)))
         if len(unallowed_owner_ids) > 0:
             msg = "Object owner update is not allowed."
-            request[request_log_event_key]("WARNING", "auth", msg, details=f"user_id = {user_id}, unallowed owners = {unallowed_owner_ids}")
+            request[request_log_event_key]("WARNING", "auth", msg, details={"user_id": user_id, "unallowed_owners": unallowed_owner_ids})
             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
 
 
@@ -94,5 +94,5 @@ def authorize_object_owner_modification(
 
 #         if len(not_owned_objects) > 0:
 #             msg = "User does not own object(-s)."
-#             request[request_log_event_key]("WARNING", "auth", msg, details=f"user_id = {user_id}, object_ids = {not_owned_objects}")
+#             request[request_log_event_key]("WARNING", "auth", msg, details={"user_id": user_id, "object_ids": not_owned_objects})
 #             raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")

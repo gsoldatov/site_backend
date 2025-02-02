@@ -38,7 +38,7 @@ class AuthLoginRequestBody(BaseModel):
         in order to raise a 401 exception instead of a 400.
         """
         if not 1 <= len(self.login) <= 255 or not 8 <= len(self.password) <= 72:
-            raise IncorrectCredentialsException()
+            raise IncorrectCredentialsException
 
         return self
 

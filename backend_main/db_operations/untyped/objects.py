@@ -84,7 +84,7 @@ async def update_objects(request, objects_attributes):
 
         if not record:
             msg = "Attempted to update attributes of a non-existing object."
-            request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {object_id}")
+            request[request_log_event_key]("WARNING", "db_operation", msg, details={"object_id": object_id})
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         records.append(record)
     

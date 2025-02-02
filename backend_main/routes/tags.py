@@ -1,3 +1,6 @@
+"""
+Tags-related route handlers.
+"""
 from aiohttp import web
 
 from backend_main.domains.tags import add_tag, update_tag, view_tags, delete_tags, view_page_tag_ids, search_tags
@@ -34,7 +37,7 @@ async def add(request: Request) -> TagsAddUpdateResponseBody:
         "removed_object_ids": []
     }})
 
-    request[request_log_event_key]("INFO", "route_handler", f"Finished adding tag.", details=f"tag_id = {tag.tag_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished adding tag.", details={"tag_id": tag.tag_id})
     return response
 
 
@@ -61,7 +64,7 @@ async def update(request: Request) -> TagsAddUpdateResponseBody:
         "added_object_ids": added_objects_tags.object_ids,
         "removed_object_ids": removed_objects_tags.object_ids
     }})
-    request[request_log_event_key]("INFO", "route_handler", f"Finished updating tag.", details=f"tag_id = {tag.tag_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished updating tag.", details={"tag_id": tag.tag_id})
     return response
 
 
@@ -75,7 +78,7 @@ async def view(request: Request) -> TagsViewResponseBody:
     # Log and return response
     response = TagsViewResponseBody(tags=tags)
     request[request_log_event_key]("INFO", "route_handler", "Returning tags.", 
-                                   details=f"tag_ids = {data.tag_ids}")
+                                   details={"tag_ids": data.tag_ids})
     return response
 
 
@@ -88,7 +91,7 @@ async def delete(request: Request) -> TagsDeleteResponseBody:
     
     # Log and return response
     response = TagsDeleteResponseBody(tag_ids=data.tag_ids)
-    request[request_log_event_key]("INFO", "route_handler", "Deleted tags.", details=f"tag_ids = {data.tag_ids}")
+    request[request_log_event_key]("INFO", "route_handler", "Deleted tags.", details={"tag_ids": data.tag_ids})
     return response
 
 
@@ -114,11 +117,11 @@ async def search(request: Request) -> TagsSearchResponseBody:
 def get_subapp():
     app = web.Application()
     app.add_routes([
-                    web.post("/add", add, name = "add"),
-                    web.put("/update", update, name = "update"),
-                    web.post("/view", view, name = "view"),
-                    web.delete("/delete", delete, name = "delete"),
-                    web.post("/get_page_tag_ids", get_page_tag_ids, name = "get_page_tag_ids"),
-                    web.post("/search", search, name = "search")
+                    web.post("/add", add, name="add"),
+                    web.put("/update", update, name="update"),
+                    web.post("/view", view, name="view"),
+                    web.delete("/delete", delete, name="delete"),
+                    web.post("/get_page_tag_ids", get_page_tag_ids, name="get_page_tag_ids"),
+                    web.post("/search", search, name="search")
                 ])
     return app

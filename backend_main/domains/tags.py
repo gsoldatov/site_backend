@@ -24,7 +24,7 @@ async def add_tag(request: Request, added_tag: AddedTag) -> Tag:
     add_searchable_updates_for_tags(request, [tag.tag_id])
 
     # Log and return result
-    request[request_log_event_key]("INFO", "domain", "Added tag.", details=f"tag_id = {tag.tag_id}")
+    request[request_log_event_key]("INFO", "domain", "Added tag.", details={"tag_id": tag.tag_id})
     return tag
 
 
@@ -38,32 +38,29 @@ async def update_tag(request: Request, tag: Tag) -> Tag:
         add_searchable_updates_for_tags(request, [tag.tag_id])
 
         # Log and return result
-        request[request_log_event_key]("INFO", "domain", "Updated tag.", details=f"tag_id = {tag.tag_id}")
+        request[request_log_event_key]("INFO", "domain", "Updated tag.", details={"tag_id": tag.tag_id})
         return updated_tag
 
-    except TagsNotFound:
+    except TagsNotFound as e:
         # Handle non-existing tag update
-        msg = "Tag not found."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_id = {tag.tag_id}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+        request[request_log_event_key]("WARNING", "domain", e.msg, details=e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
     try:
         return await _view_tags(request, tag_ids)
-    except TagsNotFound:
-        msg = "Tag(-s) not found."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_ids = {tag_ids}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except TagsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, details=e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def delete_tags(request: Request, tag_ids: list[int]) -> None:
     try:
         await _delete_tags(request, tag_ids)
-    except TagsNotFound:
-        msg = "Tag(-s) not found."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"tag_ids = {tag_ids}")
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except TagsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, details=e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def view_page_tag_ids(
@@ -72,16 +69,14 @@ async def view_page_tag_ids(
 ) -> TagsPaginationInfoWithResult:
     try:
         return await _view_page_tag_ids(request, pagination_info)
-    except TagsNotFound:
-        msg = "No tags found."
-        request[request_log_event_key]("WARNING", "domain", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except TagsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")
 
 
 async def search_tags(request: Request, query: TagsSearchQuery) -> list[int]:
     try:
         return await _search_tags(request, query)
-    except TagsNotFound:
-        msg = "No tags found."
-        request[request_log_event_key]("WARNING", "domain", msg)
-        raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
+    except TagsNotFound as e:
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPNotFound(text=error_json(e.msg), content_type="application/json")

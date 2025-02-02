@@ -43,7 +43,7 @@ async def authorize_objects_tagging(request: Request, tag_ids: list[int]) -> Non
     # Handle errors & update cache
     if (await result.fetchone())[0] > 0:
         msg = "Attempted to add non-published tags as a non-admin."
-        request[request_log_event_key]("WARNING", "auth", msg, details=f"All tag_ids = ${tag_ids}")
+        request[request_log_event_key]("WARNING", "auth", msg, details={"tag_ids": tag_ids})
         raise web.HTTPForbidden(text=error_json(msg), content_type="application/json")
     
     request[request_auth_caches_key].applicable_tag_ids.update(unchecked_tag_ids)

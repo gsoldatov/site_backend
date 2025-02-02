@@ -26,7 +26,7 @@ async def connection_middleware(request: Request, handler: Handler) -> web.Respo
         # Commit login rate limiting information
         except IncorrectCredentialsException as e:
             if request.get(request_transaction_key) is not None: await request[request_transaction_key].commit()
-            raise web.HTTPUnauthorized(text=error_json("Incorrect login or password."), content_type="application/json")
+            raise web.HTTPUnauthorized(text=error_json(e.msg), content_type="application/json")
 
         except Exception as e:
             if request.get(request_transaction_key) is not None: await request[request_transaction_key].rollback()

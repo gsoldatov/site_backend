@@ -1,5 +1,5 @@
 """
-    Authorization & authentication routes.
+    Authorization & authentication route handlers.
 """
 from aiohttp import web
 
@@ -75,8 +75,9 @@ async def login(request: Request) -> web.Response:
     if user is None:
         # Raise 401 with committing database changes
         await increase_request_sender_login_rate_limit(request, login_rate_limit)
-        request[request_log_event_key]("WARNING", "route_handler", f"Incorrect user credentials.")
-        raise IncorrectCredentialsException()
+        msg = "Incorrect login or password."
+        request[request_log_event_key]("WARNING", "route_handler", msg)
+        raise IncorrectCredentialsException(msg)
     
     # User was found
     else:

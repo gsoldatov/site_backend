@@ -2,7 +2,7 @@ from aiohttp import web
 from aiopg.sa.engine import Engine
 from asyncio import Task
 from logging import Logger
-from typing import Protocol, TypedDict, Awaitable
+from typing import Protocol, TypedDict, Awaitable, Any
 
 from backend_main.app.config import Config
 from backend_main.types.db import AppTables
@@ -50,7 +50,7 @@ class _LogEvent(Protocol):
         str_level: str,
         event_type: str,
         message: str,
-        details: str = "",
+        details: dict[str, Any] | str = "",
         exc_info: bool | None = None
     ) -> None: ...
 app_log_event_key = web.AppKey("app_log_event_key", _LogEvent)

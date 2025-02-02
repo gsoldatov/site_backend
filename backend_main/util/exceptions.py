@@ -1,9 +1,39 @@
+import json
 import re
 
 from psycopg2.errors import ForeignKeyViolation
 
+from typing import Any
 
-class IncorrectCredentialsException(Exception):
+
+class AppException(Exception):
+    """
+    Custom base class for application exceptions,
+    which provide `msg` and `details` props used by loggers.
+
+    `msg` is generated from casting exception to string, e.g.:
+    AppException("msg text", details="details").msg -> "msg text"
+
+    `details` can be provided as a string of JSON-serializable dict.
+    """
+    def __init__(self, *args, details: dict[str, Any] | str = ""):
+        super().__init__(*args)
+        self._details = details
+    
+    @property
+    def msg(self) -> str:
+        return super().__str__()
+    
+    @property
+    def details(self) -> str:
+        if isinstance(self._details, dict): return json.dumps(self._details)
+        return self._details
+    
+    def __str__(self) -> str:
+        return self.msg
+
+
+class IncorrectCredentialsException(AppException):
     """
     Raised when a login attempts has failed.
     Required to commit login_rate_limits into the database.
@@ -11,24 +41,29 @@ class IncorrectCredentialsException(Exception):
     pass
 
 
-class ObjectsNotFound(Exception):
-    """
-    Raised when a database operation is performed on non-existing objects.
-    """
+class ObjectsNotFound(AppException):
+    """ Raised when a database operation is performed on non-existing objects. """
     pass
 
 
-class ObjectIsNotComposite(Exception):
-    """
-    Raised when a composite object operation is attempted on a non-composite object.
-    """
+class ObjectIsNotComposite(AppException):
+    """ Raised when a db operations expecting composite objects receives another object type(-s). """
     pass
 
 
-class ForeignKeyViolationException(Exception):
-    """ Parses aiopg ForeignKeyViolation exception text for field and value, which caused the exception. """
-    def __init__(self, e: ForeignKeyViolation):
-        super().__init__(str(e))
+class TagsNotFound(AppException):
+    """ Raised when a database operation is performed on non-existing tags. """
+    pass
+
+
+class ForeignKeyViolationException(AppException):
+    """
+    Parses aiopg ForeignKeyViolation exception text for field and value, which caused the exception.
+
+    NOTE: `msg` & `details` properties should be adjusted in subclasses to use data provided by this class.
+    """
+    def __init__(self, e: ForeignKeyViolation, *args, details: dict[Any, Any] | str = ""):
+        super().__init__(str(e), *args, details=details)
 
         match = re.findall(r"\((.*?)\)", str(e))
         self.field = match[0]
@@ -36,26 +71,29 @@ class ForeignKeyViolationException(Exception):
 
 
 class ObjectsTagsNotFound(ForeignKeyViolationException):
-    """
-    Raised when adding objects' tags fails due to a foreign key violation
-    """
-    def __str__(self) -> str:
-        return f"Could not add objects tags: {self.field} = {self.id} not found."
+    """ Raised when adding objects' tags fails due to a foreign key violation. """
+    @property
+    def msg(self) -> str:
+        return "Can't add an object tag pair containing a non-existing item."
+
+    @property
+    def details(self) -> str:
+        return json.dumps({"field": self.field, "id": self.id})
 
 
 class UserNotFound(ForeignKeyViolationException):
     """ Raised, when a database operation involving non-existing users is performed. """
-    def __str__(self) -> str:
-        return f"User ID {self.id} not found."
+    @property
+    def msg(self) -> str:
+        return "User not found."
 
-
-class TagsNotFound(Exception):
-    """ Raised when a database operation is performed on non-existing tags. """
-    pass
+    @property
+    def details(self) -> str:
+        return json.dumps({"user_id": self.id})
 
 
 class RequestValidationException(Exception):
-    """ Custom validation checks exception. """
+    """ Raised by additional validation checks, which complement JSONSchema validators. """
     pass
 
 

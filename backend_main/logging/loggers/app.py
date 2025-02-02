@@ -1,6 +1,7 @@
 import logging
 from aiohttp import web
-from typing import cast
+import json
+from typing import cast, Any
 
 from backend_main.logging.handlers.app import get_access_logger_handler, get_event_logger_handler
 from backend_main.logging.handlers.patched_timed_rotation_file_handler import PatchedTimedRotatingFileHandler
@@ -87,13 +88,14 @@ def setup_app_event_logging(app: web.Application) -> None:
             str_level: str,
             event_type: str,
             message: str,
-            details: str = "",
+            details: dict[str, Any] | str = "",
             exc_info: bool | None = None
         ) -> None:
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
         if app[app_config_key].logging.app_event_log_mode == "off": return
 
         level = _get_level(str_level)
+        if isinstance(details, dict): details = json.dumps(details)
         extra = {"event_type": event_type, "request_id": "", "details": details}
         app[app_event_logger_key].log(level, message, extra=extra, exc_info=exc_info)
     
@@ -106,7 +108,7 @@ def setup_request_event_logging(request: Request) -> None:
         str_level: str,
         event_type: str,
         message: str,
-        details: str = "",
+        details: dict[str, Any] | str = "",
         exc_info: bool | None = None
     ) -> None:
         # Don't emit log records if logging is in `off` mode to prevent captures by pytest
@@ -116,6 +118,7 @@ def setup_request_event_logging(request: Request) -> None:
         if request.method in ("OPTIONS", "HEAD"): return
 
         level = _get_level(str_level)
+        if isinstance(details, dict): details = json.dumps(details)
         extra = {"event_type": event_type, "request_id": request[request_id_key], "details": details}
         request.config_dict[app_event_logger_key].log(level, message, extra=extra, exc_info=exc_info)
     

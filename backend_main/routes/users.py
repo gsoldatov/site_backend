@@ -1,3 +1,6 @@
+"""
+Users-related route handlers.
+"""
 from aiohttp import web
 
 from backend_main.auth.route_checks.users import authorize_user_update, validate_user_update_issuer, \
@@ -37,7 +40,7 @@ async def update(request: Request) -> None:
     if user_update.can_login == False:
         await delete_user_sessions(request, user_update.user_id)
     
-    request[request_log_event_key]("INFO", "route_handler", "Updated user.", details=f"user_id = {user_update.user_id}")
+    request[request_log_event_key]("INFO", "route_handler", "Updated user.", details={"user_id": user_update.user_id})
 
 
 async def view(request: Request) -> UsersViewResponseBody:
@@ -53,10 +56,10 @@ async def view(request: Request) -> UsersViewResponseBody:
     # Handle 404
     if len(users) == 0:
         msg = "Users not found."
-        request[request_log_event_key]("WARNING", "route_handler", msg, details=f"user_ids = {data.user_ids}")
+        request[request_log_event_key]("WARNING", "route_handler", msg, details={"user_ids": data.user_ids})
         raise web.HTTPNotFound(text=error_json("Users not found."), content_type="application/json")
     
-    request[request_log_event_key]("INFO", "route_handler", "Returning users.", details=f"user_ids = {data.user_ids}")
+    request[request_log_event_key]("INFO", "route_handler", "Returning users.", details={"user_ids": data.user_ids})
     return UsersViewResponseBody.model_validate({"users": users})
 
 

@@ -1,5 +1,5 @@
 """
-Object routes.
+Objects-related route handlers.
 """
 from aiohttp import web
 from jsonschema import validate
@@ -74,7 +74,7 @@ async def add(request):
     response_data["tag_updates"] = {"added_tag_ids": added_objects_tags.tag_ids, "removed_tag_ids": []}
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    request[request_log_event_key]("INFO", "route_handler", f"Finished adding object.", details=f"object_id = {object_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished adding object.", details={"object_id": object_id})
     return {"object": response_data}
 
 
@@ -115,7 +115,7 @@ async def update(request):
     }
 
     # Send response with object's general data; object-specific data is kept on the frontend and displayed after receiving the response or retrived via object
-    request[request_log_event_key]("INFO", "route_handler", f"Finished updating object.", details=f"object_id = {object_id}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished updating object.", details={"object_id": object_id})
     return {"object": response_data}
 
 
@@ -167,7 +167,7 @@ async def bulk_upsert(request: Request) -> ObjectsBulkUpsertResponseBody:
     object_ids = list(o.object_id for o in mapped_objects)
     objects_attributes_and_tags = await view_objects_attributes_and_tags(request, object_ids)
     objects_data = await view_objects_data(request, object_ids)
-    request[request_log_event_key]("INFO", "route_handler", f"Finished upserting objects.", details=f"object_ids = {object_ids}.")
+    request[request_log_event_key]("INFO", "route_handler", f"Finished upserting objects.", details={"object_ids": object_ids})
     return ObjectsBulkUpsertResponseBody(
         objects_attributes_and_tags=objects_attributes_and_tags,
         objects_data=objects_data,
@@ -214,13 +214,13 @@ async def view(request: Request) -> ObjectsViewResponseBody:
     if len(objects_attributes_and_tags) == 0 and len(objects_data) == 0:
         request[request_log_event_key](
             "WARNING", "route_handler", "Object IDs are not found or can't be viewed.",
-            details=f"object_ids = {data.object_ids}, object_data_ids = {data.object_data_ids}"
+            details=data.model_dump_json()
         )
         raise web.HTTPNotFound(text=error_json("Objects not found."), content_type="application/json")
 
     request[request_log_event_key](
         "INFO", "route_handler", "Returning object attributes and data.",
-        details=f"object_ids = {data.object_ids}, object_data_ids = {data.object_data_ids}"
+        details=data.model_dump_json()
     )
     return ObjectsViewResponseBody(
         objects_attributes_and_tags=objects_attributes_and_tags,
@@ -266,8 +266,8 @@ async def delete(request: Request) -> ObjectsDeleteResponseBody:
     # Delete objects, log and send response
     await delete_objects(request, data.object_ids, data.delete_subobjects)
     request[request_log_event_key](
-        "INFO", "route_handler", "Deleted objects.", 
-        details=f"object_ids = {data.object_ids}, delete_subobjects = {data.delete_subobjects}"
+        "INFO", "route_handler", "Objects deletion complete.", 
+        details=data.model_dump_json()
     )
     return ObjectsDeleteResponseBody(object_ids=data.object_ids)
 

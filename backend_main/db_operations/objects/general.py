@@ -99,7 +99,8 @@ async def view_page_object_ids(
     )
     object_ids = [r[0] for r in await result.fetchall()]
     
-    if len(object_ids) == 0: raise ObjectsNotFound
+    if len(object_ids) == 0:
+        raise ObjectsNotFound("No objects found.", details=pagination_info.model_dump_json())
 
     # Get object count
     result = await request[request_connection_key].execute(
@@ -143,7 +144,8 @@ async def search_objects(request: Request, query: ObjectsSearchQuery) -> list[in
         .limit(query.maximum_values)
     )
     object_ids = [r[0] for r in await result.fetchall()]    
-    if len(object_ids) == 0: raise ObjectsNotFound
+    if len(object_ids) == 0:
+        raise ObjectsNotFound("No objects found.", details=query.model_dump_json())
     return object_ids
 
 
@@ -165,8 +167,11 @@ async def view_composite_hierarchy(request: Request, object_id: int) -> Composit
         ))
     )
     row = await result.fetchone()
-    if not row: raise ObjectsNotFound
-    if row[0] != "composite": raise ObjectIsNotComposite        
+    if not row:
+        raise ObjectsNotFound("Object not found.", details={"object_id": object_id})
+    if row[0] != "composite":
+        raise ObjectIsNotComposite("Composite hierarchy can't be built for a non-composite object.",
+                                   details={"object_id": object_id})
 
     # Build a hierarchy
     parent_object_ids = set([object_id])
@@ -220,5 +225,6 @@ async def delete_objects(request: Request, object_ids: list[int]) -> None:
         .returning(objects.c.object_id)
     )
     deleted_object_ids = set((r[0] for r in await result.fetchall()))
-    non_existing_ids = object_ids_set.difference(deleted_object_ids)
-    if len(non_existing_ids) > 0: raise ObjectsNotFound(f"Objects {non_existing_ids} do not exist.")
+    non_existing_ids = list(object_ids_set.difference(deleted_object_ids))
+    if len(non_existing_ids) > 0:
+        raise ObjectsNotFound(f"Objects do not exist.", details={"object_ids": non_existing_ids})

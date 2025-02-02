@@ -50,7 +50,7 @@ async def update_links(request, obj_ids_and_data):
         # Raise an error if object data does not exist
         if not await result.fetchone():
             msg = "Attempted to update a non-link object as a link."
-            request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_id = {o['object_id']}")
+            request[request_log_event_key]("WARNING", "db_operation", msg, details={"object_id": o["object_id"]})
             raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
         
     # Add objects as pending for `searchables` update

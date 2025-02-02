@@ -85,9 +85,7 @@ async def add_tags_by_name(request: Request, tag_names: list[str]) -> TagNameToI
 
 
 async def update_tag(request: Request, tag: Tag) -> Tag:
-    """
-    Updates the tag attributes with provided tag_attributes.
-    """
+    """ Updates the tag attributes with provided tag_attributes. """
     tags = request.config_dict[app_tables_key].tags
     values = tag.model_dump()
 
@@ -106,14 +104,13 @@ async def update_tag(request: Request, tag: Tag) -> Tag:
     )
     
     row = await result.fetchone()
-    if not row: raise TagsNotFound()
+    if not row:
+        raise TagsNotFound("Tag not found.", details={"tag_id": tag.tag_id})
     return Tag.model_validate({**row})
 
 
 async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
-    """
-    Returns a list tag attributes for the provided `tag_ids`.
-    """
+    """ Returns a list tag attributes for the provided `tag_ids`. """
     # Handle empty `tag_ids`
     if len(tag_ids) == 0: return []
 
@@ -130,14 +127,13 @@ async def view_tags(request: Request, tag_ids: list[int]) -> list[Tag]:
     ))
 
     viewed_tags = [Tag.model_validate({**r}) for r in await result.fetchall()]
-    if len(viewed_tags) == 0: raise TagsNotFound()
+    if len(viewed_tags) == 0:
+        raise TagsNotFound("Tag(-s) not found.", details={"tag_ids": tag_ids})
     return viewed_tags
 
 
 async def delete_tags(request: Request, tag_ids: list[int]) -> None:
-    """
-    Deletes tags with provided `tag_ids`.
-    """
+    """ Deletes tags with provided `tag_ids`. """
     # Handle empty `tag_ids`
     if len(tag_ids) == 0: return
 
@@ -148,7 +144,8 @@ async def delete_tags(request: Request, tag_ids: list[int]) -> None:
         .returning(tags.c.tag_id)
     )
 
-    if not await result.fetchone(): raise TagsNotFound()
+    if not await result.fetchone():
+        raise TagsNotFound("Tag(-s) not found.", details={"tag_ids": tag_ids})
 
 
 async def view_page_tag_ids(
@@ -189,7 +186,8 @@ async def view_page_tag_ids(
         .offset(first)
     )
     tag_ids = [int(r[0]) for r in await result.fetchall()]
-    if len(tag_ids) == 0: raise TagsNotFound()
+    if len(tag_ids) == 0:
+        raise TagsNotFound("No tags found.", details=pagination_info.model_dump_json())
 
     # Get tag count
     result = await request[request_connection_key].execute(
@@ -230,5 +228,6 @@ async def search_tags(request: Request, query: TagsSearchQuery) -> list[int]:
     )
     tag_ids = [int(r[0]) for r in await result.fetchall()]
     
-    if len(tag_ids) == 0: raise TagsNotFound()
+    if len(tag_ids) == 0:
+        raise TagsNotFound("No tags found.", details=query.model_dump_json())
     return tag_ids

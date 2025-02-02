@@ -1,5 +1,5 @@
 """
-    Authorization & authentication routes.
+Settings-related route handlers.
 """
 from aiohttp import web
 
@@ -23,7 +23,7 @@ async def update(request: Request) -> None:
     # Update settings
     await update_settings(request, data.settings)
     updated_settings = data.settings.model_dump(exclude_none=True)
-    request[request_log_event_key]("INFO", "route_handler", "Updated settings.", details=f"{updated_settings}")
+    request[request_log_event_key]("INFO", "route_handler", "Updated settings.", details=updated_settings)
 
 
 async def view(request: Request) -> SettingsViewResponseBody:
@@ -40,7 +40,7 @@ async def view(request: Request) -> SettingsViewResponseBody:
     # Handle 404
     if len(settings_list) == 0:
         msg = "Setting(-s) not found."
-        request[request_log_event_key]("WARNING", "route_handler", msg, details=f"{setting_names}")
+        request[request_log_event_key]("WARNING", "route_handler", msg, details={"setting_names": setting_names})
         raise web.HTTPNotFound(text=error_json(msg), content_type="application/json")
     
     # Authorize return of private settings

@@ -32,8 +32,8 @@ async def add_objects(request: Request, objects_attributes: list[UpsertedObjectA
         return objects_ids_mapping
     
     except UserNotFound as e:
-        request[request_log_event_key]("WARNING", "domain", str(e))
-        raise web.HTTPBadRequest(text=error_json("User(-s) not found."), content_type="application/json")
+        request[request_log_event_key]("WARNING", "domain", e.msg, e.details)
+        raise web.HTTPBadRequest(text=error_json(e.msg), content_type="application/json")
 
 
 async def update_objects(request: Request, objects_attributes: list[UpsertedObjectAttributes]) -> None:
@@ -52,17 +52,17 @@ async def update_objects(request: Request, objects_attributes: list[UpsertedObje
 
     # Ensure that object IDs exist
     object_id_type_map = {o.object_id: o.object_type for o in await view_objects_attributes_and_tags(request, object_ids)}
-    non_existing_ids = tuple(i for i in object_ids if i not in object_id_type_map)
+    non_existing_ids = list(i for i in object_ids if i not in object_id_type_map)
     if len(non_existing_ids) > 0:
         msg = "Cannot update non-existing objects"
-        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details=f"object_ids = {non_existing_ids}")
+        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details={"object_ids": non_existing_ids})
         raise web.HTTPBadRequest(text=error_json(f"{msg}: {non_existing_ids}."), content_type="application/json")
 
     # Ensure that object types are not being changed
-    objects_with_changed_types = tuple(o.object_id for o in objects_attributes if object_id_type_map[o.object_id] != o.object_type)
+    objects_with_changed_types = list(o.object_id for o in objects_attributes if object_id_type_map[o.object_id] != o.object_type)
     if len(objects_with_changed_types) > 0:
         msg = "Cannot change type of objects."
-        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details=f"object_ids = {objects_with_changed_types}")
+        request[request_log_event_key]("WARNING", "domain", f"{msg}.", details={"object_ids": objects_with_changed_types})
         raise web.HTTPBadRequest(text=error_json(f"{msg}: {objects_with_changed_types}."), content_type="application/json")
 
     # Update objects and trigger searchables update
@@ -88,5 +88,8 @@ async def ensure_objects_types(request: Request, object_ids: list[int], object_t
     if len(object_ids) == 0: return
     object_ids_set = set(object_ids)
     existing_object_ids = await _view_existing_object_ids(request, object_ids_set, object_types)
-    if len(non_existing_object_ids := object_ids_set.difference(existing_object_ids)) > 0:
-        raise ObjectsNotFound(f"Objects {non_existing_object_ids} don't belong to the types {object_types}.")
+    if len(non_existing_object_ids := list(object_ids_set.difference(existing_object_ids))) > 0:
+        raise ObjectsNotFound(
+            f"Objects don't have expected object types.", 
+            details={"object_ids": non_existing_object_ids, "expected_object_types": object_types}
+        )

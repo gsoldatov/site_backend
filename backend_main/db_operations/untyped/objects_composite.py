@@ -111,7 +111,8 @@ async def _add_new_subobjects(request, obj_ids_and_data):
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, sorted_new_subobject_ids)
     
-    request[request_log_event_key]("INFO", "db_operation", "Added new objects as composite subobjects", details=f"object_ids = {list(id_mapping.values())}")
+    request[request_log_event_key]("INFO", "db_operation", "Added new objects as composite subobjects",
+                                   details={"object_ids": list(id_mapping.values())})
     return id_mapping
 
 
@@ -161,7 +162,7 @@ async def _update_existing_subobjects(request, obj_ids_and_data):
         # Add subobjects as pending for `searchables` update
         add_searchable_updates_for_objects(request, [so_attr["object_id"] for so_attr in updated_objects_attributes])
         request[request_log_event_key]("INFO", "db_operation", "Updated existing objects as composite subobjects",
-                                       details=f"object_ids = {[o['object_id'] for o in updated_objects_attributes]}")
+                                       details={"object_ids": [o['object_id'] for o in updated_objects_attributes]})
 
 
 async def _update_composite_properties(request, obj_ids_and_data):
@@ -226,10 +227,10 @@ async def _update_composite_object_data(request, obj_ids_and_data, id_mapping):
         .where(objects.c.object_id.in_(new_subobject_ids))
     )
     existing_subobject_ids = [row[0] for row in await result.fetchall()]
-    non_existing_subobject_ids = set(new_subobject_ids).difference(set(existing_subobject_ids))
+    non_existing_subobject_ids = list(set(new_subobject_ids).difference(set(existing_subobject_ids)))
     if len(non_existing_subobject_ids) > 0:
         msg = "Subobjects do not exist."
-        request[request_log_event_key]("WARNING", "db_operation", msg, details=f"object_ids = {non_existing_subobject_ids}")
+        request[request_log_event_key]("WARNING", "db_operation", msg, details={"object_ids": non_existing_subobject_ids})
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")
     
     # Delete existing & insert new composite object data
@@ -270,4 +271,4 @@ async def _delete_subobjects(request, obj_ids_and_data):
         # Delete subobjects not present in other composite subobjects
         if len(deletable_ids) > 0:
             await delete_objects(request, deletable_ids, False)
-            request[request_log_event_key]("INFO", "db_operation", "Fully deleted subobjects.", details=f"object_ids = {deletable_ids}")
+            request[request_log_event_key]("INFO", "db_operation", "Fully deleted subobjects.", details={"object_ids": deletable_ids})

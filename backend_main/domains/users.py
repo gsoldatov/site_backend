@@ -46,7 +46,7 @@ async def ensure_user_ids_exist(request: Request, user_ids: Iterable[int]) -> No
     existing_user_ids = await _get_existing_user_ids(request, user_ids_set)
 
     if len(user_ids_set) > len(existing_user_ids):
-        non_existing_user_ids = user_ids_set.difference(existing_user_ids)
+        non_existing_user_ids = list(user_ids_set.difference(existing_user_ids))
         msg = "Users do not exist."
-        request[request_log_event_key]("WARNING", "domain", msg, details=f"user_ids = {non_existing_user_ids}")
+        request[request_log_event_key]("WARNING", "domain", msg, details={"user_ids": non_existing_user_ids})
         raise web.HTTPBadRequest(text=error_json(msg), content_type="application/json")

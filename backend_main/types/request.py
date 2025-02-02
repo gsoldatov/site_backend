@@ -16,7 +16,7 @@ class _LogEvent(Protocol):
         str_level: str,
         event_type: str,
         message: str,
-        details: str = "",
+        details: dict[str, Any] | str = "",
         exc_info: bool | None = None
     ) -> None: ...
 request_log_event_key = web.AppKey("request_log_event_key", _LogEvent)

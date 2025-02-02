@@ -52,7 +52,7 @@ async def bulk_add_objects_tags(
 
     if len(new_tag_ids := list(lower_tag_names_to_id_map.map.values())) > 0:    
         # Add new tags as pending for `searchables` update
-        request[request_log_event_key]("INFO", "domain","Added new tags by name.", details=f"tag_ids = {new_tag_ids}")
+        request[request_log_event_key]("INFO", "domain","Added new tags by name.", details={"tag_ids": new_tag_ids})
         add_searchable_updates_for_tags(request, new_tag_ids)
     
     # Get pairs of inserted objects tags and map string tags to their IDs
@@ -69,13 +69,13 @@ async def bulk_add_objects_tags(
         # Add objects tags
         await _add_objects_tags(request, objects_tags)
         request[request_log_event_key]("INFO", "domain", "Added objects' tags.",
-            details=f"object_ids = {object_ids} tag_ids = {objects_tags}")
+            details={"objects_tags": [ot.model_dump_json() for ot in objects_tags]})
         return objects_tags
     
     except ObjectsTagsNotFound as e:
         # Handle non-existing objects & tags
-        request[request_log_event_key]("INFO", "domain", "Failed to add objects' tags.", details=str(e))
-        raise web.HTTPBadRequest(text=error_json(e), content_type="application/json")
+        request[request_log_event_key]("INFO", "domain", e.msg, e.details)
+        raise web.HTTPBadRequest(text=error_json(e.msg), content_type="application/json")
 
 
 async def add_objects_tags(request: Request, object_ids: list[int], tags: list[int | str]) -> ObjectsTagsLists:

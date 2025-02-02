@@ -1,5 +1,5 @@
 """
-    Search routes.
+    Search route handlers.
 """
 from aiohttp import web
 
