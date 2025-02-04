@@ -15,7 +15,7 @@ from tests.db_operations.tags import insert_tags
 
 async def test_incorrect_request_body(cli, db_cursor):
     # Incorrect added tags & items types & values
-    for added_tags in ["not a list", 1, {}, [""], ["a" * 256], [-1], [0]]:
+    for added_tags in [None, "not a list", 1, {}, [""], ["a" * 256], [-1], [0]]:
         obj = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
         obj["added_tags"] = added_tags
         resp = await cli.post("/objects/add", json={"object": obj}, headers=headers_admin_token)

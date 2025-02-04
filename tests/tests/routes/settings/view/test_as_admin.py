@@ -4,7 +4,6 @@ if __name__ == "__main__":
     from tests.util import run_pytest_tests
 
 from tests.data_generators.sessions import headers_admin_token
-
 from tests.db_operations.settings import set_setting
 
 
@@ -17,18 +16,26 @@ async def test_incorrect_request_body(cli):
     resp = await cli.post("settings/view", json={}, headers=headers_admin_token)
     assert resp.status == 400
     
-    # Unallowed attributes
-    for attr, value in [("setting_names", ["non_admin_registration_allowed"]), ("view_all", True)]:
-        body = {attr: value}
-        body["unallowed"] = "unallowed"
-        resp = await cli.post("/settings/view", json=body, headers=headers_admin_token)
-        assert resp.status == 400
-    
     # Incorrect attribute values
-    for attr, value in [("setting_names", 1), ("setting_names", "str"), ("setting_names", True), ("setting_names", []), ("setting_names", ["a"] * 1001),
-        ("setting_names", [1]), ("setting_names", [True]), ("setting_names", [""]), ("setting_names", ["" * 256]), ("view_all", 2), ("view_all", "str"), ("view_all", False)]:
-        body = {attr: value}
-        resp = await cli.post("/settings/view", json=body, headers=headers_admin_token)
+    incorrect_attributes = {
+        "setting_names": [None, False, 1, "str", {}],
+        "view_all": [None, 2, "str", {}, []]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = {attr: value}
+            resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
+            assert resp.status == 400
+    
+    # Unallowed attribute combination
+    body = {"setting_names": ["some name"], "view_all": True}
+    resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Unallowed attributes
+    for attr, value in [("setting_names", "some name"), ("view_all", True)]:
+        body = {attr: value, "unallowed": "unallowed"}
+        resp = await cli.post("settings/view", json=body, headers=headers_admin_token)
         assert resp.status == 400
 
 

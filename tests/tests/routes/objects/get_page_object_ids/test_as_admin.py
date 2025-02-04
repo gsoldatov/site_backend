@@ -19,6 +19,10 @@ from tests.request_generators.objects import get_page_object_ids_request_body
 
 
 async def test_incorrect_request_body(cli):
+    # Invalid JSON
+    resp = await cli.post("/objects/get_page_object_ids", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
     # Missing and unallowed top-level attributes
     resp = await cli.post("/objects/get_page_object_ids", data={}, headers=headers_admin_token)
     assert resp.status == 400
@@ -42,10 +46,10 @@ async def test_incorrect_request_body(cli):
 
     # Incorrect attribute values
     incorrect_attributes = {
-        "page": ["a", {}, [], -1, 0],
-        "items_per_page": ["a", {}, [], -1, 0],
-        "order_by": [1, False, {}, [], "wrong str"],
-        "sort_order": [1, False, {}, [], "wrong str"],
+        "page": [None, "a", {}, [], -1, 0],
+        "items_per_page": [None, "a", {}, [], -1, 0],
+        "order_by": [None, 1, False, {}, [], "wrong str"],
+        "sort_order": [None, 1, False, {}, [], "wrong str"],
         "filter_text": [1, False, {}, [], "a" * 256],
         "object_types": [1, False, {}, "a", [1], ["wrong str"], ["link"] * 5],
         "tags_filter": [1, "a", {}, ["a"], [-1], [0], [1] * 101],

@@ -6,7 +6,7 @@ if __name__ == "__main__":
 from tests.data_generators.sessions import headers_admin_token
 from tests.data_generators.tags import get_test_tag
 
-from tests.data_sets.tags import incorrect_tag_values
+from tests.data_sets.tags import incorrect_tag_attributes
 
 from tests.db_operations.tags import insert_tags
 
@@ -14,27 +14,40 @@ from tests.request_generators.tags import get_tags_update_request_body
 
 
 async def test_incorrect_request_body(cli):
-    # Incorrect request body
+    # Invalid JSON
     resp = await cli.put("/tags/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
-    for payload in ({}, {"test": "wrong attribute"}, {"tag": "wrong value type"}):
-        resp = await cli.put("/tags/update", json=payload, headers=headers_admin_token)
-        assert resp.status == 400
+    # Missing top-level attributes
+    resp = await cli.put("/tags/update", json={}, headers=headers_admin_token)
+    assert resp.status == 400
     
-    # Missing attributes
+    # Incorrect and unallowed top-level attributes
+    incorrect_attributes = {
+        "tag": [None, False, "str", 1, []],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = get_tags_update_request_body()
+            body[attr] = value
+            resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
+            assert resp.status == 400
+    
+    # Missing required tag attributes
     for attr in ("tag_id", "tag_name", "tag_description", "is_published"):
         body = get_tags_update_request_body()
         body["tag"].pop(attr)
         resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Incorrect attribute types and lengths:
-    for k, v in incorrect_tag_values:
-        body = get_tags_update_request_body()
-        body["tag"][k] = v
-        resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect and unallowed tag attributes
+    for attr, values in incorrect_tag_attributes.items():
+        for value in values:
+            body = get_tags_update_request_body()
+            body["tag"][attr] = value
+            resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_update_with_incorrect_data(cli, db_cursor):

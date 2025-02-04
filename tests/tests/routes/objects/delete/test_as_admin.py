@@ -11,6 +11,10 @@ from tests.request_generators.objects import get_objects_delete_body
 
 
 async def test_incorrect_request_body(cli):
+    # Invalid JSON
+    resp = await cli.delete("/objects/delete", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
     # Missing attributes
     for attr in ("object_ids", "delete_subobjects"):
         body = get_objects_delete_body()
@@ -20,8 +24,8 @@ async def test_incorrect_request_body(cli):
     
     # Incorrect attributes values
     incorrect_attributes = {
-        "object_ids": [1, "a", False, {}, ["a"], [-1], [0], [1] * 1001],
-        "delete_subobjects": [2, "a", {}, []]
+        "object_ids": [None, 1, "a", False, {}, ["a"], [-1], [0], [1] * 1001],
+        "delete_subobjects": [None, 2, "a", {}, []]
     }
     for attr, values in incorrect_attributes.items():
         for value in values:

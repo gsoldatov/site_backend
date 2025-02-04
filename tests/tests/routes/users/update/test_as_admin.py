@@ -18,26 +18,25 @@ async def test_incorrect_request_body_at_top_level(cli, config):
     resp = await cli.put("/users/update", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
 
-    # Required attributes missing
+    # Required top-level attributes missing
     for attr in ("user", "token_owner_password"):
         body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
         body.pop(attr)
         resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Unallowed attributes
-    body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
-    body["unallowed"] = "unallowed"
-    resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # # Incorrect values for general attributes
-    for (key, value) in [("user", False), ("user", 123), ("user", "str"), ("token_owner_password", False), ("token_owner_password", 123), 
-        ("token_owner_password", "a"*7), ("token_owner_password", "a"*73)]:
-        body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
-        body[key] = value
-        resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect & unallowed top-level attributes
+    incorrect_attributes = {
+        "user": [None, False, 1, "str", []],
+        "token_owner_password": [None, False, 1, {}, [], "a" * 7, "a" * 73],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
+            body[attr] = value
+            resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_incorrect_request_body_at_user_level(cli, config):
@@ -70,11 +69,12 @@ async def test_incorrect_request_body_at_user_level(cli, config):
 
     for attr in incorrect_attributes:
         for value in incorrect_attributes[attr]:
-            body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
-            body["user"][attr] = value
-            if attr == "password": body["user"]["password_repeat"] = value
-            resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
-            assert resp.status == 400
+            if attr == "user_id" or value != None:  # all attributes, except for `user_id`, can be omitted
+                body = get_update_user_request_body(token_owner_password=config.app.default_user.password.value)
+                body["user"][attr] = value
+                if attr == "password": body["user"]["password_repeat"] = value
+                resp = await cli.put("/users/update", json=body, headers=headers_admin_token)
+                assert resp.status == 400
             
 
 async def test_incorrect_body_attribute_values(cli, config):

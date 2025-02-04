@@ -18,9 +18,50 @@ from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 
+from tests.request_generators.search import get_search_request_body
 from tests.request_generators.tags import get_tags_add_request_body
 
 from tests.util import wait_for
+
+
+async def test_incorrect_request_body(cli_with_search, db_cursor):
+    # Invalid JSON & missing top-level attribute
+    for body in ["not a JSON document", {}]:
+        resp = await cli_with_search.post("/search", data=body, headers=headers_admin_token)
+        assert resp.status == 400
+    
+    # Incorrect & unallowed top-level attributes
+    incorrect_attributes = {
+        "query": [None, False, 1, "str", []],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = get_search_request_body()
+            body[attr] = value
+            resp = await cli_with_search.post("/search", data=body, headers=headers_admin_token)
+            assert resp.status == 400
+    
+    # Missing query attributes
+    for attr in ["query_text", "page", "items_per_page"]:
+        body = get_search_request_body()
+        body["query"].pop(attr)
+        resp = await cli_with_search.post("/search", data=body, headers=headers_admin_token)
+        assert resp.status == 400
+    
+    # Incorrect & unallowed query attributes
+    incorrect_query_attributes = {
+        "query_text": [None, False, 1, [], {}, "", "a" * 256],
+        "page": [None, False, "a", [], {}, -1, 0],
+        "items_per_page": [None, False, "a", [], {}, -1, 0],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_query_attributes.items():
+        for value in values:
+            body = get_search_request_body()
+            body["query"][attr] = value
+            resp = await cli_with_search.post("/search", data=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_correct_search_published_objects_and_tags(cli_with_search, db_cursor):
@@ -38,7 +79,7 @@ async def test_correct_search_published_objects_and_tags(cli_with_search, db_cur
     insert_searchables(searchables, db_cursor)
 
     # Check if matching tags and objects are returned
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -61,7 +102,7 @@ async def test_correct_search_non_published_objects(cli_with_search, db_cursor):
     insert_searchables(searchables, db_cursor)
 
     # Check if matching objects are returned, regardless of their `is_published` prop
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -80,7 +121,7 @@ async def test_correct_search_non_published_tags(cli_with_search, db_cursor):
     insert_searchables(searchables, db_cursor)
 
     # Check if matching tags are returned, regardless of their `is_published` prop
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -110,7 +151,7 @@ async def test_correct_search_objects_with_non_published_tags(cli_with_search, d
     insert_objects_tags([i for i in range(9, 11)], [3], db_cursor)
 
     # Check if matching objects are returned, regardless of being published or tagged with non-published tags
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -129,7 +170,7 @@ async def test_search_without_match(cli_with_search, db_cursor):
     searchables = [get_test_searchable(object_id=i + 1, text_a="bird") for i in range(10)]
     insert_searchables(searchables, db_cursor)
 
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
@@ -153,7 +194,7 @@ async def test_pagination_and_basic_ranking(cli_with_search, db_cursor):
 
     # Query different pages and check if expected object IDs are returned
     for i in range(10):
-        body = {"query": {"query_text": "word", "page": i + 1, "items_per_page": 2}}
+        body = get_search_request_body(page=i + 1, items_per_page=2)
         resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
         assert resp.status == 200
         resp_json = await resp.json()
@@ -164,7 +205,7 @@ async def test_pagination_and_basic_ranking(cli_with_search, db_cursor):
         assert object_ids == [20 - 2 * i, 20 - 2 * i - 1]
     
     # Query non-existing page
-    body = {"query": {"query_text": "word", "page": 11, "items_per_page": 2}}
+    body = get_search_request_body(page=11, items_per_page=2)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 404
 
@@ -184,7 +225,7 @@ async def test_ranking_tag_name_description(cli_with_search, db_cursor):
     await wait_for(fn, msg="Tag searchables were not processed in time.")
 
     # Check if tag_name has more priority than non-header tag_description
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -194,7 +235,7 @@ async def test_ranking_tag_name_description(cli_with_search, db_cursor):
     assert item_ids == [2, 1]
 
     # Check if tag_name has equal priority with tag_description
-    body = {"query": {"query_text": "bird", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(query_text="bird", items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -219,7 +260,7 @@ async def test_ranking_object_name_description(cli_with_search, db_cursor):
     await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than non-header object_description
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -229,7 +270,7 @@ async def test_ranking_object_name_description(cli_with_search, db_cursor):
     assert item_ids == [2, 1]
 
     # Check if object_name has equal priority with object_description
-    body = {"query": {"query_text": "bird", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(query_text="bird", items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -258,7 +299,7 @@ async def test_ranking_object_name_link(cli_with_search, db_cursor):
     await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than link object data
-    body = {"query": {"query_text": "wikipedia.org", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(query_text="wikipedia.org", items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -291,7 +332,7 @@ async def test_ranking_object_name_markdown(cli_with_search, db_cursor):
     await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than non-header markdown object data
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -301,7 +342,7 @@ async def test_ranking_object_name_markdown(cli_with_search, db_cursor):
     assert item_ids == [2, 1]
 
     # Check if object_name has equal priority with headers in markdown object data
-    body = {"query": {"query_text": "bird", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(query_text="bird", items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -334,7 +375,7 @@ async def test_ranking_object_name_to_do_list_item_and_comment(cli_with_search, 
     await wait_for(fn, msg="Object searchables were not processed in time.")
 
     # Check if object_name has more priority than to-do list item text
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -344,7 +385,7 @@ async def test_ranking_object_name_to_do_list_item_and_comment(cli_with_search, 
     assert item_ids == [2, 1]
 
     # Check if to-do list item text has more priority than to-do list item commentary
-    body = {"query": {"query_text": "bird", "page": 1, "items_per_page": 10}}
+    body = get_search_request_body(query_text="bird", items_per_page=10)
     resp = await cli_with_search.post("/search", json=body, headers=headers_admin_token)
     assert resp.status == 200
     resp_json = await resp.json()

@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
-
+from tests.data_sets.objects import incorrect_markdown_attributes
 from tests.db_operations.objects import insert_objects, insert_markdown
 
 
@@ -19,13 +19,13 @@ async def test_update(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
     insert_markdown(md_list, db_cursor)
 
-    # Incorrect attributes in object_data for markdown
-    for object_data in [{}, {"raw_text": "Some text", "incorrect_attr": 1}, {"raw_text": ""}, {"raw_text": 123}]:
-        obj = get_test_object(3, object_type="markdown", pop_keys=["created_at", "modified_at", "object_type"])
-        obj["object_id"] = 1
-        obj["object_data"] = object_data
-        resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect and unallowed attribute values
+    for attr, values in incorrect_markdown_attributes.items():
+        for value in values:
+            obj = get_test_object(1, object_type="markdown", pop_keys=["created_at", "modified_at", "object_type"])
+            obj["object_data"][attr] = value
+            resp = await cli.post("/objects/add", json={"object": obj}, headers=headers_admin_token)
+            assert resp.status == 400
 
     # Correct update (markdown)
     obj = get_test_object(3, object_type="markdown", pop_keys=["created_at", "modified_at", "object_type"])

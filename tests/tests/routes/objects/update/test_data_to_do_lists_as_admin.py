@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
-
+from tests.data_sets.objects import incorrect_to_do_list_attributes, incorrect_to_do_list_item_attributes
 from tests.db_operations.objects import insert_objects, insert_to_do_lists
 
 
@@ -21,38 +21,33 @@ async def test_update(cli, db_cursor):
     insert_objects(obj_list, db_cursor)
     insert_to_do_lists(tdl_list, db_cursor)
 
-    # Incorrect attributes
-    for attr in [{"incorrect attr": "123"}, {"incorrect attr": "123", "sort_type": "default", "items": correct_to_do_list_items}]:
+    # Missing required top-level attributes
+    for attr in ["sort_type", "items"]:
         tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
-        tdl["object_data"] = attr
+        tdl["object_data"].pop(attr)
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Incorrect attibutes (to-do list items, missing keys)
+    # Incorrect & unallowed top-level attributes
+    for attr, values in incorrect_to_do_list_attributes.items():
+        for value in values:
+            tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
+            tdl["object_data"][attr] = value
+            resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
+            assert resp.status == 400
+    
+    # Incorrect and unallowed to-do list item attributes
+    for attr, values in incorrect_to_do_list_item_attributes.items():
+        for value in values:
+            tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
+            tdl["object_data"]["items"][0][attr] = value
+            resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
+            assert resp.status == 400
+    
+    # Missing required to-do list item attributes
     for k in correct_to_do_list_items[0].keys():
         tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
         tdl["object_data"]["items"][0].pop(k)
-        resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
-        assert resp.status == 400
-    
-    # Incorrect attibutes (to-do list items, additional key)
-    tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
-    tdl["object_data"]["items"][0]["wrong_key"] = "some value"
-    resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
-    assert resp.status == 400
-    
-    # Incorrect attribute values (general to-do list object data)
-    for k, v in [("sort_type", 1), ("sort_type", True), ("sort_type", "incorrect string"), ("items", 1), ("items", True), ("items", "string"), ("items", [])]:
-        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
-        tdl["object_data"][k] = v
-        resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
-        assert resp.status == 400
-    
-    # Incorrect attribute values (to-do list items)
-    for k, v in [("item_number", "string"), ("item_number", -1), ("item_state", 0), ("item_state", "wrong value"), ("item_text", 0), ("commentary", 0),
-                ("indent", "string"), ("indent", -1), ("is_expanded", 0), ("is_expanded", "string")]:
-        tdl = get_test_object(7, object_type="to_do_list", pop_keys=["created_at", "modified_at", "object_type"])
-        tdl["object_data"]["items"][0][k] = v
         resp = await cli.put("/objects/update", json={"object": tdl}, headers=headers_admin_token)
         assert resp.status == 400
     

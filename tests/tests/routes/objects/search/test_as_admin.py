@@ -14,6 +14,10 @@ from tests.request_generators.objects import get_objects_search_request_body
 
 
 async def test_incorrect_request_body(cli):
+    # Invalid JSON
+    resp = await cli.post("/objects/search", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
     # Missing, incorrect and unallowed top-level attributes
     for body in ("a", {}, {**get_objects_search_request_body(), "unallowed": 1}):
         resp = await cli.post("/objects/search", json=body, headers=headers_admin_token)
@@ -34,9 +38,9 @@ async def test_incorrect_request_body(cli):
 
     # Incorrect query attribute values
     incorrect_values = {
-        "query_text": [1, False, {}, [], "", "a" * 256],
-        "maximum_values": [False, "a", {}, [], -1, 0],
-        "existing_ids": [1, False, "a", {}, ["a"], [-1], [0], [1] * 101]
+        "query_text": [None, 1, False, {}, [], "", "a" * 256],
+        "maximum_values": [None, False, "a", {}, [], -1, 0],
+        "existing_ids": [None, 1, False, "a", {}, ["a"], [-1], [0], [1] * 101]
     }
     for attr, values in incorrect_values.items():
         for value in values:

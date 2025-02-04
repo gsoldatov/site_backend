@@ -6,7 +6,7 @@ if __name__ == "__main__":
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
 
-from tests.data_sets.objects import incorrect_object_values
+from tests.data_sets.objects import incorrect_object_attributes
 
 
 async def test_incorrect_request_body(cli):
@@ -21,19 +21,14 @@ async def test_incorrect_request_body(cli):
         resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
         assert resp.status == 400
 
-    # Unallowed attributes
-    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-    link["unallowed"] = "unallowed"
-    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # Incorrect values for general attributes
-    for k, v in incorrect_object_values:
-        if k != "object_id":
-            link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-            link[k] = v
-            resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
-            assert resp.status == 400
+    # Incorrect and unallowed object attributes
+    for attr, values in incorrect_object_attributes.items():
+        for value in values:
+            if attr != "object_id":
+                link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+                link[attr] = value
+                resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+                assert resp.status == 400
 
 
 async def test_add_object_with_incorrect_data(cli):

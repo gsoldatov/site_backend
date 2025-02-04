@@ -14,18 +14,30 @@ async def test_incorrect_request_body(cli):
     # Required attributes missing
     resp = await cli.put("settings/update", json={}, headers=headers_admin_token)
     assert resp.status == 400
+
+    # Incorrect and unallowed attribute values
+    incorrect_attributes = {
+        "settings": [None, False, 1, "str", []],
+        "unallowed": "unallowed"
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = {"settings": {"non_admin_registration_allowed": True}}
+            body[attr] = value
+            resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
+            assert resp.status == 400
     
-    # Unallowed attributes
-    body = {"settings": {"non_admin_registration_allowed": True}}
-    body["unallowed"] = "unallowed"
-    resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
-    assert resp.status == 400
-    
-    # Incorrect attribute values
-    for attr, value in [("settings", 1), ("settings", "str"), ("settings", True), ("settings", []), ("settings", {})]:
-        body = {attr: value}
-        resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect setting values
+    incorrect_setting_values = {
+        "non_admin_registration_allowed": [None, 1, "str", {}, []],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_setting_values.items():
+        for value in values:
+            body = {"settings": {"non_admin_registration_allowed": True}}
+            body["settings"][attr] = value
+            resp = await cli.put("/settings/update", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_incorrect_setting_names_and_values(cli):    

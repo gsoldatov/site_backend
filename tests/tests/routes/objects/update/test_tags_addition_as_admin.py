@@ -20,7 +20,7 @@ async def test_incorrect_request_body(cli, db_cursor):
     insert_links([get_test_object_data(1)], db_cursor)
 
     # Incorrect added tags & items types & values
-    for added_tags in ["not a list", 1, {}, [""], ["a" * 256], [-1], [0]]:
+    for added_tags in [None, False, "not a list", 1, {}, [""], ["a" * 256], [-1], [0]]:
         obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
         obj["added_tags"] = added_tags
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)

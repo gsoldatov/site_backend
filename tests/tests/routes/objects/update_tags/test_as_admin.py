@@ -16,6 +16,10 @@ from tests.request_generators.objects import get_update_tags_request_body
 async def test_incorrect_request_body(cli, db_cursor):
     insert_objects_update_tags_test_data(db_cursor)
 
+    # Invalid JSON
+    resp = await cli.put("/objects/update_tags", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
     # Missing attributes
     for attr in ("object_ids", "added_tags", "removed_tag_ids"):
         body = get_update_tags_request_body()
@@ -25,9 +29,9 @@ async def test_incorrect_request_body(cli, db_cursor):
     
     # Incorrect attribute values
     incorrect_values = {
-        "object_ids": [1, True, "", {}, ["a"], [-1], [0], [], [1] * 101],
-        "added_tags": [1, True, "", {}, ["a" * 256], [-1], [0], [1] * 101],
-        "removed_tag_ids": [1, True, "", {}, ["a"], [-1], [0], [1] * 101]
+        "object_ids": [None, 1, True, "", {}, ["a"], [-1], [0], [], [1] * 101],
+        "added_tags": [None, 1, True, "", {}, ["a" * 256], [-1], [0], [1] * 101],
+        "removed_tag_ids": [None, 1, True, "", {}, ["a"], [-1], [0], [1] * 101]
     }
     for attr, values in incorrect_values.items():
         for value in values:

@@ -11,20 +11,47 @@ from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
 
+# Incorrect and unallowed object attributes for /objects/add & /objects/update routes
+incorrect_object_attributes = {
+    "object_id": [None, False, "str", {}, [], -1],
+    "object_type": [None, False, 1, {}, [], "wrong str"],
+    "object_name": [None, False, 1, {}, [], "", "a" * 256],
+    "object_description": [None, False, 1, {}, []],
+    "is_published": [None, "str", 1, {}, []],
+    "display_in_feed": [None, "str", 1, {}, []],
+    "feed_timestamp": [1, {}, [], "wrong str", "99999-01-01"],
+    "show_description": [None, "str", 1, {}, []],
+    "owner_id": [None, False, "str", {}, [], -1],
+    "object_data": [None, False, "str", 1, []],    
+    "unallowed": ["unallowed"]
+}
 
-# Fixed value and object data lists to be supplied into insert functions below
-incorrect_object_values = [
-    ("object_id", -1), ("object_id", "abc"),
-    ("object_type", 1), ("object_type", "incorrect object type"),
-    ("object_name", 123), ("object_name", ""), ("object_name", "a"*256),
-    ("object_description", 1),
-    ("is_published", 1), ("is_published", "str"), ("is_published", None),
-    ("display_in_feed", 1), ("display_in_feed", "str"), ("display_in_feed", None),
-    ("feed_timestamp", 1), ("feed_timestamp", True), ("feed_timestamp", "wrong str"), ("feed_timestamp", "99999-01-01"),
-    ("show_description", 1), ("show_description", "str"), ("show_description", None),
-    ("owner_id", -1), ("owner_id", "str"), ("owner_id", True),
-    ("object_data", None), ("object_data", ""), ("object_data", 1)
-]
+incorrect_link_attributes = {
+    "link": [None, False, 1, "wrong str", [], {}],
+    "show_description_as_link": [None, 1, "str", [], {}],
+    "unallowed": ["unallowed"]
+}
+
+incorrect_markdown_attributes = {
+    "raw_text": [None, False, 1, [], {}, ""],
+    "unallowed": ["unallowed"]
+}
+
+incorrect_to_do_list_attributes = {
+    "sort_type": [None, False, 1, {}, [], "wrong str"],
+    "items": [None, False, 1, "str", {}, []],
+    "unallowed": ["unallowed"]
+}
+
+incorrect_to_do_list_item_attributes = {
+    "item_number": [None, False, "str", [], {}, -1],
+    "item_state": [None, False, 1, [], {}, "wrong str"],
+    "item_text": [None, False, 0, [], {}],
+    "commentary": [None, False, 0, [], {}],
+    "indent": [None, False, "str", [], {}, -1],
+    "is_expanded": [None, "str", 1, [], {}],
+    "unallowed": ["unallowed"]
+}
 
 
 links_data_list = [{

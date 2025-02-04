@@ -15,16 +15,25 @@ from tests.db_operations.tags import insert_tags
 
 
 async def test_incorrect_request_body(cli):
-    # Incorrect request body
-    for body in (1, "a", [], {}):
-        resp = await cli.post("/tags/view", json=body, headers=headers_admin_token)
-        assert resp.status == 400
-    
-    # Incorrect tag_ids
-    for value in (1, "a", {}, ["a"], [], [1] * 1001):
-        body = {"tag_ids": value}
-        resp = await cli.post("/tags/view", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Invalid JSON
+    resp = await cli.post("/tags/view", data="not a JSON document.", headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Missing required attributes
+    resp = await cli.post("/tags/view", json={}, headers=headers_admin_token)
+    assert resp.status == 400
+
+    # Incorrect & unallowed attributes
+    incorrect_attributes = {
+        "tag_ids": [None, False, "str", 1, {}, ["a"], [], [-1], [1] * 1001],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = {"tag_ids": [1]}
+            body[attr] = value
+            resp = await cli.post("/tags/view", json=body, headers=headers_admin_token)
+            assert resp.status == 400
 
 
 async def test_view_non_existing_tags(cli, db_cursor):

@@ -23,19 +23,18 @@ async def test_incorrect_request_body(cli):
         resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Unallowed attributes
-    body = {"full_view_mode": False, "user_ids": [1]}
-    body["unallowed"] = "unallowed"
-    resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # Incorrect values for general attributes
-    for (key, value) in [("full_view_mode", 1), ("full_view_mode", "str"), ("user_ids", 1), ("user_ids", False), ("user_ids", "str"),
-        ("user_ids", []), ("user_ids", [1] * 1001), ("user_ids", ["a"])]:
-        body = {"full_view_mode": False, "user_ids": [1]}
-        body[key] = value
-        resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect & unallowed attributes
+    incorrect_attributes = {
+        "user_ids": [None, False, 1, "str", {}, [], ["a"], [0], [1] * 1001],
+        "full_view_mode": [None, 1, "str", {}, []],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = {"full_view_mode": False, "user_ids": [1]}
+            body[attr] = value
+            resp = await cli.post("/users/view", json=body, headers=headers_admin_token)
+            assert resp.status == 400
     
 
 async def test_valid_request_for_non_existing_users(cli):

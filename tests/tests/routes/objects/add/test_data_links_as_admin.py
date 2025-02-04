@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
+from tests.data_sets.objects import incorrect_link_attributes
 
 
 async def test_add(cli, db_cursor):
@@ -18,29 +19,13 @@ async def test_add(cli, db_cursor):
         resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
         assert resp.status == 400
 
-    # Unallowed link object data attribute
-    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-    link["object_data"]["unallowed"] = "some str"
-    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # Incorrect link object data attribute values
-    for attr, value in [("link", 123), ("link", False), ("show_description_as_link", 1), ("show_description_as_link", "str")]:
-        link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-        link["object_data"][attr] = value
-        resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
-        assert resp.status == 400
-    
-    # Incorrect link value (not a valid URL)
-    link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
-    link["object_data"] = {"link": "not a valid link"}
-    resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
-    assert resp.status == 400
-
-    db_cursor.execute(f"SELECT object_name FROM objects") # Check that a new object was not created
-    assert not db_cursor.fetchone()
-    db_cursor.execute(f"SELECT link FROM links")
-    assert not db_cursor.fetchone()
+    # Incorrect and unallowed link object data attribute values
+    for attr, values in incorrect_link_attributes.items():
+        for value in values:
+            link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])
+            link["object_data"][attr] = value
+            resp = await cli.post("/objects/add", json={"object": link}, headers=headers_admin_token)
+            assert resp.status == 400
 
     # Add a correct link
     link = get_test_object(1, pop_keys=["object_id", "created_at", "modified_at"])

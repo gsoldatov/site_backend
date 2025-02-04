@@ -19,8 +19,9 @@ async def test_incorrect_removed_object_ids_in_request_body(cli, db_cursor):
     insert_objects([get_object_attrs(1)], db_cursor)
 
     # Incorrect types
-    for removed_object_ids in ["not a list", 1, {}, [-1], [0]]:
-        body = get_tags_update_request_body(removed_object_ids=removed_object_ids)
+    for removed_object_ids in [None, False, "not a list", 1, {}, [-1], [0]]:
+        body = get_tags_update_request_body()
+        body["removed_object_ids"] = removed_object_ids
         resp = await cli.put("/tags/update", json=body, headers=headers_admin_token)
         assert resp.status == 400
     

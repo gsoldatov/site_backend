@@ -15,6 +15,8 @@ from tests.db_operations.objects_tags import insert_objects_tags
 from tests.db_operations.searchables import insert_searchables
 from tests.db_operations.tags import insert_tags
 
+from tests.request_generators.search import get_search_request_body
+
 
 async def test_correct_search_non_published_objects(cli_with_search, db_cursor):
     # Insert mock data
@@ -25,7 +27,7 @@ async def test_correct_search_non_published_objects(cli_with_search, db_cursor):
     insert_searchables(searchables, db_cursor)
 
     # Check if matching published objects are returned
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -44,7 +46,7 @@ async def test_correct_search_non_published_tags(cli_with_search, db_cursor):
     insert_searchables(searchables, db_cursor)
 
     # Check if matching published tags are returned
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body)
     assert resp.status == 200
     resp_json = await resp.json()
@@ -74,7 +76,7 @@ async def test_correct_search_objects_with_non_published_tags(cli_with_search, d
     insert_objects_tags([i for i in range(9, 11)], [3], db_cursor)
 
     # Check if matching published objects not tagged with non-published tags are returned
-    body = {"query": {"query_text": "word", "page": 1, "items_per_page": 100}}
+    body = get_search_request_body()
     resp = await cli_with_search.post("/search", json=body)
     assert resp.status == 200
     resp_json = await resp.json()

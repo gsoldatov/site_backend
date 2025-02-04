@@ -13,7 +13,7 @@ from tests.db_operations.objects import insert_objects
 
 
 async def test_incorrect_request_body(cli):
-    # Incorrect request body
+    # Invalid JSON
     resp = await cli.post("/objects/view_composite_hierarchy_elements", data="not a JSON document.", headers=headers_admin_token)
     assert resp.status == 400
     
@@ -21,17 +21,17 @@ async def test_incorrect_request_body(cli):
     resp = await cli.post("/objects/view_composite_hierarchy_elements", json={}, headers=headers_admin_token)
     assert resp.status == 400
 
-    # Unallowed attributes
-    body = {"object_id": 1, "unallowed": "unallowed"}
-    resp = await cli.post("/objects/view_composite_hierarchy_elements", json=body, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # Incorrect values for general attributes
-    for k, v in [("object_id", "str"), ("object_id", True), ("object_id", [1]), ("object_id", 0)]:
-        body = {"object_id": 1} # Correct request body
-        body[k] = v
-        resp = await cli.post("/objects/view_composite_hierarchy_elements", json=body, headers=headers_admin_token)
-        assert resp.status == 400
+    # Incorrect and unallowed attributes
+    incorrect_attributes = {
+        "object_id": [None, False, "str", [], {}, -1, 0],
+        "unallowed": ["unallowed"]
+    }
+    for attr, values in incorrect_attributes.items():
+        for value in values:
+            body = {"object_id": 1} # Correct request body
+            body[attr] = value
+            resp = await cli.post("/objects/view_composite_hierarchy_elements", json=body, headers=headers_admin_token)
+            assert resp.status == 400
         
 
 async def test_non_existing_object_id(cli):

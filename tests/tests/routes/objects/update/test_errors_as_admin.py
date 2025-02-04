@@ -6,7 +6,7 @@ if __name__ == "__main__":
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
 
-from tests.data_sets.objects import incorrect_object_values, insert_data_for_update_tests
+from tests.data_sets.objects import incorrect_object_attributes, insert_data_for_update_tests
 
 
 async def test_incorrect_request_body(cli):
@@ -25,13 +25,14 @@ async def test_incorrect_request_body(cli):
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
         assert resp.status == 400
     
-    # Incorrect attribute types and lengths:
-    for k, v in incorrect_object_values:
-        if k != "object_type":
-            obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
-            obj[k] = v
-            resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
-            assert resp.status == 400
+    # Incorrect and unallowed object attributes
+    for attr, values in incorrect_object_attributes.items():
+        for value in values:
+            if attr != "object_type":
+                obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
+                obj[attr] = value
+                resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+                assert resp.status == 400
 
 
 async def test_update_with_incorrect_data(cli, db_cursor):

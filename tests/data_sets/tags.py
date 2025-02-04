@@ -1,12 +1,14 @@
 from datetime import datetime, timezone, timedelta
 
 
-incorrect_tag_values = [
-    ("tag_id", 0), ("tag_id", "abc"), 
-    ("tag_name", 123), ("tag_name", ""), ("tag_name", "a"*256),
-    ("tag_description", 1),
-    ("is_published", 1), ("is_published", "abc")
-]
+incorrect_tag_attributes = {
+    "tag_id": [None, False, "str", [], {}, -1, 0],
+    "tag_name": [None, False, [], {}, 1, "", "a" * 256],
+    "tag_description": [None, False, [], {}, 1],
+    "is_published": [None, [], {}, 1, "a"],
+    "unallowed": ["unallowed"]
+}
+
 
 tag_list = [{
         "tag_id": x + 1,

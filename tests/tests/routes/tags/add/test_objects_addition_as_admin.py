@@ -23,7 +23,7 @@ async def test_incorrect_request_body(cli, db_cursor):
     assert resp.status == 400
 
     # Incorrect tag's objects
-    for added_object_ids in ["not a list", 1, {}, ["a"], [-1], [0]]:
+    for added_object_ids in [None, False, "not a list", 1, {}, ["a"], [-1], [0]]:
         body = get_tags_add_request_body()
         body["tag"]["added_object_ids"] = added_object_ids
         resp = await cli.post("/tags/add", json=body, headers=headers_admin_token)

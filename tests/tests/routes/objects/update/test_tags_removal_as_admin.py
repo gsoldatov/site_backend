@@ -21,7 +21,7 @@ async def test_incorrect_request_body(cli, db_cursor):
     insert_tags([get_test_tag(1)], db_cursor)
 
     # Incorrect removed tags & items types & values
-    for removed_tag_ids in ["not a list", 1, {}, ["a"], [-1], [0]]:
+    for removed_tag_ids in [None, False, "not a list", 1, {}, ["a"], [-1], [0]]:
         obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
         obj["removed_tag_ids"] = removed_tag_ids
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)

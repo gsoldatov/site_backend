@@ -34,8 +34,8 @@ async def test_add_incorrect_top_level_data(cli):
     assert resp.status == 400
 
     # Incorrect attribute values
-    incorrect_value = {"subobjects": [1, False, "str", []], "deleted_subobjects": [1, False, "str"],
-        "display_mode": [1, False, "wrong str"], "numerate_chapters": [1, "str", []]}
+    incorrect_value = {"subobjects": [None, 1, False, "str", []], "deleted_subobjects": [None, 1, False, "str"],
+        "display_mode": [None, 1, False, "wrong str"], "numerate_chapters": [None, 1, "str", []]}
     for attr in ["subobjects", "deleted_subobjects", "display_mode", "numerate_chapters"]:
         for value in incorrect_value[attr]:
             composite = get_test_object(1, object_type="composite", pop_keys=["object_id", "created_at", "modified_at"])

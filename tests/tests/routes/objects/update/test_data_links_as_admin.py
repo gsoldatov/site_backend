@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object, get_object_attrs, get_test_object_data
 from tests.data_generators.sessions import headers_admin_token
-
+from tests.data_sets.objects import incorrect_link_attributes
 from tests.db_operations.objects import insert_objects, insert_links
 
 
@@ -26,26 +26,14 @@ async def test_update(cli, db_cursor):
         resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
         assert resp.status == 400
 
-    # Unallowed link object data attribute
-    obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
-    obj["object_data"]["unallowed"] = "some str"
-    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
-    assert resp.status == 400
-
-    # Incorrect link object data attribute values
-    for attr, value in [("link", 123), ("link", False), ("show_description_as_link", 1), ("show_description_as_link", "str")]:
-        obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
-        obj["object_data"][attr] = value
-        resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
-        assert resp.status == 400
-
-    # Incorrect link value (not a valid URL)
-    obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
-    obj["object_id"] = 1
-    obj["object_data"]["link"] = "not a link"
-    resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
-    assert resp.status == 400
-
+    # Incorrect and unallowed link object data attribute values
+    for attr, values in incorrect_link_attributes.items():
+        for value in values:
+            obj = get_test_object(1, pop_keys=["created_at", "modified_at", "object_type"])
+            obj["object_data"][attr] = value
+            resp = await cli.put("/objects/update", json={"object": obj}, headers=headers_admin_token)
+            assert resp.status == 400
+    
     # Correct update (link)
     obj = get_test_object(3, pop_keys=["created_at", "modified_at", "object_type"])
     obj["object_id"] = 1

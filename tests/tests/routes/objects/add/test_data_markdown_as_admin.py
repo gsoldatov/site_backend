@@ -8,26 +8,22 @@ if __name__ == "__main__":
 
 from tests.data_generators.objects import get_test_object
 from tests.data_generators.sessions import headers_admin_token
-
+from tests.data_sets.objects import incorrect_markdown_attributes
 
 async def test_add(cli, db_cursor):
-    # Incorrect markdown attributes
-    for attr in [{"incorrect MD attr": "123"}, {"incorrect MD attr": "123", "raw_text": "New text"}]:
-        md = get_test_object(1, object_type="markdown", pop_keys=["object_id", "created_at", "modified_at"])
-        md["object_data"] = attr
-        resp = await cli.post("/objects/add", json={"object": md}, headers=headers_admin_token)
-        assert resp.status == 400
-    
-    # Incorrect markdown value
+    # Missing required attribute
     md = get_test_object(1, object_type="markdown", pop_keys=["object_id", "created_at", "modified_at"])
-    md["object_data"] = {"raw_text": ""}
+    md["object_data"].pop("raw_text")
     resp = await cli.post("/objects/add", json={"object": md}, headers=headers_admin_token)
     assert resp.status == 400
 
-    db_cursor.execute(f"SELECT object_name FROM objects") # Check that a new object was not created
-    assert not db_cursor.fetchone()
-    db_cursor.execute(f"SELECT raw_text FROM markdown")
-    assert not db_cursor.fetchone()
+    # Incorrect and unallowed attribute values
+    for attr, values in incorrect_markdown_attributes.items():
+        for value in values:
+            md = get_test_object(1, object_type="markdown", pop_keys=["object_id", "created_at", "modified_at"])
+            md["object_data"][attr] = value
+            resp = await cli.post("/objects/add", json={"object": md}, headers=headers_admin_token)
+            assert resp.status == 400
 
     # Add a correct markdown object
     md = get_test_object(1, object_type="markdown", pop_keys=["object_id", "created_at", "modified_at"])
