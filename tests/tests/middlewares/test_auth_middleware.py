@@ -8,7 +8,7 @@ if __name__ == "__main__":
 from tests.data_generators.sessions import admin_token
 from tests.data_generators.users import get_test_user
 
-from tests.data_sets.common import insert_data_for_successful_requests
+from tests.data_sets.common import insert_data_for_requests_to_all_routes
 
 from tests.db_operations.users import insert_users
 
@@ -58,7 +58,7 @@ async def test_invalid_access_token_refusal(app, cli, db_cursor):
 
 async def test_access_token_prolongation(app, cli, db_cursor, config):
     # Insert mock data
-    insert_data_for_successful_requests(db_cursor)
+    insert_data_for_requests_to_all_routes(db_cursor)
 
     # Check token prolongation on successful requests for all non-auth routes
     route_handler_info_map = get_route_handler_info_map(config)

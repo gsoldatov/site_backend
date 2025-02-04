@@ -11,8 +11,11 @@ from tests.db_operations.tags import insert_tags
 from tests.db_operations.users import insert_users
 
 
-def insert_data_for_successful_requests(db_cursor):
-    """ Inserts a dataset, which is required to successfully send a request to each of app's routes. """
+def insert_data_for_requests_to_all_routes(db_cursor):
+    """
+    Inserts a dataset, which is required to send
+    valid & invalid requests to each of app's routes.
+    """
     obj_list = [get_object_attrs(object_id=i, object_type="link") for i in range(100, 102)]
     obj_list.append(get_object_attrs(99999, object_type="composite"))
     l_list = [get_test_object_data(i, object_type="link") for i in range(100, 102)]
@@ -24,8 +27,11 @@ def insert_data_for_successful_requests(db_cursor):
 
     insert_searchables([get_test_searchable(object_id=101, text_a="word")], db_cursor)
 
-    insert_users([get_test_user(999, pop_keys=["password_repeat"])], db_cursor)
-    insert_sessions([get_test_session(999, access_token=logging_out_user_access_token)], db_cursor)
+    insert_users([
+        get_test_user(100, login="login", password="password", can_login=False, pop_keys=["password_repeat"]),  # user, who can't log in
+        get_test_user(101, pop_keys=["password_repeat"])    # session for successful /auth/logout 
+    ], db_cursor)
+    insert_sessions([get_test_session(101, access_token=logging_out_user_access_token)], db_cursor)
 
 
 logging_out_user_access_token = "second_user_access_token"
