@@ -44,7 +44,7 @@ def deserialize_str_to_datetime(
     if allow_none and s is None: return None
 
     try:
-        if s.endswith("Z"): s = s[:-1] # remove Zulu timezone if present to avoid parsing failure
+        if s.endswith("Z"): s = s[:-1] + "+00:00" # replace Zulu timezone if present to avoid parsing failure
         return datetime.fromisoformat(s)
     except ValueError:
         error_msg = error_msg or f"'{s}' is not a valid ISO-formatted string."
