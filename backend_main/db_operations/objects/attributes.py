@@ -101,12 +101,19 @@ async def view_objects_attributes_and_tags(request: Request, object_ids: list[in
         objects_tags.c.object_id,
         array_agg(objects_tags.c.tag_id).label("current_tag_ids")
     ) \
-    .where(and_(
-        objects_auth_filter_clause,
-        objects_tags.c.object_id.in_(object_ids)
-    )) \
+    .where(objects_tags.c.object_id.in_(object_ids)) \
     .group_by(objects_tags.c.object_id) \
     .subquery()
+    # .where(and_(
+    #     objects_auth_filter_clause,   # don't apply auth clause for objects' tags, because
+    #                                   # 1) `objects_auth_filter_clause` won't work 
+    #                                   #    (since it references `objects` table instead of `objects_tags`)
+    #                                   #    (although `get_objects_data_auth_filter_clause` can be used instead)
+    #                                   # 2) auth clause is applied to main table anyway
+    #     objects_tags.c.object_id.in_(object_ids)
+    # )) \
+    # .group_by(objects_tags.c.object_id) \
+    # .subquery()
 
     query = select(
             objects.c.object_id,
