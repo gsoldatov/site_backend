@@ -7,18 +7,18 @@ from backend_main.types.domains.objects.attributes import ObjectType
 
 def get_bulk_upsert_request_body(
         objects: list[dict[str, Any]] | None = None,
-        fully_deleted_subobject_ids: list[int] | None = None
+        deleted_object_ids: list[int] | None = None
     ):
     """
     Returns /objects/bulk_upsert request body with default or custom values.
 
     Defaults:
     - `objects` => a single new link with object ID = 0;
-    - `fully_deleted_subobject_ids` => empty list;
+    - `deleted_object_ids` => empty list;
     """
     return {
         "objects": objects if objects is not None else [get_bulk_upsert_object()],
-        "fully_deleted_subobject_ids": fully_deleted_subobject_ids if fully_deleted_subobject_ids is not None else []
+        "deleted_object_ids": deleted_object_ids if deleted_object_ids is not None else []
     }
 
 

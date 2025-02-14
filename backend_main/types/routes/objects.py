@@ -17,14 +17,14 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     objects: list[UpsertedObject] = Field(min_length=1, max_length=100)
-    fully_deleted_subobject_ids: list[PositiveInt] = Field(max_length=1000)
+    deleted_object_ids: list[PositiveInt] = Field(max_length=1000)
 
     @model_validator(mode="after")
     def validate_unique_objects(self) -> Self:
         self._ensure_unique_object_ids()
         self._ensure_new_subobjects_have_objects()
         self._ensure_shared_tags_limits()
-        self._validate_fully_deleted_subobject_ids()
+        self._validate_deleted_object_ids()
         return self
     
     def _ensure_unique_object_ids(self) -> None:
@@ -53,9 +53,9 @@ class ObjectsBulkUpsertRequestBody(BaseModel):
         if sum(len(o.removed_tag_ids) for o in self.objects) > roi_max:
             raise ValueError(f"Removed tag IDs can contain a maximum of {roi_max} for all objects combined.")
 
-    def _validate_fully_deleted_subobject_ids(self) -> None:
+    def _validate_deleted_object_ids(self) -> None:
         # Ensure fully deleted subobjects are not passed as objects
-        fdso = set(self.fully_deleted_subobject_ids)
+        fdso = set(self.deleted_object_ids)
         object_ids = set(o.object_id for o in self.objects)
         if len(fd_object_ids := fdso.intersection(object_ids)) > 0:
             raise ValueError(f"Upserted objects {fd_object_ids} cannot be marked as fully deleted.")

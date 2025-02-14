@@ -1,5 +1,5 @@
 """
-Tests for `fully_deleted_subobject_ids` list in /objects/upsert route.
+Tests for `deleted_object_ids` list in /objects/upsert route.
 """
 if __name__ == "__main__":
     import os, sys
@@ -16,14 +16,14 @@ from tests.request_generators.objects import get_bulk_upsert_request_body, get_b
 async def test_incorrect_values(cli, db_cursor):
     # Missing attribute
     body = get_bulk_upsert_request_body()
-    body.pop("fully_deleted_subobject_ids")
+    body.pop("deleted_object_ids")
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 400
 
     # Incorrect values
     for value in [None, False, 1, "str", {}, [None], [False], [{}], ["a"], [-1], [0], [1] * 1001]:
         body = get_bulk_upsert_request_body()
-        body["fully_deleted_subobject_ids"] = value
+        body["deleted_object_ids"] = value
         resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
         assert resp.status == 400
 
@@ -31,7 +31,7 @@ async def test_incorrect_values(cli, db_cursor):
 async def test_upserted_objects_marked_as_fully_deleted(cli, db_cursor):
     body = get_bulk_upsert_request_body(
         objects=[get_bulk_upsert_object(object_id=1)],
-        fully_deleted_subobject_ids=[1]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -46,7 +46,7 @@ async def test_upserted_subobjects_marked_as_fully_deleted(cli, db_cursor):
         objects=[get_bulk_upsert_object(object_type="composite", object_data=get_composite_data(
             subobjects=[get_composite_subobject_data(1, 0, 0)]
         ))],
-        fully_deleted_subobject_ids=[1]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 400
@@ -55,7 +55,7 @@ async def test_upserted_subobjects_marked_as_fully_deleted(cli, db_cursor):
 async def test_fully_delete_non_existing_object_id(cli, db_cursor):
     body = get_bulk_upsert_request_body(
         objects=[get_bulk_upsert_object()],
-        fully_deleted_subobject_ids=[999]
+        deleted_object_ids=[999]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200
@@ -64,14 +64,14 @@ async def test_fully_delete_non_existing_object_id(cli, db_cursor):
 async def test_fully_delete_object_id_created_during_request(cli, db_cursor):
     body = get_bulk_upsert_request_body(
         objects=[get_bulk_upsert_object()],
-        fully_deleted_subobject_ids=[999]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
-    # Check if new object exists in the database
+    # Check if new object does not exist in the database
     db_cursor.execute("SELECT object_id FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() == (1,)
+    assert not db_cursor.fetchone()
 
 
 async def test_fully_delete_subobjects_of_other_objects(cli, db_cursor):
@@ -88,17 +88,17 @@ async def test_fully_delete_subobjects_of_other_objects(cli, db_cursor):
 
     body = get_bulk_upsert_request_body(
         objects=[get_bulk_upsert_object()],
-        fully_deleted_subobject_ids=[1]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200
 
-    # Check if object was not deleted
+    # Check if object was deleted
     db_cursor.execute("SELECT object_id FROM objects WHERE object_id = 1")
-    assert db_cursor.fetchone() == (1,)
+    assert not db_cursor.fetchone()
 
 
-async def test_fully_delete_removed_subobject_of_an_upserted_composite_object(cli, db_cursor):
+async def test_fully_deleted_removed_subobject_of_an_upserted_composite_object(cli, db_cursor):
     # Insert an existing object & its subobject
     insert_objects([
         get_object_attrs(1),
@@ -115,7 +115,7 @@ async def test_fully_delete_removed_subobject_of_an_upserted_composite_object(cl
         objects=[get_bulk_upsert_object(
             object_id=2, object_type="composite", object_data=get_composite_data(subobjects=[])
         )],
-        fully_deleted_subobject_ids=[1]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200
@@ -132,7 +132,7 @@ async def test_fully_delete_objects_which_are_not_subobjects_of_other_objects(cl
 
     body = get_bulk_upsert_request_body(
         objects=[get_bulk_upsert_object()],
-        fully_deleted_subobject_ids=[1]
+        deleted_object_ids=[1]
     )
     resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
     assert resp.status == 200

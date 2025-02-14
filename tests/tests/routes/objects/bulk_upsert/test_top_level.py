@@ -16,7 +16,7 @@ async def test_incorrect_values(cli, db_cursor):
     assert resp.status == 400
 
     # Missing attributes
-    for attr in ("objects", "fully_deleted_subobject_ids"):
+    for attr in ("objects", "deleted_object_ids"):
         body = get_bulk_upsert_request_body()
         body.pop(attr)
         resp = await cli.post("/objects/bulk_upsert", json=body, headers=headers_admin_token)
@@ -28,7 +28,7 @@ async def test_incorrect_values(cli, db_cursor):
             None, False, 1, "str", {}, [], [1], ["str"], 
             [get_bulk_upsert_object(i) for i in range(-100, 1)]
         ]
-        # "fully_deleted_subobject_ids":    # tested in test_fully_subobject_ids.py
+        # "deleted_object_ids":    # tested in test_fully_subobject_ids.py
     }
     for attr, values in incorrect_values.items():
         for value in values:

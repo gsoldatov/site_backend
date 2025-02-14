@@ -8,10 +8,8 @@ from backend_main.db_operations.objects.data.markdown import \
 from backend_main.db_operations.objects.data.to_do_lists import \
     upsert_to_do_lists as _upsert_to_do_lists, view_to_do_lists as _view_to_do_lists
 from backend_main.db_operations.objects.data.composite import \
-    upsert_composite as _upsert_composite, view_composite as _view_composite, \
-    view_existing_subobject_ids as _view_existing_subobject_ids
+    upsert_composite as _upsert_composite, view_composite as _view_composite
 
-from backend_main.domains.objects.general import delete_objects
 from backend_main.domains.objects.attributes import ensure_objects_types
 
 from backend_main.util.exceptions import ObjectsNotFound
@@ -75,14 +73,3 @@ async def view_objects_data(request: Request, object_ids: list[int]) -> list[Obj
         result += await _view_composite(request, object_ids)
     
     return result
-
-
-async def fully_delete_subobjects(request: Request, subobject_ids: list[int]) -> None:
-    """
-    Deletes objects with IDs from `subobject_ids`, which are not present in any parent objects.
-    """
-    if len(subobject_ids) == 0: return
-    subobject_ids_set = set(subobject_ids)
-    existing_subobject_ids = await _view_existing_subobject_ids(request, subobject_ids_set)
-    non_existing_subobject_ids = subobject_ids_set.difference(existing_subobject_ids)
-    await delete_objects(request, non_existing_subobject_ids, False)

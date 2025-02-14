@@ -11,7 +11,7 @@ from backend_main.db_operations.untyped.objects import add_objects as add_object
     update_objects_data as update_objects_data_untyped
 from backend_main.domains.objects.attributes import add_objects, update_objects, \
     update_modified_at, view_objects_attributes_and_tags
-from backend_main.domains.objects.data import upsert_objects_data, view_objects_data, fully_delete_subobjects
+from backend_main.domains.objects.data import upsert_objects_data, view_objects_data
 from backend_main.domains.objects.general import view_page_object_ids, search_objects, \
     view_composite_hierarchy, delete_objects, map_objects_ids
 from backend_main.domains.objects_tags import add_objects_tags, delete_objects_tags, \
@@ -153,15 +153,7 @@ async def bulk_upsert(request: Request) -> ObjectsBulkUpsertResponseBody:
     await upsert_objects_data(request, objects_id_type_and_data)    
 
     # Delete subobjects marked as fully deleted
-    # (NOTE: this is done after composite object data is updated, because
-    # domain function does not check, if parent IDs belong to the upserted objects
-    # (which should be excluded from the check))
-    #
-    # Object IDs, added during the request, are filtered from full deletion
-    fully_deleted_subobject_ids = list(
-        set(data.fully_deleted_subobject_ids).difference(set(objects_ids_map.map.values()))
-    )
-    await fully_delete_subobjects(request, fully_deleted_subobject_ids)
+    await delete_objects(request, data.deleted_object_ids, False)
 
     # View upserts objects attributes, tags & data and return them
     object_ids = list(o.object_id for o in mapped_objects)
