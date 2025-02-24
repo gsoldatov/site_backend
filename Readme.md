@@ -1,5 +1,5 @@
 # General
-A backend API for [site frontend](https://github.com/gsoldatov/site_frontend), implemented using Aiohttp & Postgresql.
+A backend API for a [personal blog/notebook](https://github.com/gsoldatov/site_frontend) implemented, using Aiohttp & Postgresql.
 
 [Deployment](https://github.com/gsoldatov/site_deployment) repo contains a set of Ansible playbooks for deploying this repo and frontend.
 
